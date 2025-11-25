@@ -103,7 +103,7 @@ export function Navbar() {
                   <div className="absolute right-0 top-12 w-56 bg-popover border border-border rounded-md shadow-lg z-50">
                     <div className="py-2">
                       <Link
-                        href="/user/profile"
+                        href="/user/profile/current"
                         className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition"
                         onClick={() => setIsAvatarMenuOpen(false)}
                       >

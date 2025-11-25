@@ -34,6 +34,10 @@ export function PostCard({ post }: PostCardProps) {
     router.push(`/user/post/${post.id}`)
   }
 
+  const handleUserClick = () => {
+    router.push(`/user/profile/${post.author.id}`)
+  }
+
   return (
     <>
       <article className="mb-6 rounded-lg border border-border bg-card p-4">
@@ -43,11 +47,17 @@ export function PostCard({ post }: PostCardProps) {
             <img
               src={post.author.avatar || "/placeholder.svg"}
               alt={post.author.name}
-              className="h-10 w-10 rounded-full"
+              className="h-10 w-10 rounded-full cursor-pointer hover:opacity-80 transition"
+              onClick={handleUserClick}
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="font-semibold text-foreground">{post.author.name}</p>
+                <p
+                  className="font-semibold text-foreground cursor-pointer hover:text-primary transition"
+                  onClick={handleUserClick}
+                >
+                  {post.author.name}
+                </p>
                 <span className="text-sm text-muted-foreground">{post.createdAt}</span>
               </div>
             </div>

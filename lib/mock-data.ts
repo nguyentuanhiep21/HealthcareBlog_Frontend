@@ -4,7 +4,7 @@ export const mockUsers: Record<string, User> = {
   user1: {
     id: "user1",
     name: "Tuấn Hiệp",
-    avatar: "/avatar-man-health.jpg",
+    avatar: "https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=400&h=400&fit=crop",
     bio: "Chuyên gia sức khỏe, yêu thích yoga và dinh dưỡng",
     followers: 1250,
     following: 342,
@@ -40,7 +40,7 @@ export const mockUsers: Record<string, User> = {
   currentUser: {
     id: "current",
     name: "Bạn",
-    avatar: "/profile-avatar.png",
+    avatar: "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=400&h=400&fit=crop",
     bio: "Yêu sức khỏe, yêu cuộc sống",
     followers: 450,
     following: 328,

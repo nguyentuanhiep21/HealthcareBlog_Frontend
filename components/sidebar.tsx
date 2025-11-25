@@ -1,15 +1,21 @@
-'use client';
+"use client"
 
-import { useState } from 'react';
-import { mockFeaturedPosts, mockSuggestedUsers, mockPosts } from '@/lib/mock-data';
-import Link from 'next/link';
-import { Heart, MessageCircle } from 'lucide-react';
-import { ImageViewerModal } from './image-viewer-modal';
+import { useState } from "react"
+import { mockFeaturedPosts, mockSuggestedUsers, mockPosts } from "@/lib/mock-data"
+import Link from "next/link"
+import { Heart, MessageCircle } from "lucide-react"
+import { ImageViewerModal } from "./image-viewer-modal"
+import { useRouter } from "next/navigation"
 
 export function Sidebar() {
+  const router = useRouter()
   // Filter saved posts
-  const savedPosts = mockPosts.filter((post) => post.isSaved);
-  const [selectedPost, setSelectedPost] = useState<typeof savedPosts[0] | null>(null);
+  const savedPosts = mockPosts.filter((post) => post.isSaved)
+  const [selectedPost, setSelectedPost] = useState<(typeof savedPosts)[0] | null>(null)
+
+  const handleUserClick = (userId: string) => {
+    router.push(`/user/profile/${userId}`)
+  }
 
   return (
     <>
@@ -29,7 +35,7 @@ export function Sidebar() {
                 </h3>
                 <div className="mt-2 flex gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
-                    <Heart className="h-3 w-3" /> {post.likes.toLocaleString('vi-VN')}
+                    <Heart className="h-3 w-3" /> {post.likes.toLocaleString("vi-VN")}
                   </span>
                   <span className="flex items-center gap-1">
                     <MessageCircle className="h-3 w-3" /> {post.comments}
@@ -51,12 +57,18 @@ export function Sidebar() {
               >
                 <div className="flex items-center gap-2 flex-1">
                   <img
-                    src={user.avatar || '/placeholder.svg'}
+                    src={user.avatar || "/placeholder.svg"}
                     alt={user.name}
-                    className="h-8 w-8 rounded-full"
+                    className="h-8 w-8 rounded-full cursor-pointer hover:opacity-80 transition"
+                    onClick={() => handleUserClick(user.id)}
                   />
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground">{user.name}</p>
+                    <p
+                      className="text-sm font-semibold text-foreground cursor-pointer hover:text-primary transition"
+                      onClick={() => handleUserClick(user.id)}
+                    >
+                      {user.name}
+                    </p>
                     <p className="text-xs text-muted-foreground">{user.followers} người theo dõi</p>
                   </div>
                 </div>
@@ -80,11 +92,11 @@ export function Sidebar() {
                   className="block rounded-lg border border-border bg-card overflow-hidden hover:border-primary transition cursor-pointer group"
                 >
                   {post.image && (
-                    <div 
+                    <div
                       className="relative h-24 overflow-hidden bg-muted"
                       onClick={(e) => {
-                        e.preventDefault();
-                        setSelectedPost(post);
+                        e.preventDefault()
+                        setSelectedPost(post)
                       }}
                     >
                       <img
@@ -103,9 +115,7 @@ export function Sidebar() {
                 </Link>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-6">
-                Chưa có bài viết nào được lưu
-              </p>
+              <p className="text-sm text-muted-foreground text-center py-6">Chưa có bài viết nào được lưu</p>
             )}
           </div>
         </section>
@@ -113,12 +123,8 @@ export function Sidebar() {
 
       {/* Image Viewer Modal */}
       {selectedPost && (
-        <ImageViewerModal
-          post={selectedPost}
-          isOpen={!!selectedPost}
-          onClose={() => setSelectedPost(null)}
-        />
+        <ImageViewerModal post={selectedPost} isOpen={!!selectedPost} onClose={() => setSelectedPost(null)} />
       )}
     </>
-  );
+  )
 }
