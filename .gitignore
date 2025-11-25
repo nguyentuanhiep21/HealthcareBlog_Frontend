@@ -21,6 +21,9 @@ build/
 *.swp
 *.swo
 
+# Assets
+assets/
+
 # OS
 .DS_Store
 Thumbs.db
