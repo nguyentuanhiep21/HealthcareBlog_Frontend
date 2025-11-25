@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { use, useState } from "react"
 import { Navbar } from "@/components/navbar"
 import { PostCard } from "@/components/post-card"
 import { mockUsers, mockPosts } from "@/lib/mock-data"
 
-export default function UserProfilePage({ params }: { params: { userId: string } }) {
-  const { userId } = params
+export default function UserProfilePage({ params }: { params: Promise<{ userId: string }> }) {
+  const { userId } = use(params)
   const isCurrentUser = userId === "current"
   const viewedUser = isCurrentUser ? mockUsers.currentUser : mockUsers[userId]
 

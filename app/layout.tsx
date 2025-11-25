@@ -13,8 +13,8 @@ export const metadata: Metadata = {
   title: 'Sức Khỏe - Chia sẻ kiến thức sức khỏe',
   description: 'Nền tảng chia sẻ kiến thức sức khỏe, lối sống lành mạnh, cộng đồng yêu sức khỏe',
   icons: {
-    icon: '/favicon.png',
-    apple: '/favicon.png',
+    icon: '/app-admin-assets-logo.png',
+    apple: '/app-admin-assets-logo.png',
   },
 }
 
