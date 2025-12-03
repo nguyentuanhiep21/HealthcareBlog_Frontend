@@ -5,6 +5,7 @@ import { Heart, MessageCircle, Bookmark, MoreVertical, Flag } from "lucide-react
 import type { Post } from "@/lib/types"
 import { CommentSection } from "./comment-section"
 import { ImageViewerModal } from "./image-viewer-modal"
+import { ReportDialog } from "./report-dialog"
 import { mockComments } from "@/lib/mock-data"
 import { useRouter } from "next/navigation"
 
@@ -20,6 +21,7 @@ export function PostCard({ post }: PostCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [showImageViewer, setShowImageViewer] = useState(false)
+  const [showReportDialog, setShowReportDialog] = useState(false)
 
   const handleLike = () => {
     setIsLiked(!isLiked)
@@ -36,6 +38,11 @@ export function PostCard({ post }: PostCardProps) {
 
   const handleUserClick = () => {
     router.push(`/user/profile/${post.author.id}`)
+  }
+
+  const handleReportSubmit = (reason: string, details: string) => {
+    console.log("Report submitted:", { postId: post.id, reason, details })
+    // TODO: Send report to backend
   }
 
   return (
@@ -75,7 +82,13 @@ export function PostCard({ post }: PostCardProps) {
             {isMenuOpen && (
               <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-border bg-card shadow-lg z-10">
                 <div className="flex flex-col gap-1 p-2">
-                  <button className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive">
+                  <button
+                    onClick={() => {
+                      setShowReportDialog(true)
+                      setIsMenuOpen(false)
+                    }}
+                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive"
+                  >
                     <Flag className="h-4 w-4" />
                     <span className="text-sm">Báo cáo</span>
                   </button>
@@ -142,6 +155,14 @@ export function PostCard({ post }: PostCardProps) {
 
       {/* Image Viewer Modal */}
       <ImageViewerModal post={post} isOpen={showImageViewer} onClose={() => setShowImageViewer(false)} />
+
+      {/* Report Dialog */}
+      <ReportDialog
+        isOpen={showReportDialog}
+        onClose={() => setShowReportDialog(false)}
+        onSubmit={handleReportSubmit}
+        targetType="post"
+      />
     </>
   )
 }

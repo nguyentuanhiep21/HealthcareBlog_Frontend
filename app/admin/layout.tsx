@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Users, FileText, MessageSquare } from "lucide-react"
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -9,10 +10,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
-            <Link href="/admin/users" className="text-2xl font-bold text-primary">
-              Health Admin
+            <Link href="/admin/users">
+              <Image src="/care-logo.png" alt="Health Care Logo" width={288} height={96} className="h-24 w-auto" />
             </Link>
-            <Link href="/" className="text-sm text-muted-foreground hover:text-primary">
+            <Link href="/user" className="text-sm text-muted-foreground hover:text-primary">
               Về trang chủ
             </Link>
           </div>

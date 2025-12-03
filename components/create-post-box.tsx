@@ -1,28 +1,43 @@
-'use client';
+"use client"
 
-import { useState } from 'react';
-import { Image } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { mockUsers } from '@/lib/mock-data';
+import { useState } from "react"
+import { ImageIcon } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { mockUsers } from "@/lib/mock-data"
+import type { Post } from "@/lib/types"
 
 interface CreatePostBoxProps {
-  onPostCreate?: () => void;
+  onPostCreate?: (newPost: Post) => void
 }
 
 export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [caption, setCaption] = useState('');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const currentUser = mockUsers.currentUser;
+  const [isOpen, setIsOpen] = useState(false)
+  const [caption, setCaption] = useState("")
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const currentUser = mockUsers.currentUser
 
   const handleSubmit = () => {
     if (caption.trim()) {
-      setCaption('');
-      setSelectedImage(null);
-      setIsOpen(false);
-      onPostCreate?.();
+      const newPost: Post = {
+        id: `post-${Date.now()}`,
+        author: currentUser,
+        caption: caption.trim(),
+        image: selectedImage || undefined,
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        timestamp: "Vừa xong",
+        isLiked: false,
+        isSaved: false,
+      }
+
+      setCaption("")
+      setSelectedImage(null)
+      setIsOpen(false)
+
+      onPostCreate?.(newPost)
     }
-  };
+  }
 
   if (!isOpen) {
     return (
@@ -41,26 +56,22 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
           </button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
     <div className="mb-6 rounded-lg border border-border bg-card p-6">
       <div className="mb-4 flex items-start gap-3">
-        <img
-          src={currentUser.avatar || "/placeholder.svg"}
-          alt={currentUser.name}
-          className="h-10 w-10 rounded-full"
-        />
+        <img src={currentUser.avatar || "/placeholder.svg"} alt={currentUser.name} className="h-10 w-10 rounded-full" />
         <div className="flex-1">
           <h3 className="font-semibold">{currentUser.name}</h3>
           <p className="text-xs text-muted-foreground">Chỉ mình tôi</p>
         </div>
         <button
           onClick={() => {
-            setIsOpen(false);
-            setCaption('');
-            setSelectedImage(null);
+            setIsOpen(false)
+            setCaption("")
+            setSelectedImage(null)
           }}
           className="text-2xl text-muted-foreground transition hover:text-foreground"
         >
@@ -78,11 +89,7 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
 
       {selectedImage && (
         <div className="mb-4 relative bg-secondary rounded-lg h-64 overflow-hidden">
-          <img
-            src={selectedImage || "/placeholder.svg"}
-            alt="Preview"
-            className="w-full h-full object-cover"
-          />
+          <img src={selectedImage || "/placeholder.svg"} alt="Preview" className="w-full h-full object-cover" />
           <button
             onClick={() => setSelectedImage(null)}
             className="absolute top-2 right-2 bg-background/90 text-foreground rounded-full h-8 w-8 flex items-center justify-center hover:bg-background"
@@ -94,18 +101,18 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
 
       <div className="mb-4 flex gap-2 border-t border-border pt-4">
         <label className="flex items-center gap-2 cursor-pointer text-primary hover:text-primary/80 transition">
-          <Image className="h-5 w-5" />
+          <ImageIcon className="h-5 w-5" />
           <input
             type="file"
             accept="image/*"
             onChange={(e) => {
-              const file = e.target.files?.[0];
+              const file = e.target.files?.[0]
               if (file) {
-                const reader = new FileReader();
+                const reader = new FileReader()
                 reader.onload = (event) => {
-                  setSelectedImage(event.target?.result as string);
-                };
-                reader.readAsDataURL(file);
+                  setSelectedImage(event.target?.result as string)
+                }
+                reader.readAsDataURL(file)
               }
             }}
             className="hidden"
@@ -116,11 +123,11 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
       <div className="flex gap-2">
         <Button
           variant="outline"
-          className="flex-1"
+          className="flex-1 bg-transparent"
           onClick={() => {
-            setIsOpen(false);
-            setCaption('');
-            setSelectedImage(null);
+            setIsOpen(false)
+            setCaption("")
+            setSelectedImage(null)
           }}
         >
           Hủy
@@ -134,5 +141,5 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
         </Button>
       </div>
     </div>
-  );
+  )
 }
