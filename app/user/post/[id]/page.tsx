@@ -2,7 +2,7 @@
 
 import type React from "react"
 import Image from "next/image"
-import { useState } from "react"
+import { useState, use } from "react"
 import { Heart, MessageCircle, Bookmark, MoreVertical, Flag, X, Bell, Settings, User } from "lucide-react"
 import { mockPosts, mockComments, mockUsers } from "@/lib/mock-data"
 import Link from "next/link"
@@ -10,20 +10,21 @@ import { CommentSection } from "@/components/comment-section"
 import { ReportDialog } from "@/components/report-dialog"
 
 interface PostDetailPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default function PostDetailPage({ params }: PostDetailPageProps) {
-  const post = mockPosts.find((p) => p.id === params.id)
+  const { id } = use(params)
+  const post = mockPosts.find((p) => p.id === id)
   const [isLiked, setIsLiked] = useState(post?.isLiked || false)
   const [isSaved, setIsSaved] = useState(post?.isSaved || false)
   const [likeCount, setLikeCount] = useState(post?.likes || 0)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false)
   const [showComments, setShowComments] = useState(false)
-  const [comments, setComments] = useState(mockComments[params.id] || [])
+  const [comments, setComments] = useState(mockComments[id] || [])
   const [commentText, setCommentText] = useState("")
   const currentUser = mockUsers.currentUser
   const [showReportDialog, setShowReportDialog] = useState(false)
@@ -52,7 +53,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
     const newComment = {
       id: `comment-${Date.now()}`,
-      postId: params.id,
+      postId: id,
       author: currentUser,
       text: commentText,
       likes: 0,
@@ -80,7 +81,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   }
 
   const handleReportSubmit = (reason: string, details: string) => {
-    console.log("Report submitted:", { postId: params.id, reason, details })
+    console.log("Report submitted:", { postId: id, reason, details })
     // TODO: Send report to backend
   }
 
