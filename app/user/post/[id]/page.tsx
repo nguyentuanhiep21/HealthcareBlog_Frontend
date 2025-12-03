@@ -1,12 +1,13 @@
 "use client"
 
 import type React from "react"
-
+import Image from "next/image"
 import { useState } from "react"
 import { Heart, MessageCircle, Bookmark, MoreVertical, Flag, X, Bell, Settings, User } from "lucide-react"
 import { mockPosts, mockComments, mockUsers } from "@/lib/mock-data"
 import Link from "next/link"
 import { CommentSection } from "@/components/comment-section"
+import { ReportDialog } from "@/components/report-dialog"
 
 interface PostDetailPageProps {
   params: {
@@ -25,6 +26,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const [comments, setComments] = useState(mockComments[params.id] || [])
   const [commentText, setCommentText] = useState("")
   const currentUser = mockUsers.currentUser
+  const [showReportDialog, setShowReportDialog] = useState(false)
 
   if (!post) {
     return (
@@ -77,19 +79,24 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     )
   }
 
+  const handleReportSubmit = (reason: string, details: string) => {
+    console.log("Report submitted:", { postId: params.id, reason, details })
+    // TODO: Send report to backend
+  }
+
   return (
     <main className="fixed inset-0 z-50 bg-background overflow-hidden">
       <div className="border-b border-border bg-background/95 backdrop-blur h-16 flex items-center justify-between px-6">
         {/* Left - Close and Logo */}
         <div className="flex items-center gap-4">
           <Link
-            href="/"
+            href="/user"
             className="rounded-full p-2 hover:bg-secondary transition text-muted-foreground hover:text-foreground"
           >
             <X className="h-6 w-6" />
           </Link>
-          <Link href="/" className="text-2xl font-bold text-primary">
-            Health
+          <Link href="/user">
+            <Image src="/care-logo.png" alt="Health Care Logo" width={288} height={96} className="h-24 w-auto" />
           </Link>
         </div>
 
@@ -108,7 +115,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               <img
                 src={currentUser.avatar || "/placeholder.svg"}
                 alt={currentUser.name}
-                className="h-7 w-7 rounded-full"
+                className="h-7 w-7 rounded-full cursor-pointer hover:opacity-80"
               />
             </button>
 
@@ -181,7 +188,13 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
                 {isMenuOpen && (
                   <div className="absolute right-0 top-full mt-2 w-40 rounded-lg border border-border bg-card shadow-lg z-10">
-                    <button className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive text-base">
+                    <button
+                      onClick={() => {
+                        setShowReportDialog(true)
+                        setIsMenuOpen(false)
+                      }}
+                      className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive text-base"
+                    >
                       <Flag className="h-4 w-4" />
                       <span>Báo cáo</span>
                     </button>
@@ -285,6 +298,14 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
       {/* Comments Modal - For expanded view */}
       {showComments && <CommentSection comments={comments} onClose={() => setShowComments(false)} />}
+
+      {/* Report Dialog */}
+      <ReportDialog
+        isOpen={showReportDialog}
+        onClose={() => setShowReportDialog(false)}
+        onSubmit={handleReportSubmit}
+        targetType="post"
+      />
     </main>
   )
 }

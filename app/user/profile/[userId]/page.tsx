@@ -3,7 +3,11 @@
 import { use, useState } from "react"
 import { Navbar } from "@/components/navbar"
 import { PostCard } from "@/components/post-card"
+import { ReportDialog } from "@/components/report-dialog"
+import { CreatePostBox } from "@/components/create-post-box"
 import { mockUsers, mockPosts } from "@/lib/mock-data"
+import { Flag } from "lucide-react"
+import type { Post } from "@/lib/types"
 
 export default function UserProfilePage({ params }: { params: Promise<{ userId: string }> }) {
   const { userId } = use(params)
@@ -13,24 +17,28 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
   const [activeTab, setActiveTab] = useState("home")
   const [bio, setBio] = useState(viewedUser ? viewedUser.bio : "")
   const [isEditingBio, setIsEditingBio] = useState(false)
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false)
+  const [userPosts, setUserPosts] = useState(mockPosts.filter((post) => post.author.id === viewedUser.id))
 
   const handleSaveBio = () => {
     setIsEditingBio(false)
     // In a real app, would save to database here
   }
 
+  const handlePostCreate = (newPost: Post) => {
+    setUserPosts([newPost, ...userPosts])
+  }
+
   if (!viewedUser) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="mx-auto max-w-3xl px-4 py-8">
+        <div className="mx-auto max-w-7xl px-4 py-8">
           <p className="text-center text-muted-foreground">Không tìm thấy người dùng</p>
         </div>
       </div>
     )
   }
-
-  const userPosts = mockPosts.filter((post) => post.author.id === viewedUser.id)
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,7 +57,18 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
 
             {/* Info */}
             <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-1">{viewedUser.name}</h1>
+              <div className="flex items-start justify-between mb-1">
+                <h1 className="text-3xl font-bold">{viewedUser.name}</h1>
+                {!isCurrentUser && (
+                  <button
+                    onClick={() => setIsReportDialogOpen(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition"
+                  >
+                    <Flag className="h-4 w-4" />
+                    Báo cáo
+                  </button>
+                )}
+              </div>
               <p className="text-muted-foreground mb-4">{bio}</p>
 
               <div className="flex gap-6 mb-4">
@@ -99,6 +118,8 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         {/* Content */}
         {activeTab === "home" && (
           <div className="space-y-4">
+            {isCurrentUser && <CreatePostBox onPostCreate={handlePostCreate} />}
+
             {userPosts.length > 0 ? (
               userPosts.map((post) => <PostCard key={post.id} post={post} />)
             ) : (
@@ -154,12 +175,19 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
 
               <div>
                 <h3 className="font-semibold mb-2">Tham gia</h3>
-                <p className="text-muted-foreground">Tháng 11, 2025</p>
+                <p className="text-sm text-muted-foreground">Tháng 11, 2025</p>
               </div>
             </div>
           </div>
         )}
       </div>
+
+      <ReportDialog
+        isOpen={isReportDialogOpen}
+        onClose={() => setIsReportDialogOpen(false)}
+        type="user"
+        targetName={viewedUser.name}
+      />
     </div>
   )
 }

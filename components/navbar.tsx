@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { mockUsers } from "@/lib/mock-data"
 import { NotificationDropdown } from "@/components/notification-dropdown"
+import Image from "next/image"
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -68,8 +69,8 @@ export function Navbar() {
             </div>
 
             {/* Logo/Brand */}
-            <Link href="/user" className="font-bold text-2xl text-primary">
-              Health
+            <Link href="/user" className="flex items-center">
+              <Image src="/care-logo.png" alt="Health Care Logo" width={288} height={96} className="h-24 w-auto" />
             </Link>
 
             {/* Search Bar */}
