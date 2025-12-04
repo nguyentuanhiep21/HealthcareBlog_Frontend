@@ -3,13 +3,12 @@
 import type React from "react"
 import Image from "next/image"
 import { useState, use } from "react"
-import { Heart, MessageCircle, Bookmark, MoreVertical, Flag, X, LogIn, Bell, User, Settings } from "lucide-react"
+import { Heart, Bookmark, MoreVertical, Flag, X, LogIn, Bell, User, Settings } from "lucide-react"
 import { mockPosts, mockComments, mockUsers } from "@/lib/mock-data"
 import { useAuth } from "@/components/auth-provider"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { CommentSection } from "@/components/comment-section"
 import { ReportDialog } from "@/components/report-dialog"
 
 interface PostDetailPageProps {
@@ -27,7 +26,6 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const [likeCount, setLikeCount] = useState(post?.likes || 0)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false)
-  const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState(mockComments[id] || [])
   const [commentText, setCommentText] = useState("")
   const [showLoginDialog, setShowLoginDialog] = useState(false)
@@ -54,14 +52,6 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     }
     setIsLiked(!isLiked)
     setLikeCount(isLiked ? likeCount - 1 : likeCount + 1)
-  }
-
-  const handleCommentClick = () => {
-    if (!isAuthenticated) {
-      setShowLoginDialog(true)
-      return
-    }
-    setShowComments(true)
   }
 
   const handleSubmitComment = (e: React.FormEvent) => {
@@ -261,14 +251,6 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               </button>
 
               <button
-                onClick={handleCommentClick}
-                className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2 hover:bg-secondary transition text-base text-muted-foreground"
-              >
-                <MessageCircle className="h-4 w-4" />
-                <span>Bình luận</span>
-              </button>
-
-              <button
                 onClick={() => {
                   if (!isAuthenticated) {
                     setShowLoginDialog(true)
@@ -347,9 +329,6 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           </div>
         </div>
       </div>
-
-      {/* Comments Modal - For expanded view */}
-      {showComments && <CommentSection comments={comments} onClose={() => setShowComments(false)} />}
 
       {/* Report Dialog */}
       <ReportDialog
