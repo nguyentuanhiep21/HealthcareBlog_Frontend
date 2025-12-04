@@ -3,12 +3,14 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useAuth } from "@/components/auth-provider"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { login } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -23,6 +25,7 @@ export default function LoginPage() {
     // Bypass validation if credentials are "test"
     if (email === "test" && password === "test") {
       await new Promise((resolve) => setTimeout(resolve, 500))
+      login()
       router.push("/user")
       return
     }
@@ -138,6 +141,20 @@ export default function LoginPage() {
             {isLoading ? "Đang đăng nhập..." : "Đăng Nhập"}
           </Button>
         </form>
+
+        {/* Browse as Guest */}
+        <div className="pt-2 border-t border-border">
+          <Link href="/user" className="block">
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full h-10 text-primary hover:bg-primary/10 font-medium flex items-center justify-center gap-2"
+            >
+              Xem trang chủ
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
 
         {/* Sign Up Link */}
         <p className="text-center text-sm text-muted-foreground">

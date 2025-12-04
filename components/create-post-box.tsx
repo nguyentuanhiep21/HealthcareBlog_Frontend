@@ -4,6 +4,8 @@ import { useState } from "react"
 import { ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { mockUsers } from "@/lib/mock-data"
+import { useAuth } from "@/components/auth-provider"
+import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import type { Post } from "@/lib/types"
 
 interface CreatePostBoxProps {
@@ -11,10 +13,20 @@ interface CreatePostBoxProps {
 }
 
 export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
+  const { isAuthenticated } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [caption, setCaption] = useState("")
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
   const currentUser = mockUsers.currentUser
+
+  const handleOpenCreate = () => {
+    if (!isAuthenticated) {
+      setShowLoginDialog(true)
+      return
+    }
+    setIsOpen(true)
+  }
 
   const handleSubmit = () => {
     if (caption.trim()) {
@@ -43,18 +55,21 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
     return (
       <div className="mb-6 rounded-lg border border-border bg-card p-4">
         <div className="flex gap-3">
-          <img
-            src={currentUser.avatar || "/placeholder.svg"}
-            alt={currentUser.name}
-            className="h-10 w-10 rounded-full"
-          />
+          {isAuthenticated && (
+            <img
+              src={currentUser.avatar || "/placeholder.svg"}
+              alt={currentUser.name}
+              className="h-10 w-10 rounded-full"
+            />
+          )}
           <button
-            onClick={() => setIsOpen(true)}
+            onClick={handleOpenCreate}
             className="flex-1 rounded-full border border-border bg-gray-100 px-4 py-2 text-left text-sm text-muted-foreground transition hover:bg-gray-200"
           >
-            {currentUser.name}, bạn đang nghĩ gì?
+            {isAuthenticated ? `${currentUser.name}, bạn đang nghĩ gì?` : "Bạn đang nghĩ gì?"}
           </button>
         </div>
+        <LoginRequiredDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />
       </div>
     )
   }

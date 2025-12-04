@@ -3,8 +3,11 @@
 import type React from "react"
 import Image from "next/image"
 import { useState, use } from "react"
-import { Heart, MessageCircle, Bookmark, MoreVertical, Flag, X, Bell, Settings, User } from "lucide-react"
+import { Heart, MessageCircle, Bookmark, MoreVertical, Flag, X, LogIn, Bell, User, Settings } from "lucide-react"
 import { mockPosts, mockComments, mockUsers } from "@/lib/mock-data"
+import { useAuth } from "@/components/auth-provider"
+import { LoginRequiredDialog } from "@/components/login-required-dialog"
+import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { CommentSection } from "@/components/comment-section"
 import { ReportDialog } from "@/components/report-dialog"
@@ -16,6 +19,7 @@ interface PostDetailPageProps {
 }
 
 export default function PostDetailPage({ params }: PostDetailPageProps) {
+  const { isAuthenticated } = useAuth()
   const { id } = use(params)
   const post = mockPosts.find((p) => p.id === id)
   const [isLiked, setIsLiked] = useState(post?.isLiked || false)
@@ -26,6 +30,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState(mockComments[id] || [])
   const [commentText, setCommentText] = useState("")
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
   const currentUser = mockUsers.currentUser
   const [showReportDialog, setShowReportDialog] = useState(false)
 
@@ -43,8 +48,20 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   }
 
   const handleLike = () => {
+    if (!isAuthenticated) {
+      setShowLoginDialog(true)
+      return
+    }
     setIsLiked(!isLiked)
     setLikeCount(isLiked ? likeCount - 1 : likeCount + 1)
+  }
+
+  const handleCommentClick = () => {
+    if (!isAuthenticated) {
+      setShowLoginDialog(true)
+      return
+    }
+    setShowComments(true)
   }
 
   const handleSubmitComment = (e: React.FormEvent) => {
@@ -67,6 +84,10 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   }
 
   const handleCommentLike = (commentId: string) => {
+    if (!isAuthenticated) {
+      setShowLoginDialog(true)
+      return
+    }
     setComments(
       comments.map((comment) =>
         comment.id === commentId
@@ -103,46 +124,57 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
         {/* Right - Avatar and Notification */}
         <div className="flex items-center gap-4">
-          <button className="rounded-full p-2 hover:bg-secondary transition text-muted-foreground hover:text-foreground">
-            <Bell className="h-5.5 w-5.5" />
-          </button>
+          {isAuthenticated ? (
+            <>
+              <button className="rounded-full p-2 hover:bg-secondary transition text-muted-foreground hover:text-foreground">
+                <Bell className="h-5.5 w-5.5" />
+              </button>
 
-          {/* Avatar with dropdown menu */}
-          <div className="relative">
-            <button
-              onClick={() => setIsAvatarMenuOpen(!isAvatarMenuOpen)}
-              className="rounded-full overflow-hidden hover:opacity-80 transition"
-            >
-              <img
-                src={currentUser.avatar || "/placeholder.svg"}
-                alt={currentUser.name}
-                className="h-7 w-7 rounded-full cursor-pointer hover:opacity-80"
-              />
-            </button>
+              {/* Avatar with dropdown menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsAvatarMenuOpen(!isAvatarMenuOpen)}
+                  className="rounded-full overflow-hidden hover:opacity-80 transition"
+                >
+                  <img
+                    src={currentUser.avatar || "/placeholder.svg"}
+                    alt={currentUser.name}
+                    className="h-7 w-7 rounded-full cursor-pointer hover:opacity-80"
+                  />
+                </button>
 
-            {isAvatarMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 rounded-lg border border-border bg-card shadow-lg z-10">
-                <div className="flex flex-col gap-1 p-2">
-                  <Link
-                    href="/profile"
-                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-base"
-                    onClick={() => setIsAvatarMenuOpen(false)}
-                  >
-                    <User className="h-4 w-4" />
-                    <span>Trang cá nhân</span>
-                  </Link>
-                  <Link
-                    href="/settings"
-                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-base"
-                    onClick={() => setIsAvatarMenuOpen(false)}
-                  >
-                    <Settings className="h-4 w-4" />
-                    <span>Cài đặt</span>
-                  </Link>
-                </div>
+                {isAvatarMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 rounded-lg border border-border bg-card shadow-lg z-10">
+                    <div className="flex flex-col gap-1 p-2">
+                      <Link
+                        href="/profile"
+                        className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-base"
+                        onClick={() => setIsAvatarMenuOpen(false)}
+                      >
+                        <User className="h-4 w-4" />
+                        <span>Trang cá nhân</span>
+                      </Link>
+                      <Link
+                        href="/settings"
+                        className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-base"
+                        onClick={() => setIsAvatarMenuOpen(false)}
+                      >
+                        <Settings className="h-4 w-4" />
+                        <span>Cài đặt</span>
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          ) : (
+            <Link href="/auth/login">
+              <Button className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium">
+                <LogIn className="h-4 w-4" />
+                Đăng Nhập
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -191,6 +223,11 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   <div className="absolute right-0 top-full mt-2 w-40 rounded-lg border border-border bg-card shadow-lg z-10">
                     <button
                       onClick={() => {
+                        if (!isAuthenticated) {
+                          setShowLoginDialog(true)
+                          setIsMenuOpen(false)
+                          return
+                        }
                         setShowReportDialog(true)
                         setIsMenuOpen(false)
                       }}
@@ -224,7 +261,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               </button>
 
               <button
-                onClick={() => setShowComments(true)}
+                onClick={handleCommentClick}
                 className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2 hover:bg-secondary transition text-base text-muted-foreground"
               >
                 <MessageCircle className="h-4 w-4" />
@@ -232,7 +269,13 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               </button>
 
               <button
-                onClick={() => setIsSaved(!isSaved)}
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    setShowLoginDialog(true)
+                    return
+                  }
+                  setIsSaved(!isSaved)
+                }}
                 className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2 hover:bg-secondary transition text-base"
               >
                 <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current text-primary" : "text-muted-foreground"}`} />
@@ -280,17 +323,25 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
           <div className="border-t border-border p-4 flex-shrink-0">
             <form onSubmit={handleSubmitComment} className="flex gap-2">
-              <img
-                src={currentUser.avatar || "/placeholder.svg"}
-                alt={currentUser.name}
-                className="h-7 w-7 rounded-full flex-shrink-0"
-              />
+              {isAuthenticated && (
+                <img
+                  src={currentUser.avatar || "/placeholder.svg"}
+                  alt={currentUser.name}
+                  className="h-7 w-7 rounded-full flex-shrink-0"
+                />
+              )}
               <input
                 type="text"
-                placeholder="Viết bình luận..."
+                placeholder={isAuthenticated ? "Viết bình luận..." : "Đăng nhập để bình luận"}
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
-                className="flex-1 rounded-full bg-secondary px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary"
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    setShowLoginDialog(true)
+                  }
+                }}
+                disabled={!isAuthenticated}
+                className="flex-1 rounded-full bg-secondary px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </form>
           </div>
@@ -307,6 +358,9 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         onSubmit={handleReportSubmit}
         targetType="post"
       />
+
+      {/* Login Required Dialog */}
+      <LoginRequiredDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />
     </main>
   )
 }

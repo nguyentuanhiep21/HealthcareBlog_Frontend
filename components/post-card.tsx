@@ -6,8 +6,10 @@ import type { Post } from "@/lib/types"
 import { CommentSection } from "./comment-section"
 import { ImageViewerModal } from "./image-viewer-modal"
 import { ReportDialog } from "./report-dialog"
+import { LoginRequiredDialog } from "./login-required-dialog"
 import { mockComments } from "@/lib/mock-data"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/components/auth-provider"
 
 interface PostCardProps {
   post: Post
@@ -15,6 +17,7 @@ interface PostCardProps {
 
 export function PostCard({ post }: PostCardProps) {
   const router = useRouter()
+  const { isAuthenticated } = useAuth()
   const [isLiked, setIsLiked] = useState(post.isLiked)
   const [isSaved, setIsSaved] = useState(post.isSaved)
   const [likeCount, setLikeCount] = useState(post.likes)
@@ -22,10 +25,23 @@ export function PostCard({ post }: PostCardProps) {
   const [showComments, setShowComments] = useState(false)
   const [showImageViewer, setShowImageViewer] = useState(false)
   const [showReportDialog, setShowReportDialog] = useState(false)
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
 
   const handleLike = () => {
+    if (!isAuthenticated) {
+      setShowLoginDialog(true)
+      return
+    }
     setIsLiked(!isLiked)
     setLikeCount(isLiked ? likeCount - 1 : likeCount + 1)
+  }
+
+  const handleSave = () => {
+    if (!isAuthenticated) {
+      setShowLoginDialog(true)
+      return
+    }
+    setIsSaved(!isSaved)
   }
 
   const handleImageClick = () => {
@@ -84,6 +100,11 @@ export function PostCard({ post }: PostCardProps) {
                 <div className="flex flex-col gap-1 p-2">
                   <button
                     onClick={() => {
+                      if (!isAuthenticated) {
+                        setShowLoginDialog(true)
+                        setIsMenuOpen(false)
+                        return
+                      }
                       setShowReportDialog(true)
                       setIsMenuOpen(false)
                     }}
@@ -140,7 +161,7 @@ export function PostCard({ post }: PostCardProps) {
             </button>
 
             <button
-              onClick={() => setIsSaved(!isSaved)}
+              onClick={handleSave}
               className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 hover:bg-secondary transition"
             >
               <Bookmark className={`h-5 w-5 ${isSaved ? "fill-current text-primary" : "text-muted-foreground"}`} />
@@ -163,6 +184,9 @@ export function PostCard({ post }: PostCardProps) {
         onSubmit={handleReportSubmit}
         targetType="post"
       />
+
+      {/* Login Required Dialog */}
+      <LoginRequiredDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />
     </>
   )
 }

@@ -3,20 +3,22 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Search, Menu, Home, Bookmark, User, Settings, Users, UtensilsCrossed, LogOut } from "lucide-react"
+import { Search, Menu, Home, Bookmark, User, Settings, Users, UtensilsCrossed, LogOut, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { mockUsers } from "@/lib/mock-data"
 import { NotificationDropdown } from "@/components/notification-dropdown"
+import { useAuth } from "@/components/auth-provider"
 import Image from "next/image"
 
 export function Navbar() {
   const router = useRouter()
+  const { isAuthenticated, logout } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false)
 
   const handleLogout = () => {
-    // Clear any auth data if needed
+    logout()
     router.push("/auth/login")
   }
 
@@ -89,56 +91,65 @@ export function Navbar() {
 
           {/* Right Section: Notification + Avatar */}
           <div className="flex items-center gap-4">
-            {/* Notification Bell */}
-            <NotificationDropdown />
+            {/* Notification Bell - Only show if authenticated */}
+            {isAuthenticated && <NotificationDropdown />}
 
-            {/* Avatar with Dropdown */}
-            <div className="relative">
-              <button
-                className="rounded-full overflow-hidden p-0 border-0 bg-transparent cursor-pointer"
-                onClick={() => setIsAvatarMenuOpen(!isAvatarMenuOpen)}
-              >
-                <img
-                  src={mockUsers.currentUser.avatar || "/placeholder.svg"}
-                  alt={mockUsers.currentUser.name}
-                  className="h-8 w-8 rounded-full"
-                />
-              </button>
+            {/* Avatar with Dropdown or Login Button */}
+            {isAuthenticated ? (
+              <div className="relative">
+                <button
+                  className="rounded-full overflow-hidden p-0 border-0 bg-transparent cursor-pointer"
+                  onClick={() => setIsAvatarMenuOpen(!isAvatarMenuOpen)}
+                >
+                  <img
+                    src={mockUsers.currentUser.avatar || "/placeholder.svg"}
+                    alt={mockUsers.currentUser.name}
+                    className="h-8 w-8 rounded-full"
+                  />
+                </button>
 
-              {isAvatarMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsAvatarMenuOpen(false)} />
-                  <div className="absolute right-0 top-12 w-56 bg-popover border border-border rounded-md shadow-lg z-50">
-                    <div className="py-2">
-                      <Link
-                        href="/user/profile/current"
-                        className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition"
-                        onClick={() => setIsAvatarMenuOpen(false)}
-                      >
-                        <User className="h-5 w-5" />
-                        Trang cá nhân
-                      </Link>
-                      <Link
-                        href="/user/settings"
-                        className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition"
-                        onClick={() => setIsAvatarMenuOpen(false)}
-                      >
-                        <Settings className="h-5 w-5" />
-                        Cài đặt
-                      </Link>
-                      <div className="border-t border-border my-1" />
-                      <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition text-destructive hover:bg-destructive/10 text-left"
-                      >
-                        <LogOut className="h-5 w-5" />
-                        Đăng xuất
-                      </button>
+                {isAvatarMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsAvatarMenuOpen(false)} />
+                    <div className="absolute right-0 top-12 w-56 bg-popover border border-border rounded-md shadow-lg z-50">
+                      <div className="py-2">
+                        <Link
+                          href="/user/profile/current"
+                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition"
+                          onClick={() => setIsAvatarMenuOpen(false)}
+                        >
+                          <User className="h-5 w-5" />
+                          Trang cá nhân
+                        </Link>
+                        <Link
+                          href="/user/settings"
+                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition"
+                          onClick={() => setIsAvatarMenuOpen(false)}
+                        >
+                          <Settings className="h-5 w-5" />
+                          Cài đặt
+                        </Link>
+                        <div className="border-t border-border my-1" />
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition text-destructive hover:bg-destructive/10 text-left"
+                        >
+                          <LogOut className="h-5 w-5" />
+                          Đăng xuất
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </>
-              )}
-            </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <Link href="/auth/login">
+                <Button className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium">
+                  <LogIn className="h-4 w-4" />
+                  Đăng Nhập
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>

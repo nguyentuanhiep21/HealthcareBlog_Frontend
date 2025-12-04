@@ -5,6 +5,8 @@ import { Heart, X, Bell } from "lucide-react"
 import type { Comment } from "@/lib/types"
 import { mockUsers } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/components/auth-provider"
+import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -14,11 +16,24 @@ interface CommentSectionProps {
 }
 
 export function CommentSection({ comments, onClose }: CommentSectionProps) {
+  const { isAuthenticated } = useAuth()
   const [commentText, setCommentText] = useState("")
   const [localComments, setLocalComments] = useState(comments)
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
   const currentUser = mockUsers.currentUser
 
+  const handleCommentInputClick = () => {
+    if (!isAuthenticated) {
+      setShowLoginDialog(true)
+    }
+  }
+
   const handleAddComment = () => {
+    if (!isAuthenticated) {
+      setShowLoginDialog(true)
+      return
+    }
+
     if (commentText.trim()) {
       const newComment: Comment = {
         id: `comment-${Date.now()}`,
@@ -31,6 +46,25 @@ export function CommentSection({ comments, onClose }: CommentSectionProps) {
       setLocalComments([newComment, ...localComments])
       setCommentText("")
     }
+  }
+
+  const handleCommentLike = (commentId: string) => {
+    if (!isAuthenticated) {
+      setShowLoginDialog(true)
+      return
+    }
+
+    setLocalComments(
+      localComments.map((comment) =>
+        comment.id === commentId
+          ? {
+              ...comment,
+              isLiked: !comment.isLiked,
+              likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1,
+            }
+          : comment,
+      ),
+    )
   }
 
   return (
@@ -93,8 +127,11 @@ export function CommentSection({ comments, onClose }: CommentSectionProps) {
                   </Link>
                   <p className="text-xs text-muted-foreground mt-0.5">{comment.createdAt}</p>
                   <p className="text-sm text-foreground mt-2">{comment.text}</p>
-                  <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary mt-2">
-                    <Heart className="h-3 w-3" />
+                  <button 
+                    onClick={() => handleCommentLike(comment.id)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary mt-2 transition"
+                  >
+                    <Heart className={`h-3 w-3 ${comment.isLiked ? "fill-current text-primary" : ""}`} />
                     <span>{comment.likes}</span>
                   </button>
                 </div>
@@ -106,35 +143,49 @@ export function CommentSection({ comments, onClose }: CommentSectionProps) {
         {/* Comment Input */}
         <div className="border-t border-border p-6 flex-shrink-0">
           <div className="flex gap-3">
-            <img
-              src={currentUser.avatar || "/placeholder.svg"}
-              alt={currentUser.name}
-              className="h-8 w-8 rounded-full flex-shrink-0"
-            />
-            <div className="flex-1 flex gap-2">
-              <input
-                type="text"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Viết bình luận..."
-                className="flex-1 rounded-full bg-secondary px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
-                onKeyPress={(e) => {
-                  if (e.key === "Enter") {
-                    handleAddComment()
-                  }
-                }}
-              />
-              <Button
-                size="sm"
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={handleAddComment}
-                disabled={!commentText.trim()}
+            {isAuthenticated ? (
+              <>
+                <img
+                  src={currentUser.avatar || "/placeholder.svg"}
+                  alt={currentUser.name}
+                  className="h-8 w-8 rounded-full flex-shrink-0"
+                />
+                <div className="flex-1 flex gap-2">
+                  <input
+                    type="text"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Viết bình luận..."
+                    className="flex-1 rounded-full bg-secondary px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        handleAddComment()
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    onClick={handleAddComment}
+                    disabled={!commentText.trim() || !isAuthenticated}
+                  >
+                    Gửi
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <button
+                onClick={handleCommentInputClick}
+                className="flex-1 rounded-full bg-secondary px-4 py-2 text-sm text-muted-foreground hover:bg-secondary/80 transition text-left"
               >
-                Gửi
-              </Button>
-            </div>
+                Viết bình luận...
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Login Required Dialog */}
+        <LoginRequiredDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />
       </div>
     </div>
   )

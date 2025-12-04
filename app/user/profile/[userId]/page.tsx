@@ -4,13 +4,17 @@ import { use, useState } from "react"
 import { Navbar } from "@/components/navbar"
 import { PostCard } from "@/components/post-card"
 import { ReportDialog } from "@/components/report-dialog"
+import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { CreatePostBox } from "@/components/create-post-box"
 import { mockUsers, mockPosts } from "@/lib/mock-data"
+import { useAuth } from "@/components/auth-provider"
+import { Button } from "@/components/ui/button"
 import { Flag } from "lucide-react"
 import type { Post } from "@/lib/types"
 
 export default function UserProfilePage({ params }: { params: Promise<{ userId: string }> }) {
   const { userId } = use(params)
+  const { isAuthenticated } = useAuth()
   const isCurrentUser = userId === "current"
   const viewedUser = isCurrentUser ? mockUsers.currentUser : mockUsers[userId]
 
@@ -18,11 +22,21 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
   const [bio, setBio] = useState(viewedUser ? viewedUser.bio : "")
   const [isEditingBio, setIsEditingBio] = useState(false)
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false)
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
+  const [isFollowing, setIsFollowing] = useState(false)
   const [userPosts, setUserPosts] = useState(mockPosts.filter((post) => post.author.id === viewedUser.id))
 
   const handleSaveBio = () => {
     setIsEditingBio(false)
     // In a real app, would save to database here
+  }
+
+  const handleFollowClick = () => {
+    if (!isAuthenticated) {
+      setShowLoginDialog(true)
+      return
+    }
+    setIsFollowing(!isFollowing)
   }
 
   const handlePostCreate = (newPost: Post) => {
@@ -60,13 +74,27 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
               <div className="flex items-start justify-between mb-1">
                 <h1 className="text-3xl font-bold">{viewedUser.name}</h1>
                 {!isCurrentUser && (
-                  <button
-                    onClick={() => setIsReportDialogOpen(true)}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition"
-                  >
-                    <Flag className="h-4 w-4" />
-                    Báo cáo
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      className={`${isFollowing ? "border border-primary text-primary bg-transparent hover:bg-secondary" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
+                      onClick={handleFollowClick}
+                    >
+                      {isFollowing ? "Đang theo dõi" : "Theo dõi"}
+                    </Button>
+                    <button
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          setShowLoginDialog(true)
+                          return
+                        }
+                        setIsReportDialogOpen(true)
+                      }}
+                      className="flex items-center justify-center p-2 text-destructive hover:bg-destructive/10 rounded-lg transition"
+                    >
+                      <Flag className="h-5 w-5" />
+                    </button>
+                  </div>
                 )}
               </div>
               <p className="text-muted-foreground mb-4">{bio}</p>
@@ -185,9 +213,13 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
       <ReportDialog
         isOpen={isReportDialogOpen}
         onClose={() => setIsReportDialogOpen(false)}
-        type="user"
-        targetName={viewedUser.name}
+        targetType="user"
+        onSubmit={(reason, details) => {
+          console.log("Report submitted:", { userId: viewedUser.id, reason, details })
+        }}
       />
+
+      <LoginRequiredDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />
     </div>
   )
 }
