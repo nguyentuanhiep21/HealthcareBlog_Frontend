@@ -20,16 +20,17 @@ export default function LoginPage() {
     setError("")
     setIsLoading(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 800))
-
-    // Check if email and password are "test"
+    // Bypass validation if credentials are "test"
     if (email === "test" && password === "test") {
+      await new Promise((resolve) => setTimeout(resolve, 500))
       router.push("/user")
-    } else {
-      setError("Email hoặc mật khẩu không chính xác. Hãy nhập 'test' cho cả hai trường.")
-      setIsLoading(false)
+      return
     }
+
+    // Simulate API call for other credentials
+    await new Promise((resolve) => setTimeout(resolve, 800))
+    setError("Email hoặc mật khẩu không chính xác. Hãy nhập 'test' cho cả hai trường.")
+    setIsLoading(false)
   }
 
   return (
@@ -68,7 +69,7 @@ export default function LoginPage() {
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
               <Input
                 id="email"
-                type="email"
+                type="text"
                 placeholder="your@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
