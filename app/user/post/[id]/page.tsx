@@ -3,7 +3,7 @@
 import type React from "react"
 import Image from "next/image"
 import { useState, use } from "react"
-import { Heart, Bookmark, MoreVertical, Flag, X, LogIn, Bell, User, Settings, Send } from "lucide-react"
+import { Heart, Bookmark, MoreVertical, Flag, X, LogIn, Bell, User, Settings, Send, LogOut, Edit, ImageIcon, Trash2 } from "lucide-react"
 import { mockPosts, mockComments, mockUsers } from "@/lib/mock-data"
 import { useAuth } from "@/components/auth-provider"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
@@ -18,7 +18,7 @@ interface PostDetailPageProps {
 }
 
 export default function PostDetailPage({ params }: PostDetailPageProps) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, logout } = useAuth()
   const { id } = use(params)
   const post = mockPosts.find((p) => p.id === id)
   const [isLiked, setIsLiked] = useState(post?.isLiked || false)
@@ -33,6 +33,15 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const [showReportDialog, setShowReportDialog] = useState(false)
   const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null)
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(null)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [caption, setCaption] = useState(post?.caption || "")
+  const [image, setImage] = useState(post?.image || "")
+  const [editCaption, setEditCaption] = useState(post?.caption || "")
+  const [editImage, setEditImage] = useState(post?.image || "")
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editCommentText, setEditCommentText] = useState("")
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   if (!post) {
     return (
@@ -144,7 +153,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   <div className="absolute right-0 mt-2 w-48 rounded-lg border border-border bg-card shadow-lg z-10">
                     <div className="flex flex-col gap-1 p-2">
                       <Link
-                        href="/profile"
+                        href="/user/profile"
                         className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-base"
                         onClick={() => setIsAvatarMenuOpen(false)}
                       >
@@ -152,13 +161,23 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                         <span>Trang cá nhân</span>
                       </Link>
                       <Link
-                        href="/settings"
+                        href="/user/settings"
                         className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-base"
                         onClick={() => setIsAvatarMenuOpen(false)}
                       >
                         <Settings className="h-4 w-4" />
                         <span>Cài đặt</span>
                       </Link>
+                      <button
+                        onClick={() => {
+                          logout()
+                          setIsAvatarMenuOpen(false)
+                        }}
+                        className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-base text-left text-destructive"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span>Đăng xuất</span>
+                      </button>
                     </div>
                   </div>
                 )}
@@ -179,8 +198,8 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       <div className="flex h-[calc(100vh-4rem)]">
         {/* Left - Image (~60%) */}
         <div className="flex-1 bg-black flex items-center justify-center overflow-hidden">
-          {post.image ? (
-            <img src={post.image || "/placeholder.svg"} alt="Post content" className="w-full h-full object-contain" />
+          {image ? (
+            <img src={image || "/placeholder.svg"} alt="Post content" className="w-full h-full object-contain" />
           ) : (
             <div className="flex items-center justify-center text-muted-foreground text-lg">Không có hình ảnh</div>
           )}
@@ -218,6 +237,18 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
                 {isMenuOpen && (
                   <div className="absolute right-0 top-full mt-2 w-40 rounded-lg border border-border bg-card shadow-lg z-10">
+                    {isAuthenticated && post.author.id === currentUser.id && (
+                      <button
+                        onClick={() => {
+                          setIsEditMode(true)
+                          setIsMenuOpen(false)
+                        }}
+                        className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-base"
+                      >
+                        <Edit className="h-4 w-4" />
+                        <span>Chỉnh sửa</span>
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         if (!isAuthenticated) {
@@ -239,7 +270,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
             </div>
 
             {/* Caption - increased from text-sm to text-base */}
-            <p className="text-foreground leading-relaxed text-base">{post.caption}</p>
+            <p className="text-foreground leading-relaxed text-base">{caption}</p>
 
             {/* Stats - increased from text-xs to text-sm */}
             <div className="flex gap-4 text-sm text-muted-foreground mt-3">
@@ -301,6 +332,32 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                         
                         {openCommentMenuId === comment.id && (
                           <div className="absolute right-0 top-full mt-1 w-40 rounded-lg border border-border bg-card shadow-lg z-10">
+                            {isAuthenticated && comment.author.id === currentUser.id && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setEditingCommentId(comment.id)
+                                    setEditCommentText(comment.text)
+                                    setOpenCommentMenuId(null)
+                                  }}
+                                  className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-sm"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  <span>Chỉnh sửa</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setDeletingCommentId(comment.id)
+                                    setShowDeleteDialog(true)
+                                    setOpenCommentMenuId(null)
+                                  }}
+                                  className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive text-sm"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  <span>Xóa</span>
+                                </button>
+                              </>
+                            )}
                             <button
                               onClick={() => {
                                 if (!isAuthenticated) {
@@ -321,9 +378,48 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                         )}
                       </div>
                     </div>
-                    <p className="text-base text-foreground bg-secondary rounded-lg px-2 py-1 mt-1 break-words">
-                      {comment.text}
-                    </p>
+                    {editingCommentId === comment.id ? (
+                      <div className="mt-1">
+                        <textarea
+                          value={editCommentText}
+                          onChange={(e) => setEditCommentText(e.target.value)}
+                          className="w-full resize-none rounded-lg bg-gray-100 px-2 py-1 text-base outline-none focus:ring-2 focus:ring-primary"
+                          rows={2}
+                        />
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => {
+                              setEditingCommentId(null)
+                              setEditCommentText("")
+                            }}
+                            className="text-sm text-muted-foreground hover:text-foreground"
+                          >
+                            Hủy
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (editCommentText.trim()) {
+                                setComments(
+                                  comments.map((c) =>
+                                    c.id === comment.id ? { ...c, text: editCommentText } : c
+                                  )
+                                )
+                                setEditingCommentId(null)
+                                setEditCommentText("")
+                              }
+                            }}
+                            disabled={!editCommentText.trim()}
+                            className="text-sm text-primary hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Lưu
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-base text-foreground bg-white rounded-lg px-2 py-1 mt-1 break-words">
+                        {comment.text}
+                      </p>
+                    )}
                     <div className="flex items-center gap-2 mt-2">
                       <button
                         onClick={() => handleCommentLike(comment.id)}
@@ -363,7 +459,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   }
                 }}
                 disabled={!isAuthenticated}
-                className="flex-1 rounded-full bg-secondary px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 rounded-full bg-gray-100 px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
               />
               {isAuthenticated && (
                 <button
@@ -379,6 +475,113 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         </div>
       </div>
 
+      {/* Edit Post Dialog */}
+      {isEditMode && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="border-b border-border p-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Chỉnh sửa bài viết</h2>
+              <button
+                onClick={() => {
+                  setIsEditMode(false)
+                  setEditCaption(post?.caption || "")
+                  setEditImage(post?.image || "")
+                }}
+                className="rounded-full p-2 hover:bg-secondary transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <img
+                  src={post.author.avatar || "/placeholder.svg"}
+                  alt={post.author.name}
+                  className="h-10 w-10 rounded-full"
+                />
+                <div>
+                  <p className="font-semibold">{post.author.name}</p>
+                  <p className="text-xs text-muted-foreground">Công khai</p>
+                </div>
+              </div>
+
+              <textarea
+                value={editCaption}
+                onChange={(e) => setEditCaption(e.target.value)}
+                placeholder="Bạn đang nghĩ gì?"
+                className="w-full resize-none rounded-lg bg-gray-100 p-3 text-base outline-none focus:ring-2 focus:ring-primary min-h-[120px]"
+              />
+
+              {editImage && (
+                <div className="mt-4 relative bg-secondary rounded-lg overflow-hidden">
+                  <img
+                    src={editImage}
+                    alt="Preview"
+                    className="w-full max-h-96 object-contain"
+                  />
+                  <button
+                    onClick={() => setEditImage("")}
+                    className="absolute top-2 right-2 bg-background/90 rounded-full p-2 hover:bg-background"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              )}
+
+              <div className="mt-4 flex gap-2 border-t border-border pt-4">
+                <label className="flex items-center gap-2 cursor-pointer text-primary hover:text-primary/80 transition">
+                  <ImageIcon className="h-5 w-5" />
+                  <span className="text-sm">Thêm ảnh</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        const reader = new FileReader()
+                        reader.onload = (event) => {
+                          setEditImage(event.target?.result as string)
+                        }
+                        reader.readAsDataURL(file)
+                      }
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setIsEditMode(false)
+                    setEditCaption(post?.caption || "")
+                    setEditImage(post?.image || "")
+                  }}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  className="flex-1 bg-primary hover:bg-primary/90"
+                  onClick={() => {
+                    // TODO: Update post in backend
+                    console.log("Update post:", { id, caption: editCaption, image: editImage })
+                    setCaption(editCaption)
+                    setImage(editImage)
+                    setIsEditMode(false)
+                  }}
+                  disabled={!editCaption.trim()}
+                >
+                  Lưu thay đổi
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Report Dialog */}
       <ReportDialog
         isOpen={showReportDialog}
@@ -389,6 +592,46 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         onSubmit={handleReportSubmit}
         targetType={reportingCommentId ? "comment" : "post"}
       />
+
+      {/* Delete Comment Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-2">Xóa bình luận</h2>
+              <p className="text-muted-foreground mb-6">
+                Bạn có chắc chắn muốn xóa bình luận này? Hành động này không thể hoàn tác.
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setShowDeleteDialog(false)
+                    setDeletingCommentId(null)
+                  }}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                  onClick={() => {
+                    if (deletingCommentId) {
+                      setComments(comments.filter((c) => c.id !== deletingCommentId))
+                      console.log("Delete comment:", deletingCommentId)
+                      // TODO: Delete comment from backend
+                    }
+                    setShowDeleteDialog(false)
+                    setDeletingCommentId(null)
+                  }}
+                >
+                  Xóa
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Login Required Dialog */}
       <LoginRequiredDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />

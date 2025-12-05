@@ -12,14 +12,12 @@ import { useAuth } from "@/components/auth-provider"
 import Image from "next/image"
 
 export function Navbar() {
-  const router = useRouter()
   const { isAuthenticated, logout } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
-    router.push("/auth/login")
   }
 
   return (
@@ -129,7 +127,6 @@ export function Navbar() {
                           <Settings className="h-5 w-5" />
                           Cài đặt
                         </Link>
-                        <div className="border-t border-border my-1" />
                         <button
                           onClick={handleLogout}
                           className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition text-destructive hover:bg-destructive/10 text-left"

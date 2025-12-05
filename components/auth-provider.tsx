@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, ReactNode, useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -13,6 +14,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const router = useRouter()
 
   // Load auth state from localStorage on mount
   useEffect(() => {
@@ -43,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Failed to remove auth state from localStorage:", error)
     }
+    router.push("/auth/login")
   }
 
   return (
