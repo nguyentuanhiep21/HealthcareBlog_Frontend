@@ -3,7 +3,7 @@
 import type React from "react"
 import Image from "next/image"
 import { useState, use } from "react"
-import { Heart, Bookmark, MoreVertical, Flag, X, LogIn, Bell, User, Settings } from "lucide-react"
+import { Heart, Bookmark, MoreVertical, Flag, X, LogIn, Bell, User, Settings, Send } from "lucide-react"
 import { mockPosts, mockComments, mockUsers } from "@/lib/mock-data"
 import { useAuth } from "@/components/auth-provider"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
@@ -31,6 +31,8 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const currentUser = mockUsers.currentUser
   const [showReportDialog, setShowReportDialog] = useState(false)
+  const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null)
+  const [reportingCommentId, setReportingCommentId] = useState<string | null>(null)
 
   if (!post) {
     return (
@@ -92,7 +94,12 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   }
 
   const handleReportSubmit = (reason: string, details: string) => {
-    console.log("Report submitted:", { postId: id, reason, details })
+    if (reportingCommentId) {
+      console.log("Comment report submitted:", { commentId: reportingCommentId, reason, details })
+      setReportingCommentId(null)
+    } else {
+      console.log("Post report submitted:", { postId: id, reason, details })
+    }
     // TODO: Send report to backend
   }
 
@@ -277,9 +284,42 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                     className="h-7 w-7 rounded-full flex-shrink-0 cursor-pointer hover:opacity-80"
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-foreground">{comment.author.name}</p>
-                      <span className="text-sm text-muted-foreground">{comment.createdAt}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-foreground">{comment.author.name}</p>
+                        <span className="text-sm text-muted-foreground">{comment.createdAt}</span>
+                      </div>
+                      
+                      {/* Comment Menu */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setOpenCommentMenuId(openCommentMenuId === comment.id ? null : comment.id)}
+                          className="rounded-full p-1 hover:bg-secondary transition"
+                        >
+                          <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                        
+                        {openCommentMenuId === comment.id && (
+                          <div className="absolute right-0 top-full mt-1 w-40 rounded-lg border border-border bg-card shadow-lg z-10">
+                            <button
+                              onClick={() => {
+                                if (!isAuthenticated) {
+                                  setShowLoginDialog(true)
+                                  setOpenCommentMenuId(null)
+                                  return
+                                }
+                                setReportingCommentId(comment.id)
+                                setShowReportDialog(true)
+                                setOpenCommentMenuId(null)
+                              }}
+                              className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive text-sm"
+                            >
+                              <Flag className="h-4 w-4" />
+                              <span>Báo cáo</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <p className="text-base text-foreground bg-secondary rounded-lg px-2 py-1 mt-1 break-words">
                       {comment.text}
@@ -325,6 +365,15 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 disabled={!isAuthenticated}
                 className="flex-1 rounded-full bg-secondary px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
               />
+              {isAuthenticated && (
+                <button
+                  type="submit"
+                  disabled={!commentText.trim()}
+                  className="rounded-full p-2 hover:bg-primary/10 transition text-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                >
+                  <Send className="h-5 w-5" />
+                </button>
+              )}
             </form>
           </div>
         </div>
@@ -333,9 +382,12 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       {/* Report Dialog */}
       <ReportDialog
         isOpen={showReportDialog}
-        onClose={() => setShowReportDialog(false)}
+        onClose={() => {
+          setShowReportDialog(false)
+          setReportingCommentId(null)
+        }}
         onSubmit={handleReportSubmit}
-        targetType="post"
+        targetType={reportingCommentId ? "comment" : "post"}
       />
 
       {/* Login Required Dialog */}
