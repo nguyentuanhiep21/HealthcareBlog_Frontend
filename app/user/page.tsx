@@ -15,17 +15,27 @@ export default function Home() {
   const { isAuthenticated } = useAuth()
   const [posts, setPosts] = useState(mockPosts)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
+  const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set())
 
   const handlePostCreate = (newPost: Post) => {
     setPosts([newPost, ...posts])
   }
 
-  const handleFollowClick = () => {
+  const handleFollowClick = (userId: string) => {
     if (!isAuthenticated) {
       setShowLoginDialog(true)
       return
     }
-    // Handle follow logic here
+    
+    setFollowedUsers((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(userId)) {
+        newSet.delete(userId)
+      } else {
+        newSet.add(userId)
+      }
+      return newSet
+    })
   }
 
   return (
@@ -91,10 +101,11 @@ export default function Home() {
                     </div>
                     <Button
                       size="sm"
-                      className="bg-primary text-primary-foreground hover:bg-primary/90"
-                      onClick={handleFollowClick}
+                      variant={followedUsers.has(user.id) ? "outline" : "default"}
+                      className={followedUsers.has(user.id) ? "" : "bg-primary text-primary-foreground hover:bg-primary/90"}
+                      onClick={() => handleFollowClick(user.id)}
                     >
-                      Follow
+                      {followedUsers.has(user.id) ? "Đang theo dõi" : "Theo dõi"}
                     </Button>
                   </div>
                 ))}

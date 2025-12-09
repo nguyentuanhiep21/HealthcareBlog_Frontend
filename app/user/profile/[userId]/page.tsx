@@ -15,7 +15,7 @@ import type { Post } from "@/lib/types"
 export default function UserProfilePage({ params }: { params: Promise<{ userId: string }> }) {
   const { userId } = use(params)
   const { isAuthenticated } = useAuth()
-  const isCurrentUser = userId === "current"
+  const isCurrentUser = userId === "current" || userId === mockUsers.currentUser.id
   const viewedUser = isCurrentUser ? mockUsers.currentUser : mockUsers[userId]
 
   const [activeTab, setActiveTab] = useState("home")

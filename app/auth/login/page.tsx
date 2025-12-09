@@ -166,13 +166,6 @@ export default function LoginPage() {
             Đăng ký ngay
           </Link>
         </p>
-
-        {/* Test Credentials Info */}
-        <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg text-xs text-blue-900 dark:text-blue-300">
-          <p className="font-semibold mb-1">Tài khoản test:</p>
-          <p>Email: <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">test</code></p>
-          <p>Mật khẩu: <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">test</code></p>
-        </div>
       </div>
     </div>
   )

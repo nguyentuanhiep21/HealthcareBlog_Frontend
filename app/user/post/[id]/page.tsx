@@ -48,7 +48,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-foreground mb-4">Không tìm thấy bài viết</h1>
-          <Link href="/" className="text-lg text-primary hover:underline">
+          <Link href={isAuthenticated ? "/user" : "/"} className="text-lg text-primary hover:underline">
             Quay lại trang chủ
           </Link>
         </div>
