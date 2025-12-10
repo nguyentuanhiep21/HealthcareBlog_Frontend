@@ -69,7 +69,7 @@ export default function SavedPage() {
                       asChild
                       className="text-primary border-primary hover:bg-primary/10"
                     >
-                      <Link href={`/post/${post.id}`}>Xem bài viết</Link>
+                      <Link href={`/user/post/${post.id}`}>Xem bài viết</Link>
                     </Button>
                     <button
                       onClick={() => handleRemoveClick(post.id)}

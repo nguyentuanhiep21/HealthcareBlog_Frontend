@@ -332,7 +332,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                         
                         {openCommentMenuId === comment.id && (
                           <div className="absolute right-0 top-full mt-1 w-40 rounded-lg border border-border bg-card shadow-lg z-10">
-                            {isAuthenticated && comment.author.id === currentUser.id && (
+                            {isAuthenticated && comment.author.id === currentUser.id ? (
                               <>
                                 <button
                                   onClick={() => {
@@ -357,23 +357,24 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                                   <span>Xóa</span>
                                 </button>
                               </>
-                            )}
-                            <button
-                              onClick={() => {
-                                if (!isAuthenticated) {
-                                  setShowLoginDialog(true)
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  if (!isAuthenticated) {
+                                    setShowLoginDialog(true)
+                                    setOpenCommentMenuId(null)
+                                    return
+                                  }
+                                  setReportingCommentId(comment.id)
+                                  setShowReportDialog(true)
                                   setOpenCommentMenuId(null)
-                                  return
-                                }
-                                setReportingCommentId(comment.id)
-                                setShowReportDialog(true)
-                                setOpenCommentMenuId(null)
-                              }}
-                              className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive text-sm"
-                            >
-                              <Flag className="h-4 w-4" />
-                              <span>Báo cáo</span>
-                            </button>
+                                }}
+                                className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive text-sm"
+                              >
+                                <Flag className="h-4 w-4" />
+                                <span>Báo cáo</span>
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>

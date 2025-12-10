@@ -3,7 +3,7 @@ import type { User, Post, Comment, Notification, Report } from "./types"
 export const mockUsers: Record<string, User> = {
   user1: {
     id: "user1",
-    name: "Tuấn Hiệp",
+      name: "Yoga Pros",
     avatar: "https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=400&h=400&fit=crop",
     bio: "Chuyên gia sức khỏe, yêu thích yoga và dinh dưỡng",
     followers: 1250,
@@ -13,7 +13,7 @@ export const mockUsers: Record<string, User> = {
   user2: {
     id: "user2",
     name: "Linh Vy",
-    avatar: "/avatar-woman-wellness.jpg",
+    avatar: "/workout.png",
     bio: "Huấn luyện viên fitness, tư vấn lối sống lành mạnh",
     followers: 2340,
     following: 156,
@@ -22,7 +22,7 @@ export const mockUsers: Record<string, User> = {
   user3: {
     id: "user3",
     name: "Thanh Sơn",
-    avatar: "/avatar-man-doctor.jpg",
+    avatar: "/3.png",
     bio: "Bác sĩ tim mạch, chia sẻ kiến thức y tế",
     followers: 3120,
     following: 98,
@@ -31,7 +31,7 @@ export const mockUsers: Record<string, User> = {
   user4: {
     id: "user4",
     name: "Minh Anh",
-    avatar: "/avatar-woman-nutrition.jpg",
+    avatar: "/vegeta.png",
     bio: "Dinh dưỡng sĩ, hỗ trợ chế độ ăn uống khoa học",
     followers: 1890,
     following: 234,
@@ -39,7 +39,7 @@ export const mockUsers: Record<string, User> = {
   },
   currentUser: {
     id: "current",
-    name: "Bạn",
+    name: "Tuấn Hiệp",
     avatar: "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=400&h=400&fit=crop",
     bio: "Yêu sức khỏe, yêu cuộc sống",
     followers: 450,
@@ -77,6 +77,7 @@ export const mockPosts: Post[] = [
     author: mockUsers.user3,
     caption:
       'Huyết áp cao là "kẻ thù lặng lẽ" nếu không được kiểm soát. Tôi muốn chia sẻ 7 cách đơn giản để kiểm soát huyết áp tự nhiên mà không cần dùng quá nhiều thuốc.',
+    image: "/blood-pressure.png",
     likes: 1876,
     comments: 145,
     isSaved: false,
@@ -140,39 +141,9 @@ export const mockComments: Record<string, Comment[]> = {
 }
 
 export const mockFeaturedPosts: Post[] = [
-  {
-    id: "featured1",
-    author: mockUsers.user3,
-    caption: "Tất cả những gì bạn cần biết về chế độ ăn Địa Trung Hải",
-    image: "/mediterranean-diet.jpg",
-    likes: 5234,
-    comments: 456,
-    isSaved: false,
-    isLiked: false,
-    createdAt: "3 ngày trước",
-  },
-  {
-    id: "featured2",
-    author: mockUsers.user2,
-    caption: "Cách tập luyện hiệu quả nhất trong 30 phút",
-    image: "/workout-training.jpg",
-    likes: 4567,
-    comments: 345,
-    isSaved: false,
-    isLiked: false,
-    createdAt: "5 ngày trước",
-  },
-  {
-    id: "featured3",
-    author: mockUsers.user4,
-    caption: "Vitamin D: Tại sao nó quan trọng đối với sức khỏe của bạn",
-    image: "/vitamin-d-sunshine.jpg",
-    likes: 3891,
-    comments: 267,
-    isSaved: false,
-    isLiked: false,
-    createdAt: "1 tuần trước",
-  },
+  mockPosts[0],
+  mockPosts[1],
+  mockPosts[2],
 ]
 
 export const mockSuggestedUsers: User[] = [mockUsers.user2, mockUsers.user3, mockUsers.user4]

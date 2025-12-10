@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Navbar } from "@/components/navbar"
 import { PostCard } from "@/components/post-card"
+import { AvatarViewDialog } from "@/components/avatar-view-dialog"
 import { mockUsers, mockPosts } from "@/lib/mock-data"
 
 export default function ProfilePage() {
@@ -13,6 +14,8 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("home")
   const [bio, setBio] = useState(user.bio)
   const [isEditingBio, setIsEditingBio] = useState(false)
+  const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(user.avatar || "/placeholder.svg")
 
   useEffect(() => {
     router.push("/user/profile/current")
@@ -21,6 +24,23 @@ export default function ProfilePage() {
   const handleSaveBio = () => {
     setIsEditingBio(false)
     // In a real app, would save to database here
+  }
+
+  const handleAvatarChange = async (file: File) => {
+    // In a real app, would upload to server here
+    // For now, just update the preview
+    const url = URL.createObjectURL(file)
+    setAvatarUrl(url)
+    
+    // TODO: Implement actual upload logic
+    // const formData = new FormData()
+    // formData.append('avatar', file)
+    // const response = await fetch('/api/user/avatar', {
+    //   method: 'POST',
+    //   body: formData,
+    // })
+    // const data = await response.json()
+    // setAvatarUrl(data.avatarUrl)
   }
 
   return (
@@ -32,7 +52,12 @@ export default function ProfilePage() {
         <div className="mb-8 rounded-lg border border-border bg-card p-8">
           <div className="flex gap-6 items-start">
             {/* Avatar */}
-            <img src={user.avatar || "/placeholder.svg"} alt={user.name} className="h-24 w-24 rounded-full" />
+            <img 
+              src={avatarUrl} 
+              alt={user.name} 
+              className="h-24 w-24 rounded-full cursor-pointer hover:opacity-80 transition"
+              onClick={() => setIsAvatarDialogOpen(true)}
+            />
 
             {/* Info */}
             <div className="flex-1">
@@ -143,6 +168,15 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+
+      {/* Avatar View Dialog */}
+      <AvatarViewDialog
+        open={isAvatarDialogOpen}
+        onOpenChange={setIsAvatarDialogOpen}
+        avatarUrl={avatarUrl}
+        userName={user.name}
+        onAvatarChange={handleAvatarChange}
+      />
     </div>
   )
 }

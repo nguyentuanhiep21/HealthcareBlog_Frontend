@@ -16,6 +16,8 @@ export default function Home() {
   const [posts, setPosts] = useState(mockPosts)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set())
+  const [showUnfollowDialog, setShowUnfollowDialog] = useState(false)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
 
   const handlePostCreate = (newPost: Post) => {
     setPosts([newPost, ...posts])
@@ -27,15 +29,33 @@ export default function Home() {
       return
     }
     
-    setFollowedUsers((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(userId)) {
-        newSet.delete(userId)
-      } else {
+    if (followedUsers.has(userId)) {
+      setSelectedUserId(userId)
+      setShowUnfollowDialog(true)
+    } else {
+      setFollowedUsers((prev) => {
+        const newSet = new Set(prev)
         newSet.add(userId)
-      }
-      return newSet
-    })
+        return newSet
+      })
+    }
+  }
+
+  const handleConfirmUnfollow = () => {
+    if (selectedUserId) {
+      setFollowedUsers((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(selectedUserId)
+        return newSet
+      })
+    }
+    setShowUnfollowDialog(false)
+    setSelectedUserId(null)
+  }
+
+  const handleCancelUnfollow = () => {
+    setShowUnfollowDialog(false)
+    setSelectedUserId(null)
   }
 
   return (
@@ -65,7 +85,7 @@ export default function Home() {
                 {mockFeaturedPosts.map((post) => (
                   <Link
                     key={post.id}
-                    href={`/post/${post.id}`}
+                    href={`/user/post/${post.id}`}
                     className="group block rounded-lg overflow-hidden hover:opacity-80 transition"
                   >
                     <div className="flex gap-3">
@@ -91,9 +111,13 @@ export default function Home() {
                 {mockSuggestedUsers.map((user) => (
                   <div key={user.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
-                      <img src={user.avatar || "/placeholder.svg"} alt={user.name} className="h-10 w-10 rounded-full" />
+                      <Link href={`/user/profile/${user.id}`} className="hover:underline">
+                        <img src={user.avatar || "/placeholder.svg"} alt={user.name} className="h-10 w-10 rounded-full" />
+                      </Link>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold truncate">{user.name}</p>
+                        <Link href={`/user/profile/${user.id}`} className="hover:underline text-sm font-semibold truncate">
+                          {user.name}
+                        </Link>
                         <p className="text-xs text-muted-foreground">
                           {user.followers.toLocaleString("vi-VN")} người theo dõi
                         </p>
@@ -120,7 +144,7 @@ export default function Home() {
                   {mockPosts.slice(0, 3).map((post) => (
                     <Link
                       key={post.id}
-                      href={`/saved/${post.id}`}
+                      href={`/user/post/${post.id}`}
                       className="group block rounded-lg overflow-hidden hover:opacity-80 transition"
                     >
                       <div className="flex gap-3">
@@ -150,6 +174,26 @@ export default function Home() {
 
       {/* Login Required Dialog */}
       <LoginRequiredDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />
+
+      {/* Unfollow Confirmation Dialog */}
+      {showUnfollowDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-lg p-6 max-w-md w-full mx-4 shadow-lg">
+            <h2 className="text-xl font-bold mb-4">Bỏ theo dõi</h2>
+            <p className="text-muted-foreground mb-6">
+              Bạn có chắc chắn muốn bỏ theo dõi người dùng này không?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={handleCancelUnfollow}>
+                Hủy
+              </Button>
+              <Button variant="destructive" onClick={handleConfirmUnfollow}>
+                Xác nhận
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

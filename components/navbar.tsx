@@ -13,11 +13,20 @@ import Image from "next/image"
 
 export function Navbar() {
   const { isAuthenticated, logout } = useAuth()
+  const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
 
   const handleLogout = () => {
     logout()
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/user/search?q=${encodeURIComponent(searchQuery.trim())}`)
+    }
   }
 
   return (
@@ -81,10 +90,16 @@ export function Navbar() {
             </Link>
 
             {/* Search Bar */}
-            <div className="relative max-w-xs">
+            <form onSubmit={handleSearch} className="relative max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input type="search" placeholder="Tìm kiếm..." className="pl-9 w-64" />
-            </div>
+              <Input
+                type="search"
+                placeholder="Tìm kiếm..."
+                className="pl-9 w-64"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </form>
           </div>
 
           {/* Right Section: Notification + Avatar */}

@@ -6,6 +6,7 @@ import { PostCard } from "@/components/post-card"
 import { ReportDialog } from "@/components/report-dialog"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { CreatePostBox } from "@/components/create-post-box"
+import { AvatarViewDialog } from "@/components/avatar-view-dialog"
 import { mockUsers, mockPosts } from "@/lib/mock-data"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -25,6 +26,8 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
   const [userPosts, setUserPosts] = useState(mockPosts.filter((post) => post.author.id === viewedUser.id))
+  const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(viewedUser?.avatar || "/placeholder.svg")
 
   const handleSaveBio = () => {
     setIsEditingBio(false)
@@ -41,6 +44,22 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
 
   const handlePostCreate = (newPost: Post) => {
     setUserPosts([newPost, ...userPosts])
+  }
+
+  const handleAvatarChange = async (file: File) => {
+    // In a real app, would upload to server here
+    const url = URL.createObjectURL(file)
+    setAvatarUrl(url)
+    
+    // TODO: Implement actual upload logic
+    // const formData = new FormData()
+    // formData.append('avatar', file)
+    // const response = await fetch('/api/user/avatar', {
+    //   method: 'POST',
+    //   body: formData,
+    // })
+    // const data = await response.json()
+    // setAvatarUrl(data.avatarUrl)
   }
 
   if (!viewedUser) {
@@ -64,9 +83,10 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
           <div className="flex gap-6 items-start">
             {/* Avatar */}
             <img
-              src={viewedUser.avatar || "/placeholder.svg"}
+              src={avatarUrl}
               alt={viewedUser.name}
-              className="h-24 w-24 rounded-full"
+              className="h-24 w-24 rounded-full cursor-pointer hover:opacity-80 transition"
+              onClick={() => setIsAvatarDialogOpen(true)}
             />
 
             {/* Info */}
@@ -220,6 +240,15 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
       />
 
       <LoginRequiredDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />
+
+      {/* Avatar View Dialog - Only show change button for current user */}
+      <AvatarViewDialog
+        open={isAvatarDialogOpen}
+        onOpenChange={setIsAvatarDialogOpen}
+        avatarUrl={avatarUrl}
+        userName={viewedUser.name}
+        onAvatarChange={isCurrentUser ? handleAvatarChange : undefined}
+      />
     </div>
   )
 }

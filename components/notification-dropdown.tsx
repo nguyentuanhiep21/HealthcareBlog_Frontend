@@ -128,7 +128,7 @@ export function NotificationDropdown() {
             
             <div className="p-2 border-t border-border bg-muted/30 text-center">
               <Link 
-                href="/notifications" 
+                href="/user/notifications" 
                 className="text-sm text-primary hover:underline block w-full py-1"
                 onClick={() => setIsOpen(false)}
               >

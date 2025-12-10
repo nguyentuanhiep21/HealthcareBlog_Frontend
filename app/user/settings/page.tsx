@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { mockUsers } from '@/lib/mock-data';
 
 export default function SettingsPage() {
+  const router = useRouter();
   const user = mockUsers.currentUser;
   const [formData, setFormData] = useState({
     firstName: user.name.split(' ')[0],
@@ -28,6 +30,10 @@ export default function SettingsPage() {
     setSaveMessage('Cài đặt đã được lưu thành công!');
     setTimeout(() => setSaveMessage(''), 3000);
     // In a real app, would save to database here
+  };
+
+  const handleCancel = () => {
+    router.push(`/user/profile/${user.id}`);
   };
 
   return (
@@ -121,7 +127,10 @@ export default function SettingsPage() {
             >
               Lưu thay đổi
             </button>
-            <button className="px-6 py-2 border border-border rounded-lg hover:bg-secondary text-foreground font-medium transition">
+            <button 
+              onClick={handleCancel}
+              className="px-6 py-2 border border-border rounded-lg hover:bg-secondary text-foreground font-medium transition"
+            >
               Hủy
             </button>
           </div>
