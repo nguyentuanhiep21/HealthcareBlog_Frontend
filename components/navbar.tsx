@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { mockUsers } from "@/lib/mock-data"
 import { NotificationDropdown } from "@/components/notification-dropdown"
 import { useAuth } from "@/components/auth-provider"
+import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import Image from "next/image"
 
 export function Navbar() {
@@ -17,6 +18,7 @@ export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -54,30 +56,69 @@ export function Navbar() {
                         <Home className="h-5 w-5" />
                         Trang chủ
                       </Link>
-                      <Link
-                        href="/user/saved"
-                        className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <Bookmark className="h-5 w-5" />
-                        Đã lưu
-                      </Link>
-                      <Link
-                        href="/user/following"
-                        className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <Users className="h-5 w-5" />
-                        Đang theo dõi
-                      </Link>
-                      <Link
-                        href="/user/meal-suggestions"
-                        className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <UtensilsCrossed className="h-5 w-5" />
-                        Gợi ý bữa ăn
-                      </Link>
+                      {isAuthenticated ? (
+                        <Link
+                          href="/user/saved"
+                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <Bookmark className="h-5 w-5" />
+                          Đã lưu
+                        </Link>
+                      ) : (
+                        <button
+                          className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition text-left"
+                          onClick={() => {
+                            setIsMenuOpen(false)
+                            setShowLoginDialog(true)
+                          }}
+                        >
+                          <Bookmark className="h-5 w-5" />
+                          Đã lưu
+                        </button>
+                      )}
+                      {isAuthenticated ? (
+                        <Link
+                          href="/user/following"
+                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <Users className="h-5 w-5" />
+                          Đang theo dõi
+                        </Link>
+                      ) : (
+                        <button
+                          className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition text-left"
+                          onClick={() => {
+                            setIsMenuOpen(false)
+                            setShowLoginDialog(true)
+                          }}
+                        >
+                          <Users className="h-5 w-5" />
+                          Đang theo dõi
+                        </button>
+                      )}
+                      {isAuthenticated ? (
+                        <Link
+                          href="/user/meal-suggestions"
+                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <UtensilsCrossed className="h-5 w-5" />
+                          Gợi ý bữa ăn
+                        </Link>
+                      ) : (
+                        <button
+                          className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition text-left"
+                          onClick={() => {
+                            setIsMenuOpen(false)
+                            setShowLoginDialog(true)
+                          }}
+                        >
+                          <UtensilsCrossed className="h-5 w-5" />
+                          Gợi ý bữa ăn
+                        </button>
+                      )}
                     </div>
                   </div>
                 </>
@@ -173,6 +214,13 @@ export function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* Login Required Dialog */}
+      <LoginRequiredDialog
+        isOpen={showLoginDialog}
+        onClose={() => setShowLoginDialog(false)}
+        message="Bạn cần đăng nhập để truy cập chức năng này"
+      />
     </nav>
   )
 }
