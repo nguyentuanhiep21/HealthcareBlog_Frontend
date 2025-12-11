@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Search, Menu, Home, Bookmark, User, Settings, Users, UtensilsCrossed, LogOut, LogIn } from "lucide-react"
+import { Search, Menu, Home, Bookmark, User, Settings, Users, UtensilsCrossed, LogOut, LogIn, KeyRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { mockUsers } from "@/lib/mock-data"
@@ -141,6 +141,14 @@ export function Navbar() {
                         >
                           <Settings className="h-5 w-5" />
                           Cài đặt
+                        </Link>
+                        <Link
+                          href="/user/change-password"
+                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition"
+                          onClick={() => setIsAvatarMenuOpen(false)}
+                        >
+                          <KeyRound className="h-5 w-5" />
+                          Đổi mật khẩu
                         </Link>
                         <button
                           onClick={handleLogout}

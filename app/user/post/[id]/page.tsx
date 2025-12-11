@@ -42,6 +42,8 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const [editCommentText, setEditCommentText] = useState("")
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showDeletePostDialog, setShowDeletePostDialog] = useState(false)
+  const [showReportSuccessDialog, setShowReportSuccessDialog] = useState(false)
 
   if (!post) {
     return (
@@ -110,10 +112,11 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       console.log("Post report submitted:", { postId: id, reason, details })
     }
     // TODO: Send report to backend
+    setShowReportSuccessDialog(true)
   }
 
   return (
-    <main className="fixed inset-0 z-50 bg-background overflow-hidden">
+    <main className="fixed inset-0 z-50 bg-background overflow-hidden" style={{ fontSize: '100%' }}>
       <div className="border-b border-border bg-background/95 backdrop-blur h-16 flex items-center justify-between px-6">
         {/* Left - Close and Logo */}
         <div className="flex items-center gap-4">
@@ -211,14 +214,16 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           <div className="border-b border-border p-4 flex-shrink-0">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-3 flex-1">
-                <img
-                  src={post.author.avatar || "/placeholder.svg"}
-                  alt={post.author.name}
-                  className="h-10 w-10 rounded-full cursor-pointer hover:opacity-80"
-                />
+                <Link href={`/user/profile/${post.author.id}`}>
+                  <img
+                    src={post.author.avatar || "/placeholder.svg"}
+                    alt={post.author.name}
+                    className="h-10 w-10 rounded-full cursor-pointer hover:opacity-80"
+                  />
+                </Link>
                 <div>
                   <Link
-                    href={`/profile/${post.author.id}`}
+                    href={`/user/profile/${post.author.id}`}
                     className="font-semibold text-foreground hover:text-primary text-lg"
                   >
                     {post.author.name}
@@ -237,33 +242,46 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
                 {isMenuOpen && (
                   <div className="absolute right-0 top-full mt-2 w-40 rounded-lg border border-border bg-card shadow-lg z-10">
-                    {isAuthenticated && post.author.id === currentUser.id && (
+                    {isAuthenticated && post.author.id === currentUser.id ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            setIsEditMode(true)
+                            setIsMenuOpen(false)
+                          }}
+                          className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-base"
+                        >
+                          <Edit className="h-4 w-4" />
+                          <span>Chỉnh sửa</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowDeletePostDialog(true)
+                            setIsMenuOpen(false)
+                          }}
+                          className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive text-base"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span>Xóa</span>
+                        </button>
+                      </>
+                    ) : (
                       <button
                         onClick={() => {
-                          setIsEditMode(true)
+                          if (!isAuthenticated) {
+                            setShowLoginDialog(true)
+                            setIsMenuOpen(false)
+                            return
+                          }
+                          setShowReportDialog(true)
                           setIsMenuOpen(false)
                         }}
-                        className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-base"
+                        className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive text-base"
                       >
-                        <Edit className="h-4 w-4" />
-                        <span>Chỉnh sửa</span>
+                        <Flag className="h-4 w-4" />
+                        <span>Báo cáo</span>
                       </button>
                     )}
-                    <button
-                      onClick={() => {
-                        if (!isAuthenticated) {
-                          setShowLoginDialog(true)
-                          setIsMenuOpen(false)
-                          return
-                        }
-                        setShowReportDialog(true)
-                        setIsMenuOpen(false)
-                      }}
-                      className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive text-base"
-                    >
-                      <Flag className="h-4 w-4" />
-                      <span>Báo cáo</span>
-                    </button>
                   </div>
                 )}
               </div>
@@ -309,15 +327,19 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
             <div className="space-y-3">
               {comments.map((comment) => (
                 <div key={comment.id} className="flex gap-2">
-                  <img
-                    src={comment.author.avatar || "/placeholder.svg"}
-                    alt={comment.author.name}
-                    className="h-7 w-7 rounded-full flex-shrink-0 cursor-pointer hover:opacity-80"
-                  />
+                  <Link href={`/user/profile/${comment.author.id}`}>
+                    <img
+                      src={comment.author.avatar || "/placeholder.svg"}
+                      alt={comment.author.name}
+                      className="h-7 w-7 rounded-full flex-shrink-0 cursor-pointer hover:opacity-80"
+                    />
+                  </Link>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground">{comment.author.name}</p>
+                        <Link href={`/user/profile/${comment.author.id}`}>
+                          <p className="text-sm font-semibold text-foreground hover:text-primary cursor-pointer">{comment.author.name}</p>
+                        </Link>
                         <span className="text-sm text-muted-foreground">{comment.createdAt}</span>
                       </div>
                       
@@ -441,7 +463,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           </div>
 
           <div className="border-t border-border p-4 flex-shrink-0">
-            <form onSubmit={handleSubmitComment} className="flex gap-2">
+            <form onSubmit={handleSubmitComment} className="flex gap-2 items-center">
               {isAuthenticated && (
                 <img
                   src={currentUser.avatar || "/placeholder.svg"}
@@ -460,7 +482,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   }
                 }}
                 disabled={!isAuthenticated}
-                className="flex-1 rounded-full bg-gray-100 px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 rounded-full bg-gray-100 px-3 py-1.5 text-sm outline-none focus:border-2 focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
               />
               {isAuthenticated && (
                 <button
@@ -627,6 +649,78 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   }}
                 >
                   Xóa
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Post Confirmation Dialog */}
+      {showDeletePostDialog && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-2">Xóa bài viết</h2>
+              <p className="text-muted-foreground mb-6">
+                Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác.
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowDeletePostDialog(false)}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                  onClick={() => {
+                    console.log("Delete post:", id)
+                    // TODO: Delete post from backend
+                    setShowDeletePostDialog(false)
+                    // Redirect to home after deletion
+                    window.location.href = "/user"
+                  }}
+                >
+                  Xóa
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Success Dialog */}
+      {showReportSuccessDialog && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-4">
+                  <svg
+                    className="w-8 h-8 text-green-600 dark:text-green-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold mb-2">Báo cáo thành công</h2>
+                <p className="text-muted-foreground mb-6">
+                  Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét và xử lý trong thời gian sớm nhất.
+                </p>
+                <Button
+                  className="w-full"
+                  onClick={() => setShowReportSuccessDialog(false)}
+                >
+                  Đóng
                 </Button>
               </div>
             </div>

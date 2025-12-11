@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Heart, MessageCircle, Bookmark, MoreVertical, Flag, Edit, ImageIcon, X } from "lucide-react"
+import { Heart, MessageCircle, Bookmark, MoreVertical, Flag, Edit, ImageIcon, X, Trash2 } from "lucide-react"
 import type { Post } from "@/lib/types"
 import { CommentSection } from "./comment-section"
 import { ImageViewerModal } from "./image-viewer-modal"
@@ -32,6 +32,7 @@ export function PostCard({ post }: PostCardProps) {
   const [image, setImage] = useState(post.image || "")
   const [editCaption, setEditCaption] = useState(post.caption)
   const [editImage, setEditImage] = useState(post.image || "")
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const currentUser = mockUsers.currentUser
 
   const handleLike = () => {
@@ -105,33 +106,46 @@ export function PostCard({ post }: PostCardProps) {
             {isMenuOpen && (
               <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-border bg-card shadow-lg z-10">
                 <div className="flex flex-col gap-1 p-2">
-                  {isAuthenticated && post.author.id === currentUser.id && (
+                  {isAuthenticated && post.author.id === currentUser.id ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          setIsEditMode(true)
+                          setIsMenuOpen(false)
+                        }}
+                        className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left"
+                      >
+                        <Edit className="h-4 w-4" />
+                        <span className="text-sm">Chỉnh sửa</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDeleteDialog(true)
+                          setIsMenuOpen(false)
+                        }}
+                        className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="text-sm">Xóa</span>
+                      </button>
+                    </>
+                  ) : (
                     <button
                       onClick={() => {
-                        setIsEditMode(true)
+                        if (!isAuthenticated) {
+                          setShowLoginDialog(true)
+                          setIsMenuOpen(false)
+                          return
+                        }
+                        setShowReportDialog(true)
                         setIsMenuOpen(false)
                       }}
-                      className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left"
+                      className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive"
                     >
-                      <Edit className="h-4 w-4" />
-                      <span className="text-sm">Chỉnh sửa</span>
+                      <Flag className="h-4 w-4" />
+                      <span className="text-sm">Báo cáo</span>
                     </button>
                   )}
-                  <button
-                    onClick={() => {
-                      if (!isAuthenticated) {
-                        setShowLoginDialog(true)
-                        setIsMenuOpen(false)
-                        return
-                      }
-                      setShowReportDialog(true)
-                      setIsMenuOpen(false)
-                    }}
-                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive"
-                  >
-                    <Flag className="h-4 w-4" />
-                    <span className="text-sm">Báo cáo</span>
-                  </button>
                 </div>
               </div>
             )}
@@ -302,6 +316,41 @@ export function PostCard({ post }: PostCardProps) {
 
       {/* Image Viewer Modal */}
       <ImageViewerModal post={post} isOpen={showImageViewer} onClose={() => setShowImageViewer(false)} />
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-2">Xóa bài viết</h2>
+              <p className="text-muted-foreground mb-6">
+                Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác.
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowDeleteDialog(false)}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                  onClick={() => {
+                    console.log("Delete post:", post.id)
+                    // TODO: Delete post from backend
+                    setShowDeleteDialog(false)
+                    // Optionally reload or remove from UI
+                    window.location.reload()
+                  }}
+                >
+                  Xóa
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Report Dialog */}
       <ReportDialog

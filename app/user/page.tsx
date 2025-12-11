@@ -13,7 +13,14 @@ import type { Post } from "@/lib/types" // Assuming Post type is defined here
 
 export default function Home() {
   const { isAuthenticated } = useAuth()
-  const [posts, setPosts] = useState(mockPosts)
+  // Filter to show only one post per author
+  const uniqueAuthorPosts = mockPosts.reduce((acc, post) => {
+    if (!acc.find(p => p.author.id === post.author.id)) {
+      acc.push(post)
+    }
+    return acc
+  }, [] as Post[])
+  const [posts, setPosts] = useState(uniqueAuthorPosts)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set())
   const [showUnfollowDialog, setShowUnfollowDialog] = useState(false)
