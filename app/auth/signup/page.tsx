@@ -20,6 +20,7 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
   const [passwordStrength, setPasswordStrength] = useState(0)
 
   const calculatePasswordStrength = (password: string) => {
@@ -43,6 +44,7 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setSuccess(false)
 
     // Validation
     if (!formData.fullName || !formData.email || !formData.phone || !formData.password) {
@@ -62,11 +64,45 @@ export default function SignupPage() {
 
     setIsLoading(true)
 
-    // Simulate API call - bypass validation for now
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/user/signup`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fullName: formData.fullName,
+            email: formData.email,
+            phoneNumber: formData.phone,
+            password: formData.password,
+          }),
+        }
+      )
 
-    // Navigate to home page regardless of input
-    router.push("/user")
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setSuccess(true)
+        setError("")
+        // Reset form
+        setFormData({
+          fullName: "",
+          email: "",
+          phone: "",
+          password: "",
+          confirmPassword: "",
+        })
+      } else {
+        setError(data.message || "Đăng ký thất bại. Vui lòng thử lại.")
+      }
+    } catch (error) {
+      setError("Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại sau.")
+      console.error("Signup error:", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const getPasswordStrengthColor = () => {
@@ -97,6 +133,18 @@ export default function SignupPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
+          {success && (
+            <div className="flex items-center gap-2 p-4 bg-green-500/10 border border-green-500/30 rounded-lg text-green-600 dark:text-green-500">
+              <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium">Đăng ký thành công!</p>
+                <p className="text-sm mt-1">
+                  Vui lòng kiểm tra email của bạn để xác thực tài khoản.
+                </p>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm">
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
