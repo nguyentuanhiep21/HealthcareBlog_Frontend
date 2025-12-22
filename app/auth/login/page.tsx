@@ -20,20 +20,46 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    setIsLoading(true)
 
-    // Bypass validation if credentials are "test"
-    if (email === "test" && password === "test") {
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      login()
-      router.push("/user")
+    if (!email || !password) {
+      setError("Vui lòng điền đầy đủ thông tin")
       return
     }
 
-    // Simulate API call for other credentials
-    await new Promise((resolve) => setTimeout(resolve, 800))
-    setError("Email hoặc mật khẩu không chính xác. Hãy nhập 'test' cho cả hai trường.")
-    setIsLoading(false)
+    setIsLoading(true)
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/user/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password,
+          }),
+        }
+      )
+
+      const data = await response.json()
+
+      if (response.ok && data.token) {
+        // Lưu token
+        localStorage.setItem("authToken", data.token)
+        login()
+        router.push("/user")
+      } else {
+        setError(data.message || "Email hoặc mật khẩu không chính xác.")
+      }
+    } catch (error) {
+      console.error("Login error:", error)
+      setError("Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại sau.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

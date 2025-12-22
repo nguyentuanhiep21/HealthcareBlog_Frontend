@@ -30,9 +30,19 @@ export default function VerifyEmailPage() {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
+              "Accept": "application/json",
             },
           }
         )
+
+        // Kiểm tra Content-Type để đảm bảo nhận JSON
+        const contentType = response.headers.get("content-type")
+        if (!contentType || !contentType.includes("application/json")) {
+          console.error("Response is not JSON:", await response.text())
+          setStatus("error")
+          setMessage("Lỗi kết nối với server. Vui lòng đảm bảo backend đang chạy đúng.")
+          return
+        }
 
         const data = await response.json()
 
@@ -52,7 +62,11 @@ export default function VerifyEmailPage() {
         }
       } catch (error) {
         setStatus("error")
-        setMessage("Đã xảy ra lỗi khi xác thực email. Vui lòng thử lại sau.")
+        if (error instanceof SyntaxError) {
+          setMessage("Backend đang trả về HTML thay vì JSON. Vui lòng kiểm tra CORS và đảm bảo backend chạy đúng cổng HTTPS.")
+        } else {
+          setMessage("Đã xảy ra lỗi khi xác thực email. Vui lòng thử lại sau.")
+        }
         console.error("Verify email error:", error)
       }
     }

@@ -313,26 +313,6 @@ export default function SignupPage() {
             )}
           </div>
 
-          {/* Terms */}
-          <div className="flex items-start gap-2 pt-2">
-            <input
-              id="terms"
-              type="checkbox"
-              className="w-4 h-4 rounded border-border bg-input cursor-pointer mt-1"
-              required
-            />
-            <label htmlFor="terms" className="text-xs text-muted-foreground cursor-pointer">
-              Tôi đồng ý với{" "}
-              <Link href="#" className="text-primary hover:text-primary/80 font-medium">
-                Điều khoản sử dụng
-              </Link>{" "}
-              và{" "}
-              <Link href="#" className="text-primary hover:text-primary/80 font-medium">
-                Chính sách bảo mật
-              </Link>
-            </label>
-          </div>
-
           {/* Submit Button */}
           <Button
             type="submit"

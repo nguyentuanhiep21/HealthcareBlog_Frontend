@@ -18,8 +18,9 @@ export default function ChangePasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setSuccess(false)
@@ -30,8 +31,8 @@ export default function ChangePasswordPage() {
       return
     }
 
-    if (newPassword.length < 6) {
-      setError("Mật khẩu mới phải có ít nhất 6 ký tự")
+    if (newPassword.length < 8) {
+      setError("Mật khẩu mới phải có ít nhất 8 ký tự")
       return
     }
 
@@ -45,16 +46,53 @@ export default function ChangePasswordPage() {
       return
     }
 
-    // Mock password change - in real app, call API here
-    setSuccess(true)
-    setCurrentPassword("")
-    setNewPassword("")
-    setConfirmPassword("")
+    setIsLoading(true)
 
-    // Redirect after 2 seconds
-    setTimeout(() => {
-      router.push("/user/profile/current")
-    }, 2000)
+    try {
+      const token = localStorage.getItem("authToken")
+      if (!token) {
+        setError("Vui lòng đăng nhập lại")
+        setTimeout(() => router.push("/auth/login"), 2000)
+        return
+      }
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/user/change-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            currentPassword: currentPassword,
+            newPassword: newPassword,
+          }),
+        }
+      )
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setSuccess(true)
+        setCurrentPassword("")
+        setNewPassword("")
+        setConfirmPassword("")
+
+        // Redirect after 2 seconds
+        setTimeout(() => {
+          router.push("/user/profile/current")
+        }, 2000)
+      } else {
+        setError(data.message || "Đổi mật khẩu thất bại. Vui lòng thử lại.")
+      }
+    } catch (error) {
+      console.error("Change password error:", error)
+      setError("Đã xảy ra lỗi. Vui lòng thử lại sau.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleCancel = () => {
@@ -108,7 +146,7 @@ export default function ChangePasswordPage() {
                   type={showNewPassword ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                  placeholder="Nhập mật khẩu mới (tối thiểu 8 ký tự)"
                   className="pr-10"
                 />
                 <button
@@ -167,10 +205,10 @@ export default function ChangePasswordPage() {
 
             {/* Buttons */}
             <div className="flex gap-3 pt-4">
-              <Button type="submit" className="flex-1">
-                Đổi mật khẩu
+              <Button type="submit" className="flex-1" disabled={isLoading}>
+                {isLoading ? "Đang xử lý..." : "Đổi mật khẩu"}
               </Button>
-              <Button type="button" variant="outline" className="flex-1" onClick={handleCancel}>
+              <Button type="button" variant="outline" className="flex-1" onClick={handleCancel} disabled={isLoading}>
                 Hủy
               </Button>
             </div>

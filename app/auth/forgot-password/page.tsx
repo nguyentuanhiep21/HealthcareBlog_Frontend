@@ -2,26 +2,20 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { Mail, ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-type ForgotPasswordStep = "email" | "otp" | "reset" | "success"
-
 export default function ForgotPasswordPage() {
-  const router = useRouter()
-  const [step, setStep] = useState<ForgotPasswordStep>("email")
   const [email, setEmail] = useState("")
-  const [otp, setOtp] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
 
-  const handleSendOTP = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setSuccess(false)
 
     if (!email) {
       setError("Vui lòng nhập email")
@@ -29,49 +23,35 @@ export default function ForgotPasswordPage() {
     }
 
     setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsLoading(false)
 
-    // Move to OTP step regardless of validation
-    setStep("otp")
-  }
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/user/forgot-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          body: JSON.stringify({
+            email: email,
+          }),
+        }
+      )
 
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
+      const data = await response.json()
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsLoading(false)
-
-    // Move to reset step regardless of OTP
-    setStep("reset")
-  }
-
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-
-    if (newPassword !== confirmPassword) {
-      setError("Mật khẩu không khớp")
-      return
+      if (response.ok && data.success) {
+        setSuccess(true)
+      } else {
+        setError(data.message || "Không thể gửi email. Vui lòng thử lại.")
+      }
+    } catch (error) {
+      console.error("Forgot password error:", error)
+      setError("Đã xảy ra lỗi. Vui lòng thử lại sau.")
+    } finally {
+      setIsLoading(false)
     }
-
-    if (newPassword.length < 8) {
-      setError("Mật khẩu phải có ít nhất 8 ký tự")
-      return
-    }
-
-    setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsLoading(false)
-
-    // Show success and redirect
-    setStep("success")
-    setTimeout(() => router.push("/auth/login"), 2000)
   }
 
   return (
@@ -88,30 +68,33 @@ export default function ForgotPasswordPage() {
           </div>
           <h1 className="text-3xl font-bold text-foreground">Quên Mật Khẩu</h1>
           <p className="text-muted-foreground">
-            Chúng tôi sẽ giúp bạn đặt lại mật khẩu
+            Nhập email của bạn và chúng tôi sẽ gửi link đặt lại mật khẩu
           </p>
         </div>
 
-        {/* Success State */}
-        {step === "success" && (
-          <div className="text-center space-y-4">
-            <div className="flex justify-center">
-              <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-500" />
+        {/* Success Message */}
+        {success && (
+          <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-medium text-green-600 dark:text-green-500">
+                  Email đã được gửi!
+                </h3>
+                <p className="text-sm text-green-600 dark:text-green-500 mt-1">
+                  Vui lòng kiểm tra hộp thư của bạn ({email}) và làm theo hướng dẫn để đặt lại mật khẩu.
+                </p>
+                <p className="text-xs text-green-600/80 dark:text-green-500/80 mt-2">
+                  Không thấy email? Kiểm tra thư mục spam hoặc thử gửi lại.
+                </p>
               </div>
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-xl font-semibold text-foreground">Mật khẩu đã đặt lại</h2>
-              <p className="text-muted-foreground text-sm">
-                Mật khẩu của bạn đã được cập nhật thành công. Vui lòng đăng nhập với mật khẩu mới.
-              </p>
             </div>
           </div>
         )}
 
-        {/* Email Step */}
-        {step === "email" && (
-          <form onSubmit={handleSendOTP} className="space-y-4">
+        {/* Form */}
+        {!success && (
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm">
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
@@ -121,7 +104,7 @@ export default function ForgotPasswordPage() {
 
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium text-foreground">
-                Nhập Email
+                Email
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
@@ -135,9 +118,6 @@ export default function ForgotPasswordPage() {
                   required
                 />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Chúng tôi sẽ gửi mã xác nhận tới email của bạn
-              </p>
             </div>
 
             <Button
@@ -145,137 +125,34 @@ export default function ForgotPasswordPage() {
               disabled={isLoading}
               className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition"
             >
-              {isLoading ? "Đang gửi..." : "Gửi Mã Xác Nhận"}
+              {isLoading ? "Đang gửi..." : "Gửi Link Đặt Lại Mật Khẩu"}
             </Button>
           </form>
         )}
 
-        {/* OTP Step */}
-        {step === "otp" && (
-          <form onSubmit={handleVerifyOTP} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="otp" className="text-sm font-medium text-foreground">
-                Mã Xác Nhận
-              </label>
-              <p className="text-xs text-muted-foreground">
-                Vui lòng nhập mã xác nhận được gửi tới {email}
-              </p>
-              <Input
-                id="otp"
-                type="text"
-                placeholder="000000"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                maxLength={6}
-                className="text-center text-2xl tracking-widest bg-input border-border focus:border-primary focus:ring-primary font-mono"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition"
-              >
-                {isLoading ? "Đang xác nhận..." : "Xác Nhận"}
-              </Button>
-
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setStep("email")}
-                className="w-full h-10 text-primary hover:bg-primary/10"
-              >
-                Quay Lại
-              </Button>
-            </div>
-
-            <p className="text-center text-xs text-muted-foreground">
-              Chưa nhận được mã?{" "}
-              <button
-                type="button"
-                className="text-primary hover:text-primary/80 font-medium transition"
-              >
-                Gửi lại
-              </button>
-            </p>
-          </form>
-        )}
-
-        {/* Reset Password Step */}
-        {step === "reset" && (
-          <form onSubmit={handleResetPassword} className="space-y-4">
-            {error && (
-              <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <label htmlFor="newPassword" className="text-sm font-medium text-foreground">
-                Mật Khẩu Mới
-              </label>
-              <Input
-                id="newPassword"
-                type="password"
-                placeholder="••••••••"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="bg-input border-border focus:border-primary focus:ring-primary"
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                Mật khẩu phải có ít nhất 8 ký tự
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
-                Xác Nhận Mật Khẩu
-              </label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="bg-input border-border focus:border-primary focus:ring-primary"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition"
-              >
-                {isLoading ? "Đang cập nhật..." : "Cập Nhật Mật Khẩu"}
-              </Button>
-
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setStep("otp")}
-                className="w-full h-10 text-primary hover:bg-primary/10"
-              >
-                Quay Lại
-              </Button>
-            </div>
-          </form>
-        )}
-
         {/* Back to Login */}
-        {step !== "success" && (
+        <div className="flex justify-center">
           <Link
             href="/auth/login"
-            className="flex items-center justify-center gap-2 text-primary hover:text-primary/80 font-medium transition text-sm"
+            className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium transition"
           >
             <ArrowLeft className="h-4 w-4" />
-            Quay về trang đăng nhập
+            Quay lại đăng nhập
           </Link>
+        </div>
+
+        {/* Resend option when success */}
+        {success && (
+          <div className="pt-4 border-t border-border">
+            <Button
+              type="button"
+              onClick={() => { setSuccess(false); setEmail(""); }}
+              variant="outline"
+              className="w-full h-10"
+            >
+              Gửi Lại Email
+            </Button>
+          </div>
         )}
       </div>
     </div>
