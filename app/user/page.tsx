@@ -1,33 +1,141 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Navbar } from "@/components/navbar"
 import { CreatePostBox } from "@/components/create-post-box"
 import { PostCard } from "@/components/post-card"
-import { mockPosts, mockFeaturedPosts, mockSuggestedUsers } from "@/lib/mock-data"
+import { mockFeaturedPosts, mockSuggestedUsers } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { useAuth } from "@/components/auth-provider"
+import { authUtils } from "@/lib/auth-utils"
 import Link from "next/link"
-import type { Post } from "@/lib/types" // Assuming Post type is defined here
+import type { Post } from "@/lib/types"
 
 export default function Home() {
   const { isAuthenticated } = useAuth()
-  // Filter to show only one post per author
-  const uniqueAuthorPosts = mockPosts.reduce((acc, post) => {
-    if (!acc.find(p => p.author.id === post.author.id)) {
-      acc.push(post)
-    }
-    return acc
-  }, [] as Post[])
-  const [posts, setPosts] = useState(uniqueAuthorPosts)
+  const [posts, setPosts] = useState<Post[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set())
   const [showUnfollowDialog, setShowUnfollowDialog] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatar: string } | null>(null)
+
+  useEffect(() => {
+    fetchPosts()
+  }, [])
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      if (!isAuthenticated) return
+      
+      const token = authUtils.getToken()
+      if (!token) return
+      
+      try {
+        const backendUrl = "https://localhost:7223"
+        const response = await fetch(`${backendUrl}/api/user/account`, {
+          headers: authUtils.getAuthHeaders(),
+        })
+
+        if (response.ok) {
+          const userData = await response.json()
+          setCurrentUser({
+            id: userData.id,
+            name: userData.fullName,
+            avatar: userData.avatarUrl.startsWith('http') 
+              ? userData.avatarUrl 
+              : `${backendUrl}${userData.avatarUrl}`,
+          })
+        }
+      } catch (error) {
+        console.error("Error fetching current user:", error)
+      }
+    }
+
+    fetchCurrentUser()
+  }, [isAuthenticated])
+
+  const fetchPosts = async () => {
+    try {
+      setIsLoading(true)
+      setError("")
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/post?page=1&pageSize=20`,
+        {
+          method: "GET",
+          headers: authUtils.getAuthHeaders(),
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error("Không thể tải bài viết")
+      }
+
+      const data = await response.json()
+      
+      console.log("API Response:", data) // Debug log
+      
+      // Check if data is an array or wrapped in an object
+      const postsArray = Array.isArray(data) ? data : (data.posts || data.data || [])
+      
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
+      
+      // Map backend data to frontend Post type
+      const mappedPosts: Post[] = postsArray.map((post: any) => {
+        const avatarUrl = post.author?.avatarUrl
+        const fullAvatarUrl = avatarUrl 
+          ? (avatarUrl.startsWith('http') ? avatarUrl : `${backendUrl}${avatarUrl}`)
+          : "/placeholder.svg"
+          
+        const imageUrl = post.imageUrl
+        const fullImageUrl = imageUrl
+          ? (imageUrl.startsWith('http') ? imageUrl : `${backendUrl}${imageUrl}`)
+          : undefined
+          
+        return {
+          id: post.id?.toString() || "",
+          author: {
+            id: post.author?.id || "",
+            name: post.author?.fullName || "Unknown",
+            avatar: fullAvatarUrl,
+            bio: post.author?.bio || "",
+            followers: 0,
+            following: 0,
+            isFollowing: post.author?.isFollowing || false,
+          },
+          caption: post.content || "",
+          image: fullImageUrl,
+          likes: post.likeCount || 0,
+          comments: post.commentCount || 0,
+          isSaved: post.isSavedByCurrentUser || false,
+          isLiked: post.isLikedByCurrentUser || false,
+          createdAt: post.createdAt || new Date().toISOString(),
+        }
+      })
+
+      setPosts(mappedPosts)
+    } catch (error) {
+      console.error("Fetch posts error:", error)
+      setError("Đã xảy ra lỗi khi tải bài viết")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handlePostCreate = (newPost: Post) => {
     setPosts([newPost, ...posts])
+  }
+
+  const handlePostUpdate = (updatedPost: Post) => {
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post.id === updatedPost.id ? updatedPost : post
+      )
+    )
   }
 
   const handleFollowClick = (userId: string) => {
@@ -75,12 +183,34 @@ export default function Home() {
           <div className="lg:col-span-2">
             <CreatePostBox onPostCreate={handlePostCreate} />
 
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 p-4 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive">
+                {error}
+              </div>
+            )}
+
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              </div>
+            )}
+
             {/* Posts */}
-            <div className="space-y-4">
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
+            {!isLoading && !error && (
+              <div className="space-y-4">
+                {posts.length > 0 ? (
+                  posts.map((post) => (
+                    <PostCard key={post.id} post={post} onPostUpdate={handlePostUpdate} currentUser={currentUser} />
+                  ))
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    Chưa có bài viết nào
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -148,7 +278,7 @@ export default function Home() {
               <div className="rounded-lg border border-border bg-card p-4">
                 <h2 className="mb-4 text-lg font-bold">Bài viết đã lưu</h2>
                 <div className="space-y-3">
-                  {mockPosts.slice(0, 3).map((post) => (
+                  {posts.filter(p => p.isSaved).slice(0, 3).map((post) => (
                     <Link
                       key={post.id}
                       href={`/user/post/${post.id}`}
@@ -167,6 +297,9 @@ export default function Home() {
                       </div>
                     </Link>
                   ))}
+                  {posts.filter(p => p.isSaved).length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">Chưa có bài viết đã lưu</p>
+                  )}
                 </div>
                 <Link href="/user/saved">
                   <Button variant="outline" className="w-full mt-4 bg-transparent">

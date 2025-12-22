@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { mockNotifications } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
+import { formatTimeAgo } from '@/lib/time-utils'
 
 export function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false)
@@ -109,7 +110,7 @@ export function NotificationDropdown() {
                           </span>
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {notification.createdAt}
+                          {formatTimeAgo(notification.createdAt)}
                         </p>
                       </div>
                       {!notification.isRead && (

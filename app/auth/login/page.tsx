@@ -7,6 +7,7 @@ import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/components/auth-provider"
+import { authUtils } from "@/lib/auth-utils"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -47,8 +48,8 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (response.ok && data.token) {
-        // Lưu token
-        localStorage.setItem("authToken", data.token)
+        // Lưu token sử dụng authUtils
+        authUtils.setToken(data.token)
         login()
         router.push("/user")
       } else {

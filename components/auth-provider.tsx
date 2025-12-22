@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { authUtils } from "@/lib/auth-utils"
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -19,10 +20,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Load auth state from localStorage on mount
   useEffect(() => {
     try {
-      const savedAuthState = localStorage.getItem("isAuthenticated")
-      if (savedAuthState === "true") {
-        setIsAuthenticated(true)
-      }
+      // Kiểm tra cả token và auth state
+      const hasAuth = authUtils.isAuthenticated()
+      setIsAuthenticated(hasAuth)
     } catch (error) {
       console.error("Failed to load auth state from localStorage:", error)
     }
@@ -31,20 +31,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = () => {
     setIsAuthenticated(true)
-    try {
-      localStorage.setItem("isAuthenticated", "true")
-    } catch (error) {
-      console.error("Failed to save auth state to localStorage:", error)
-    }
+    // authUtils.setToken đã được gọi ở login page
   }
 
   const logout = () => {
     setIsAuthenticated(false)
-    try {
-      localStorage.removeItem("isAuthenticated")
-    } catch (error) {
-      console.error("Failed to remove auth state from localStorage:", error)
-    }
+    authUtils.removeToken()
     router.push("/auth/login")
   }
 

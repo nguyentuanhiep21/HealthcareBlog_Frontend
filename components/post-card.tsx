@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Heart, MessageCircle, Bookmark, MoreVertical, Flag, Edit, ImageIcon, X, Trash2 } from "lucide-react"
 import type { Post } from "@/lib/types"
 import { CommentSection } from "./comment-section"
@@ -11,12 +11,16 @@ import { mockComments, mockUsers } from "@/lib/mock-data"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
+import { formatTimeAgo } from "@/lib/time-utils"
+import { authUtils } from "@/lib/auth-utils"
 
 interface PostCardProps {
   post: Post
+  onPostUpdate?: (updatedPost: Post) => void
+  currentUser?: { id: string; name: string; avatar: string } | null
 }
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, onPostUpdate, currentUser }: PostCardProps) {
   const router = useRouter()
   const { isAuthenticated } = useAuth()
   const [isLiked, setIsLiked] = useState(post.isLiked)
@@ -33,15 +37,55 @@ export function PostCard({ post }: PostCardProps) {
   const [editCaption, setEditCaption] = useState(post.caption)
   const [editImage, setEditImage] = useState(post.image || "")
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const currentUser = mockUsers.currentUser
 
-  const handleLike = () => {
+  // Sync state with props when post changes
+  useEffect(() => {
+    setIsLiked(post.isLiked)
+    setLikeCount(post.likes)
+    setIsSaved(post.isSaved)
+  }, [post.isLiked, post.likes, post.isSaved])
+
+  const handleLike = async () => {
     if (!isAuthenticated) {
       setShowLoginDialog(true)
       return
     }
-    setIsLiked(!isLiked)
-    setLikeCount(isLiked ? likeCount - 1 : likeCount + 1)
+
+    const newIsLiked = !isLiked
+    const newLikeCount = newIsLiked ? likeCount + 1 : likeCount - 1
+
+    // Optimistic update
+    setIsLiked(newIsLiked)
+    setLikeCount(newLikeCount)
+
+    try {
+      const backendUrl = "https://localhost:7223"
+      const endpoint = "like"
+      const method = newIsLiked ? "POST" : "DELETE"
+
+      const response = await fetch(`${backendUrl}/api/post/${post.id}/${endpoint}`, {
+        method,
+        headers: authUtils.getAuthHeaders(),
+      })
+
+      if (!response.ok) {
+        // Revert on error
+        setIsLiked(!newIsLiked)
+        setLikeCount(newIsLiked ? newLikeCount - 1 : newLikeCount + 1)
+        console.error("Lỗi khi like/unlike bài viết")
+        return
+      }
+
+      // Notify parent component if callback provided
+      if (onPostUpdate) {
+        onPostUpdate({ ...post, isLiked: newIsLiked, likes: newLikeCount })
+      }
+    } catch (error) {
+      console.error("Lỗi khi like/unlike bài viết:", error)
+      // Revert on error
+      setIsLiked(!newIsLiked)
+      setLikeCount(newIsLiked ? newLikeCount - 1 : newLikeCount + 1)
+    }
   }
 
   const handleSave = () => {
@@ -50,6 +94,47 @@ export function PostCard({ post }: PostCardProps) {
       return
     }
     setIsSaved(!isSaved)
+  }
+
+  const handleUpdatePost = async () => {
+    if (!editCaption.trim()) return
+
+    try {
+      const backendUrl = "https://localhost:7223"
+      const response = await fetch(`${backendUrl}/api/post/${post.id}`, {
+        method: "PUT",
+        headers: authUtils.getAuthHeaders(),
+        body: JSON.stringify({
+          content: editCaption,
+          imageUrl: editImage,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Đã xảy ra lỗi khi cập nhật bài viết:", errorData.message)
+        return
+      }
+
+      const result = await response.json()
+      const updatedPostData = result.data
+
+      // Update local state
+      setCaption(editCaption)
+      setImage(editImage)
+      setIsEditMode(false)
+
+      // Notify parent to update post list
+      if (onPostUpdate) {
+        onPostUpdate({
+          ...post,
+          caption: updatedPostData.content,
+          image: updatedPostData.imageUrl,
+        })
+      }
+    } catch (error) {
+      console.error("Đã xảy ra lỗi:", error)
+    }
   }
 
   const handleImageClick = () => {
@@ -89,7 +174,7 @@ export function PostCard({ post }: PostCardProps) {
                 >
                   {post.author.name}
                 </p>
-                <span className="text-sm text-muted-foreground">{post.createdAt}</span>
+                <span className="text-sm text-muted-foreground">{formatTimeAgo(post.createdAt)}</span>
               </div>
             </div>
           </div>
@@ -106,7 +191,7 @@ export function PostCard({ post }: PostCardProps) {
             {isMenuOpen && (
               <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-border bg-card shadow-lg z-10">
                 <div className="flex flex-col gap-1 p-2">
-                  {isAuthenticated && post.author.id === currentUser.id ? (
+                  {isAuthenticated && currentUser && post.author.id === currentUser.id ? (
                     <>
                       <button
                         onClick={() => {
@@ -294,13 +379,7 @@ export function PostCard({ post }: PostCardProps) {
                 </Button>
                 <Button
                   className="flex-1 bg-primary hover:bg-primary/90"
-                  onClick={() => {
-                    // TODO: Update post in backend
-                    console.log("Update post:", { id: post.id, caption: editCaption, image: editImage })
-                    setCaption(editCaption)
-                    setImage(editImage)
-                    setIsEditMode(false)
-                  }}
+                  onClick={handleUpdatePost}
                   disabled={!editCaption.trim()}
                 >
                   Lưu thay đổi

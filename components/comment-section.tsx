@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth-provider"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import Link from "next/link"
 import Image from "next/image"
+import { formatTimeAgo } from "@/lib/time-utils"
 
 interface CommentSectionProps {
   comments: Comment[]
@@ -41,7 +42,7 @@ export function CommentSection({ comments, onClose }: CommentSectionProps) {
         text: commentText,
         likes: 0,
         isLiked: false,
-        createdAt: "vừa xong",
+        createdAt: new Date().toISOString(),
       }
       setLocalComments([newComment, ...localComments])
       setCommentText("")
@@ -125,7 +126,7 @@ export function CommentSection({ comments, onClose }: CommentSectionProps) {
                   >
                     {comment.author.name}
                   </Link>
-                  <p className="text-xs text-muted-foreground mt-0.5">{comment.createdAt}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{formatTimeAgo(comment.createdAt)}</p>
                   <p className="text-sm text-foreground mt-2">{comment.text}</p>
                   <button 
                     onClick={() => handleCommentLike(comment.id)}

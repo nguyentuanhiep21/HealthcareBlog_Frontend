@@ -2,14 +2,15 @@
 
 import type React from "react"
 import Image from "next/image"
-import { useState, use } from "react"
+import { useState, use, useEffect } from "react"
 import { Heart, Bookmark, MoreVertical, Flag, X, LogIn, Bell, User, Settings, Send, LogOut, Edit, ImageIcon, Trash2 } from "lucide-react"
-import { mockPosts, mockComments, mockUsers } from "@/lib/mock-data"
 import { useAuth } from "@/components/auth-provider"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ReportDialog } from "@/components/report-dialog"
+import { formatTimeAgo } from "@/lib/time-utils"
+import { authUtils } from "@/lib/auth-utils"
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -17,19 +18,37 @@ interface PostDetailPageProps {
   }>
 }
 
+interface Post {
+  id: string
+  author: {
+    id: string
+    name: string
+    avatar: string
+  }
+  caption: string
+  image: string
+  likes: number
+  comments: number
+  isLiked: boolean
+  isSaved: boolean
+  createdAt: string
+}
+
 export default function PostDetailPage({ params }: PostDetailPageProps) {
   const { isAuthenticated, logout } = useAuth()
   const { id } = use(params)
-  const post = mockPosts.find((p) => p.id === id)
-  const [isLiked, setIsLiked] = useState(post?.isLiked || false)
-  const [isSaved, setIsSaved] = useState(post?.isSaved || false)
-  const [likeCount, setLikeCount] = useState(post?.likes || 0)
+  const [post, setPost] = useState<Post | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isLiked, setIsLiked] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
+  const [likeCount, setLikeCount] = useState(0)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false)
-  const [comments, setComments] = useState(mockComments[id] || [])
+  const [comments, setComments] = useState<any[]>([])
   const [commentText, setCommentText] = useState("")
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  const currentUser = mockUsers.currentUser
+  const [currentUser, setCurrentUser] = useState<{id: string, name: string, avatar: string} | null>(null)
   const [showReportDialog, setShowReportDialog] = useState(false)
   const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null)
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(null)
@@ -44,12 +63,143 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showDeletePostDialog, setShowDeletePostDialog] = useState(false)
   const [showReportSuccessDialog, setShowReportSuccessDialog] = useState(false)
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false)
+  const [commentError, setCommentError] = useState<string | null>(null)
 
-  if (!post) {
+  // Fetch current user if authenticated
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const token = authUtils.getToken()
+      if (!token) return
+
+      try {
+        const backendUrl = "https://localhost:7223"
+        const response = await fetch(`${backendUrl}/api/user/account`, {
+          headers: authUtils.getAuthHeaders(),
+        })
+
+        if (response.ok) {
+          const userData = await response.json()
+          setCurrentUser({
+            id: userData.id,
+            name: userData.fullName,
+            avatar: userData.avatarUrl.startsWith('http') 
+              ? userData.avatarUrl 
+              : `${backendUrl}${userData.avatarUrl}`,
+          })
+        }
+      } catch (error) {
+        console.error("Error fetching current user:", error)
+      }
+    }
+
+    if (isAuthenticated) {
+      fetchCurrentUser()
+    }
+  }, [isAuthenticated])
+
+  useEffect(() => {
+    const fetchPost = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        
+        const backendUrl = "https://localhost:7223"
+        const headers = authUtils.getAuthHeaders()
+        
+        const response = await fetch(`${backendUrl}/api/post/${id}`, {
+          headers,
+        })
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            setError("Không tìm thấy bài viết")
+          } else {
+            setError("Đã xảy ra lỗi khi tải bài viết")
+          }
+          return
+        }
+        
+        const data = await response.json()
+        
+        // Map backend DTO to frontend Post type
+        const mappedPost: Post = {
+          id: data.id.toString(),
+          author: {
+            id: data.author.id,
+            name: data.author.fullName,
+            avatar: data.author.avatarUrl.startsWith('http') 
+              ? data.author.avatarUrl 
+              : `${backendUrl}${data.author.avatarUrl}`,
+          },
+          caption: data.content,
+          image: data.imageUrl ? 
+            (data.imageUrl.startsWith('http') ? data.imageUrl : `${backendUrl}${data.imageUrl}`) 
+            : "",
+          likes: data.likeCount,
+          comments: data.commentCount,
+          isLiked: data.isLikedByCurrentUser || false,
+          isSaved: data.isSavedByCurrentUser || false,
+          createdAt: data.createdAt,
+        }
+        
+        setPost(mappedPost)
+        setIsLiked(mappedPost.isLiked)
+        setIsSaved(mappedPost.isSaved)
+        setLikeCount(mappedPost.likes)
+        setCaption(mappedPost.caption)
+        setImage(mappedPost.image)
+        setEditCaption(mappedPost.caption)
+        setEditImage(mappedPost.image)
+        
+        // Map comments from backend
+        if (data.comments && Array.isArray(data.comments)) {
+          const mappedComments = data.comments.map((comment: any) => ({
+            id: comment.id?.toString() || "",
+            postId: id,
+            author: {
+              id: comment.author?.id || comment.authorId || "",
+              name: comment.author?.fullName || "Unknown",
+              avatar: comment.author?.avatarUrl 
+                ? (comment.author.avatarUrl.startsWith('http') 
+                    ? comment.author.avatarUrl 
+                    : `${backendUrl}${comment.author.avatarUrl}`)
+                : "/images/logo.png",
+            },
+            text: comment.content || "",
+            likes: comment.likeCount || 0,
+            isLiked: comment.isLikedByCurrentUser || false,
+            createdAt: comment.uploadTime || comment.createdAt || new Date().toISOString(),
+          }))
+          setComments(mappedComments)
+        }
+        
+      } catch (err) {
+        console.error("Error fetching post:", err)
+        setError("Đã xảy ra lỗi khi tải bài viết")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchPost()
+  }, [id])
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-foreground mb-4">Không tìm thấy bài viết</h1>
+          <p className="text-lg text-muted-foreground">Đang tải bài viết...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !post) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-foreground mb-4">{error || "Không tìm thấy bài viết"}</h1>
           <Link href={isAuthenticated ? "/user" : "/"} className="text-lg text-primary hover:underline">
             Quay lại trang chủ
           </Link>
@@ -58,50 +208,176 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     )
   }
 
-  const handleLike = () => {
+  const handleLike = async () => {
     if (!isAuthenticated) {
       setShowLoginDialog(true)
       return
     }
-    setIsLiked(!isLiked)
-    setLikeCount(isLiked ? likeCount - 1 : likeCount + 1)
+
+    const newIsLiked = !isLiked
+    const newLikeCount = newIsLiked ? likeCount + 1 : likeCount - 1
+
+    // Optimistic update
+    setIsLiked(newIsLiked)
+    setLikeCount(newLikeCount)
+
+    try {
+      const backendUrl = "https://localhost:7223"
+      const endpoint = "like"
+      const method = newIsLiked ? "POST" : "DELETE"
+
+      const response = await fetch(`${backendUrl}/api/post/${id}/${endpoint}`, {
+        method,
+        headers: authUtils.getAuthHeaders(),
+      })
+
+      if (!response.ok) {
+        // Revert on error
+        setIsLiked(!newIsLiked)
+        setLikeCount(newIsLiked ? newLikeCount - 1 : newLikeCount + 1)
+        console.error("Lỗi khi like/unlike bài viết")
+        return
+      }
+
+      // Update post object
+      if (post) {
+        setPost({
+          ...post,
+          isLiked: newIsLiked,
+          likes: newLikeCount
+        })
+      }
+    } catch (error) {
+      console.error("Lỗi khi like/unlike bài viết:", error)
+      // Revert on error
+      setIsLiked(!newIsLiked)
+      setLikeCount(newIsLiked ? newLikeCount - 1 : newLikeCount + 1)
+    }
   }
 
-  const handleSubmitComment = (e: React.FormEvent) => {
+  const handleCommentLike = async (commentId: string) => {
+    if (!isAuthenticated) {
+      setShowLoginDialog(true)
+      return
+    }
+
+    const comment = comments.find(c => c.id === commentId)
+    if (!comment) return
+
+    const newIsLiked = !comment.isLiked
+    const newLikeCount = newIsLiked ? comment.likes + 1 : comment.likes - 1
+
+    // Optimistic update
+    setComments(prevComments =>
+      prevComments.map(c =>
+        c.id === commentId
+          ? { ...c, isLiked: newIsLiked, likes: newLikeCount }
+          : c
+      )
+    )
+
+    try {
+      const backendUrl = "https://localhost:7223"
+      const endpoint = "like"
+      const method = newIsLiked ? "POST" : "DELETE"
+
+      const response = await fetch(`${backendUrl}/api/comment/${commentId}/${endpoint}`, {
+        method,
+        headers: authUtils.getAuthHeaders(),
+      })
+
+      if (!response.ok) {
+        // Revert on error
+        setComments(prevComments =>
+          prevComments.map(c =>
+            c.id === commentId
+              ? { ...c, isLiked: !newIsLiked, likes: newIsLiked ? newLikeCount - 1 : newLikeCount + 1 }
+              : c
+          )
+        )
+        console.error("Lỗi khi like/unlike bình luận")
+      }
+    } catch (error) {
+      console.error("Lỗi khi like/unlike bình luận:", error)
+      // Revert on error
+      setComments(prevComments =>
+        prevComments.map(c =>
+          c.id === commentId
+            ? { ...c, isLiked: !newIsLiked, likes: newIsLiked ? newLikeCount - 1 : newLikeCount + 1 }
+            : c
+        )
+      )
+    }
+  }
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!commentText.trim()) return
 
-    const newComment = {
-      id: `comment-${Date.now()}`,
-      postId: id,
-      author: currentUser,
-      text: commentText,
-      likes: 0,
-      isLiked: false,
-      createdAt: "Vừa xong",
-    }
+    setIsSubmittingComment(true)
+    setCommentError(null)
 
-    // Add new comment to the top of the list
-    setComments([newComment, ...comments])
-    setCommentText("")
-  }
+    try {
+      const backendUrl = "https://localhost:7223"
+      const token = authUtils.getToken()
+      
+      if (!token) {
+        setShowLoginDialog(true)
+        return
+      }
 
-  const handleCommentLike = (commentId: string) => {
-    if (!isAuthenticated) {
-      setShowLoginDialog(true)
-      return
+      const response = await fetch(`${backendUrl}/api/comment`, {
+        method: "POST",
+        headers: authUtils.getAuthHeaders(),
+        body: JSON.stringify({
+          postId: parseInt(id),
+          content: commentText,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        setCommentError(errorData.message || "Đã xảy ra lỗi khi đăng bình luận")
+        return
+      }
+
+      const result = await response.json()
+      const commentData = result.data
+
+      // Map backend comment to frontend format
+      const newComment = {
+        id: commentData.id.toString(),
+        postId: id,
+        author: {
+          id: commentData.user.id,
+          name: commentData.user.fullName,
+          avatar: commentData.user.avatarUrl.startsWith('http') 
+            ? commentData.user.avatarUrl 
+            : `${backendUrl}${commentData.user.avatarUrl}`,
+        },
+        text: commentData.content,
+        likes: 0,
+        isLiked: false,
+        createdAt: commentData.createdAt,
+      }
+
+      // Add new comment to the top of the list
+      setComments([newComment, ...comments])
+      setCommentText("")
+      
+      // Cập nhật comment count của post
+      if (post) {
+        setPost({
+          ...post,
+          comments: post.comments + 1
+        })
+      }
+    } catch (error) {
+      console.error("Đã xảy ra lỗi:", error)
+      setCommentError("Đã xảy ra lỗi khi đăng bình luận. Vui lòng thử lại.")
+    } finally {
+      setIsSubmittingComment(false)
     }
-    setComments(
-      comments.map((comment) =>
-        comment.id === commentId
-          ? {
-              ...comment,
-              isLiked: !comment.isLiked,
-              likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1,
-            }
-          : comment,
-      ),
-    )
   }
 
   const handleReportSubmit = (reason: string, details: string) => {
@@ -113,6 +389,109 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     }
     // TODO: Send report to backend
     setShowReportSuccessDialog(true)
+  }
+
+  const handleUpdatePost = async () => {
+    if (!editCaption.trim()) return
+
+    try {
+      const backendUrl = "https://localhost:7223"
+      const response = await fetch(`${backendUrl}/api/post/${id}`, {
+        method: "PUT",
+        headers: authUtils.getAuthHeaders(),
+        body: JSON.stringify({
+          content: editCaption,
+          imageUrl: editImage,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Đã xảy ra lỗi khi cập nhật bài viết:", errorData.message)
+        return
+      }
+
+      const result = await response.json()
+      const updatedPostData = result.data
+
+      // Update local state
+      setCaption(editCaption)
+      setImage(editImage)
+      setIsEditMode(false)
+
+      // Update post object
+      if (post) {
+        setPost({
+          ...post,
+          caption: updatedPostData.content,
+          image: updatedPostData.imageUrl,
+        })
+      }
+    } catch (error) {
+      console.error("Đã xảy ra lỗi:", error)
+    }
+  }
+
+  const handleUpdateComment = async (commentId: string, newText: string) => {
+    try {
+      const backendUrl = "https://localhost:7223"
+      const response = await fetch(`${backendUrl}/api/comment/${commentId}`, {
+        method: "PUT",
+        headers: authUtils.getAuthHeaders(),
+        body: JSON.stringify({
+          content: newText,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Lỗi khi cập nhật bình luận:", errorData.message)
+        return false
+      }
+
+      // Update local state
+      setComments(
+        comments.map((c) =>
+          c.id === commentId ? { ...c, text: newText } : c
+        )
+      )
+      return true
+    } catch (error) {
+      console.error("Lỗi khi cập nhật bình luận:", error)
+      return false
+    }
+  }
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      const backendUrl = "https://localhost:7223"
+      const response = await fetch(`${backendUrl}/api/comment/${commentId}`, {
+        method: "DELETE",
+        headers: authUtils.getAuthHeaders(),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Lỗi khi xóa bình luận:", errorData.message)
+        return false
+      }
+
+      // Remove from local state
+      setComments(comments.filter((c) => c.id !== commentId))
+      
+      // Cập nhật comment count của post
+      if (post) {
+        setPost({
+          ...post,
+          comments: Math.max(0, post.comments - 1)
+        })
+      }
+      
+      return true
+    } catch (error) {
+      console.error("Lỗi khi xóa bình luận:", error)
+      return false
+    }
   }
 
   return (
@@ -133,7 +512,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
         {/* Right - Avatar and Notification */}
         <div className="flex items-center gap-4">
-          {isAuthenticated ? (
+          {isAuthenticated && currentUser ? (
             <>
               <button className="rounded-full p-2 hover:bg-secondary transition text-muted-foreground hover:text-foreground">
                 <Bell className="h-5.5 w-5.5" />
@@ -228,7 +607,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   >
                     {post.author.name}
                   </Link>
-                  <p className="text-sm text-muted-foreground">{post.createdAt}</p>
+                  <p className="text-sm text-muted-foreground">{formatTimeAgo(post.createdAt)}</p>
                 </div>
               </div>
 
@@ -242,7 +621,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
                 {isMenuOpen && (
                   <div className="absolute right-0 top-full mt-2 w-40 rounded-lg border border-border bg-card shadow-lg z-10">
-                    {isAuthenticated && post.author.id === currentUser.id ? (
+                    {isAuthenticated && currentUser && post.author.id === currentUser.id ? (
                       <>
                         <button
                           onClick={() => {
@@ -340,7 +719,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                         <Link href={`/user/profile/${comment.author.id}`}>
                           <p className="text-sm font-semibold text-foreground hover:text-primary cursor-pointer">{comment.author.name}</p>
                         </Link>
-                        <span className="text-sm text-muted-foreground">{comment.createdAt}</span>
+                        <span className="text-sm text-muted-foreground">{formatTimeAgo(comment.createdAt)}</span>
                       </div>
                       
                       {/* Comment Menu */}
@@ -354,7 +733,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                         
                         {openCommentMenuId === comment.id && (
                           <div className="absolute right-0 top-full mt-1 w-40 rounded-lg border border-border bg-card shadow-lg z-10">
-                            {isAuthenticated && comment.author.id === currentUser.id ? (
+                            {isAuthenticated && currentUser && comment.author.id === currentUser.id ? (
                               <>
                                 <button
                                   onClick={() => {
@@ -420,15 +799,13 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                             Hủy
                           </button>
                           <button
-                            onClick={() => {
+                            onClick={async () => {
                               if (editCommentText.trim()) {
-                                setComments(
-                                  comments.map((c) =>
-                                    c.id === comment.id ? { ...c, text: editCommentText } : c
-                                  )
-                                )
-                                setEditingCommentId(null)
-                                setEditCommentText("")
+                                const success = await handleUpdateComment(comment.id, editCommentText)
+                                if (success) {
+                                  setEditingCommentId(null)
+                                  setEditCommentText("")
+                                }
                               }
                             }}
                             disabled={!editCommentText.trim()}
@@ -463,8 +840,13 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           </div>
 
           <div className="border-t border-border p-4 flex-shrink-0">
+            {commentError && (
+              <div className="mb-2 p-2 bg-destructive/10 border border-destructive/30 rounded text-sm text-destructive">
+                {commentError}
+              </div>
+            )}
             <form onSubmit={handleSubmitComment} className="flex gap-2 items-center">
-              {isAuthenticated && (
+              {isAuthenticated && currentUser && (
                 <img
                   src={currentUser.avatar || "/placeholder.svg"}
                   alt={currentUser.name}
@@ -481,16 +863,16 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                     setShowLoginDialog(true)
                   }
                 }}
-                disabled={!isAuthenticated}
+                disabled={!isAuthenticated || isSubmittingComment}
                 className="flex-1 rounded-full bg-gray-100 px-3 py-1.5 text-sm outline-none focus:border-2 focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
               />
               {isAuthenticated && (
                 <button
                   type="submit"
-                  disabled={!commentText.trim()}
+                  disabled={!commentText.trim() || isSubmittingComment}
                   className="rounded-full p-2 hover:bg-primary/10 transition text-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                 >
-                  <Send className="h-5 w-5" />
+                  <Send className={`h-5 w-5 ${isSubmittingComment ? 'animate-pulse' : ''}`} />
                 </button>
               )}
             </form>
@@ -588,13 +970,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 </Button>
                 <Button
                   className="flex-1 bg-primary hover:bg-primary/90"
-                  onClick={() => {
-                    // TODO: Update post in backend
-                    console.log("Update post:", { id, caption: editCaption, image: editImage })
-                    setCaption(editCaption)
-                    setImage(editImage)
-                    setIsEditMode(false)
-                  }}
+                  onClick={handleUpdatePost}
                   disabled={!editCaption.trim()}
                 >
                   Lưu thay đổi
@@ -638,14 +1014,14 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 </Button>
                 <Button
                   className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                  onClick={() => {
+                  onClick={async () => {
                     if (deletingCommentId) {
-                      setComments(comments.filter((c) => c.id !== deletingCommentId))
-                      console.log("Delete comment:", deletingCommentId)
-                      // TODO: Delete comment from backend
+                      const success = await handleDeleteComment(deletingCommentId)
+                      if (success) {
+                        setShowDeleteDialog(false)
+                        setDeletingCommentId(null)
+                      }
                     }
-                    setShowDeleteDialog(false)
-                    setDeletingCommentId(null)
                   }}
                 >
                   Xóa
