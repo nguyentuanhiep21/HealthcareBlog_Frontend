@@ -138,6 +138,10 @@ export default function Home() {
     )
   }
 
+  const handlePostDelete = (postId: string) => {
+    setPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId))
+  }
+
   const handleFollowClick = (userId: string) => {
     if (!isAuthenticated) {
       setShowLoginDialog(true)
@@ -202,7 +206,13 @@ export default function Home() {
               <div className="space-y-4">
                 {posts.length > 0 ? (
                   posts.map((post) => (
-                    <PostCard key={post.id} post={post} onPostUpdate={handlePostUpdate} currentUser={currentUser} />
+                    <PostCard 
+                      key={post.id} 
+                      post={post} 
+                      onPostUpdate={handlePostUpdate} 
+                      onPostDelete={handlePostDelete}
+                      currentUser={currentUser} 
+                    />
                   ))
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">

@@ -17,10 +17,11 @@ import { authUtils } from "@/lib/auth-utils"
 interface PostCardProps {
   post: Post
   onPostUpdate?: (updatedPost: Post) => void
+  onPostDelete?: (postId: string) => void
   currentUser?: { id: string; name: string; avatar: string } | null
 }
 
-export function PostCard({ post, onPostUpdate, currentUser }: PostCardProps) {
+export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: PostCardProps) {
   const router = useRouter()
   const { isAuthenticated } = useAuth()
   const [isLiked, setIsLiked] = useState(post.isLiked)
@@ -31,6 +32,8 @@ export function PostCard({ post, onPostUpdate, currentUser }: PostCardProps) {
   const [showImageViewer, setShowImageViewer] = useState(false)
   const [showReportDialog, setShowReportDialog] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
+  const [showReportSuccessDialog, setShowReportSuccessDialog] = useState(false)
+  const [reportSuccessMessage, setReportSuccessMessage] = useState("")
   const [isEditMode, setIsEditMode] = useState(false)
   const [caption, setCaption] = useState(post.caption)
   const [image, setImage] = useState(post.image || "")
@@ -137,6 +140,31 @@ export function PostCard({ post, onPostUpdate, currentUser }: PostCardProps) {
     }
   }
 
+  const handleDeletePost = async () => {
+    try {
+      const backendUrl = "https://localhost:7223"
+      const response = await fetch(`${backendUrl}/api/post/${post.id}`, {
+        method: "DELETE",
+        headers: authUtils.getAuthHeaders(),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Đã xảy ra lỗi khi xóa bài viết:", errorData.message)
+        return
+      }
+
+      setShowDeleteDialog(false)
+
+      // Notify parent to remove post from list
+      if (onPostDelete) {
+        onPostDelete(post.id)
+      }
+    } catch (error) {
+      console.error("Đã xảy ra lỗi:", error)
+    }
+  }
+
   const handleImageClick = () => {
     router.push(`/user/post/${post.id}`)
   }
@@ -149,9 +177,38 @@ export function PostCard({ post, onPostUpdate, currentUser }: PostCardProps) {
     router.push(`/user/profile/${post.author.id}`)
   }
 
-  const handleReportSubmit = (reason: string, details: string) => {
-    console.log("Report submitted:", { postId: post.id, reason, details })
-    // TODO: Send report to backend
+  const handleReportSubmit = async (reason: string, details: string) => {
+    try {
+      const backendUrl = "https://localhost:7223"
+      const response = await fetch(`${backendUrl}/api/post/${post.id}/report`, {
+        method: "POST",
+        headers: authUtils.getAuthHeaders(),
+        body: JSON.stringify({
+          reason,
+          description: details,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        const errorMessage = errorData.message || errorData.title || "Không thể báo cáo bài viết. Vui lòng thử lại."
+        console.error("Đã xảy ra lỗi khi báo cáo bài viết:", errorMessage)
+        setReportSuccessMessage(errorMessage)
+        setShowReportDialog(false)
+        setShowReportSuccessDialog(true)
+        return
+      }
+
+      const result = await response.json()
+      setReportSuccessMessage(result.message || "Đã báo cáo bài viết thành công!")
+      setShowReportDialog(false)
+      setShowReportSuccessDialog(true)
+    } catch (error) {
+      console.error("Error reporting post:", error)
+      setReportSuccessMessage("Đã xảy ra lỗi. Vui lòng thử lại sau.")
+      setShowReportDialog(false)
+      setShowReportSuccessDialog(true)
+    }
   }
 
   return (
@@ -415,13 +472,7 @@ export function PostCard({ post, onPostUpdate, currentUser }: PostCardProps) {
                 </Button>
                 <Button
                   className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                  onClick={() => {
-                    console.log("Delete post:", post.id)
-                    // TODO: Delete post from backend
-                    setShowDeleteDialog(false)
-                    // Optionally reload or remove from UI
-                    window.location.reload()
-                  }}
+                  onClick={handleDeletePost}
                 >
                   Xóa
                 </Button>
@@ -438,6 +489,43 @@ export function PostCard({ post, onPostUpdate, currentUser }: PostCardProps) {
         onSubmit={handleReportSubmit}
         targetType="post"
       />
+
+      {/* Report Success Dialog */}
+      {showReportSuccessDialog && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+                  <svg
+                    className="w-8 h-8 text-red-600 dark:text-red-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold mb-2">Thông báo</h2>
+                <p className="text-muted-foreground mb-6">
+                  {reportSuccessMessage}
+                </p>
+                <Button
+                  className="w-full"
+                  onClick={() => setShowReportSuccessDialog(false)}
+                >
+                  Đóng
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Login Required Dialog */}
       <LoginRequiredDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />

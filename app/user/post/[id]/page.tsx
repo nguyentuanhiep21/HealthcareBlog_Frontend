@@ -8,6 +8,7 @@ import { useAuth } from "@/components/auth-provider"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ReportDialog } from "@/components/report-dialog"
 import { formatTimeAgo } from "@/lib/time-utils"
 import { authUtils } from "@/lib/auth-utils"
@@ -36,6 +37,7 @@ interface Post {
 
 export default function PostDetailPage({ params }: PostDetailPageProps) {
   const { isAuthenticated, logout } = useAuth()
+  const router = useRouter()
   const { id } = use(params)
   const [post, setPost] = useState<Post | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -63,6 +65,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showDeletePostDialog, setShowDeletePostDialog] = useState(false)
   const [showReportSuccessDialog, setShowReportSuccessDialog] = useState(false)
+  const [reportSuccessMessage, setReportSuccessMessage] = useState("")
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [commentError, setCommentError] = useState<string | null>(null)
 
@@ -380,14 +383,65 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     }
   }
 
-  const handleReportSubmit = (reason: string, details: string) => {
+  const handleReportSubmit = async (reason: string, details: string) => {
     if (reportingCommentId) {
-      console.log("Comment report submitted:", { commentId: reportingCommentId, reason, details })
-      setReportingCommentId(null)
+      try {
+        const backendUrl = "https://localhost:7223"
+        const response = await fetch(`${backendUrl}/api/comment/${reportingCommentId}/report`, {
+          method: "POST",
+          headers: authUtils.getAuthHeaders(),
+          body: JSON.stringify({
+            reason,
+            description: details,
+          }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          const errorMessage = errorData.message || errorData.title || "Không thể báo cáo bình luận. Vui lòng thử lại."
+          console.error("Đã xảy ra lỗi khi báo cáo bình luận:", errorMessage)
+          setReportSuccessMessage(errorMessage)
+          setReportingCommentId(null)
+          setShowReportSuccessDialog(true)
+          return
+        }
+
+        const result = await response.json()
+        setReportSuccessMessage(result.message || "Đã báo cáo bình luận thành công!")
+        setReportingCommentId(null)
+      } catch (error) {
+        console.error("Error reporting comment:", error)
+        setReportSuccessMessage("Đã xảy ra lỗi. Vui lòng thử lại sau.")
+        setReportingCommentId(null)
+      }
     } else {
-      console.log("Post report submitted:", { postId: id, reason, details })
+      try {
+        const backendUrl = "https://localhost:7223"
+        const response = await fetch(`${backendUrl}/api/post/${id}/report`, {
+          method: "POST",
+          headers: authUtils.getAuthHeaders(),
+          body: JSON.stringify({
+            reason,
+            description: details,
+          }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          const errorMessage = errorData.message || errorData.title || "Không thể báo cáo bài viết. Vui lòng thử lại."
+          console.error("Đã xảy ra lỗi khi báo cáo bài viết:", errorMessage)
+          setReportSuccessMessage(errorMessage)
+          setShowReportSuccessDialog(true)
+          return
+        }
+
+        const result = await response.json()
+        setReportSuccessMessage(result.message || "Đã báo cáo bài viết thành công!")
+      } catch (error) {
+        console.error("Error reporting post:", error)
+        setReportSuccessMessage("Đã xảy ra lỗi. Vui lòng thử lại sau.")
+      }
     }
-    // TODO: Send report to backend
     setShowReportSuccessDialog(true)
   }
 
@@ -427,6 +481,27 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           image: updatedPostData.imageUrl,
         })
       }
+    } catch (error) {
+      console.error("Đã xảy ra lỗi:", error)
+    }
+  }
+
+  const handleDeletePost = async () => {
+    try {
+      const backendUrl = "https://localhost:7223"
+      const response = await fetch(`${backendUrl}/api/post/${id}`, {
+        method: "DELETE",
+        headers: authUtils.getAuthHeaders(),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Đã xảy ra lỗi khi xóa bài viết:", errorData.message)
+        return
+      }
+
+      // Redirect to home page after successful deletion
+      router.push("/user")
     } catch (error) {
       console.error("Đã xảy ra lỗi:", error)
     }
@@ -1051,13 +1126,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 </Button>
                 <Button
                   className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                  onClick={() => {
-                    console.log("Delete post:", id)
-                    // TODO: Delete post from backend
-                    setShowDeletePostDialog(false)
-                    // Redirect to home after deletion
-                    window.location.href = "/user"
-                  }}
+                  onClick={handleDeletePost}
                 >
                   Xóa
                 </Button>
@@ -1073,9 +1142,9 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           <div className="bg-card rounded-lg max-w-md w-full">
             <div className="p-6">
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
                   <svg
-                    className="w-8 h-8 text-green-600 dark:text-green-400"
+                    className="w-8 h-8 text-red-600 dark:text-red-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -1084,13 +1153,13 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M5 13l4 4L19 7"
+                      d="M6 18L18 6M6 6l12 12"
                     />
                   </svg>
                 </div>
-                <h2 className="text-xl font-semibold mb-2">Báo cáo thành công</h2>
+                <h2 className="text-xl font-semibold mb-2">Thông báo</h2>
                 <p className="text-muted-foreground mb-6">
-                  Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét và xử lý trong thời gian sớm nhất.
+                  {reportSuccessMessage}
                 </p>
                 <Button
                   className="w-full"
