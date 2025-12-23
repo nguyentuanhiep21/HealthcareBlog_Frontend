@@ -1,73 +1,351 @@
 "use client"
 
-import { use, useState } from "react"
+import { use, useState, useEffect } from "react"
 import { Navbar } from "@/components/navbar"
 import { PostCard } from "@/components/post-card"
 import { ReportDialog } from "@/components/report-dialog"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { CreatePostBox } from "@/components/create-post-box"
 import { AvatarViewDialog } from "@/components/avatar-view-dialog"
-import { mockUsers, mockPosts } from "@/lib/mock-data"
+import { AvatarCropDialog } from "@/components/avatar-crop-dialog"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Flag } from "lucide-react"
 import type { Post } from "@/lib/types"
+import { authUtils } from "@/lib/auth-utils"
+
+interface ViewedUserProfile {
+  id: string
+  name: string
+  avatar: string
+  bio: string
+  followers: number
+  following: number
+  postCount: number
+  isFollowing: boolean
+}
 
 export default function UserProfilePage({ params }: { params: Promise<{ userId: string }> }) {
   const { userId } = use(params)
-  const { isAuthenticated } = useAuth()
-  const isCurrentUser = userId === "current" || userId === mockUsers.currentUser.id
-  const viewedUser = isCurrentUser ? mockUsers.currentUser : mockUsers[userId]
-
+  const { isAuthenticated, user, fetchUserInfo } = useAuth()
+  
+  const [viewedUser, setViewedUser] = useState<ViewedUserProfile | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("home")
-  const [bio, setBio] = useState(viewedUser ? viewedUser.bio : "")
+  const [bio, setBio] = useState("")
   const [isEditingBio, setIsEditingBio] = useState(false)
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
-  const [userPosts, setUserPosts] = useState(mockPosts.filter((post) => post.author.id === viewedUser.id))
+  const [userPosts, setUserPosts] = useState<Post[]>([])
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false)
-  const [avatarUrl, setAvatarUrl] = useState(viewedUser?.avatar || "/placeholder.svg")
+  const [avatarUrl, setAvatarUrl] = useState("/placeholder.svg")
+  const [showReportSuccessDialog, setShowReportSuccessDialog] = useState(false)
+  const [reportSuccessMessage, setReportSuccessMessage] = useState("")
+  const [isCropDialogOpen, setIsCropDialogOpen] = useState(false)
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string>("")
+  
+  // Check if viewing current user profile
+  const isCurrentUser = userId === "current" || (user && userId === user.id)
+  
+  // Fetch user profile from API
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
+        
+        // Determine actual userId to fetch
+        let targetUserId = userId
+        if (userId === "current") {
+          if (!user?.id) {
+            setError("Vui lòng đăng nhập để xem trang cá nhân")
+            setIsLoading(false)
+            return
+          }
+          targetUserId = user.id
+        }
+        
+        const response = await fetch(
+          `${backendUrl}/api/user/profile/${targetUserId}?page=1&pageSize=20`,
+          {
+            headers: authUtils.getAuthHeaders(),
+          }
+        )
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            setError("Không tìm thấy người dùng")
+          } else {
+            setError("Đã xảy ra lỗi khi tải thông tin người dùng")
+          }
+          setIsLoading(false)
+          return
+        }
+        
+        const data = await response.json()
+        
+        // Map backend DTO to frontend format
+        const fullAvatarUrl = data.avatarUrl 
+          ? (data.avatarUrl.startsWith('http') 
+              ? data.avatarUrl 
+              : `${backendUrl}${data.avatarUrl}`)
+          : "/placeholder.svg"
+        
+        const profileData: ViewedUserProfile = {
+          id: data.id,
+          name: data.fullName,
+          avatar: fullAvatarUrl,
+          bio: data.bio || "",
+          followers: data.followerCount,
+          following: data.followingCount,
+          postCount: data.postCount,
+          isFollowing: data.isFollowedByCurrentUser,
+        }
+        
+        setViewedUser(profileData)
+        setBio(profileData.bio)
+        setAvatarUrl(fullAvatarUrl)
+        setIsFollowing(profileData.isFollowing)
+        
+        // Map posts
+        if (data.posts && Array.isArray(data.posts)) {
+          const mappedPosts: Post[] = data.posts.map((post: any) => ({
+            id: post.id?.toString() || "",
+            author: {
+              id: data.id,
+              name: data.fullName,
+              avatar: fullAvatarUrl,
+              bio: data.bio || "",
+              followers: data.followerCount,
+              following: data.followingCount,
+            },
+            caption: post.content || "",
+            image: post.imageUrl 
+              ? (post.imageUrl.startsWith('http') 
+                  ? post.imageUrl 
+                  : `${backendUrl}${post.imageUrl}`)
+              : undefined,
+            likes: post.likeCount || 0,
+            comments: post.commentCount || 0,
+            isLiked: post.isLikedByCurrentUser || false,
+            isSaved: post.isSavedByCurrentUser || false,
+            createdAt: post.uploadTime || post.createdAt || new Date().toISOString(),
+          }))
+          setUserPosts(mappedPosts)
+        }
+        
+        setIsLoading(false)
+      } catch (err) {
+        console.error("Error fetching user profile:", err)
+        setError("Đã xảy ra lỗi khi tải thông tin người dùng")
+        setIsLoading(false)
+      }
+    }
+    
+    fetchUserProfile()
+  }, [userId, user])
 
   const handleSaveBio = () => {
     setIsEditingBio(false)
     // In a real app, would save to database here
   }
 
-  const handleFollowClick = () => {
+  const handleFollowClick = async () => {
     if (!isAuthenticated) {
       setShowLoginDialog(true)
       return
     }
-    setIsFollowing(!isFollowing)
+    
+    if (!viewedUser) return
+    
+    const newIsFollowing = !isFollowing
+    
+    // Optimistic update
+    setIsFollowing(newIsFollowing)
+    setViewedUser({
+      ...viewedUser,
+      followers: newIsFollowing ? viewedUser.followers + 1 : viewedUser.followers - 1,
+      isFollowing: newIsFollowing,
+    })
+    
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
+      const method = newIsFollowing ? "POST" : "DELETE"
+      
+      const response = await fetch(`${backendUrl}/api/follow/${viewedUser.id}`, {
+        method,
+        headers: authUtils.getAuthHeaders(),
+      })
+      
+      if (!response.ok) {
+        // Revert on error
+        setIsFollowing(!newIsFollowing)
+        setViewedUser({
+          ...viewedUser,
+          followers: newIsFollowing ? viewedUser.followers - 1 : viewedUser.followers + 1,
+          isFollowing: !newIsFollowing,
+        })
+        console.error("Lỗi khi follow/unfollow")
+      }
+    } catch (error) {
+      console.error("Lỗi khi follow/unfollow:", error)
+      // Revert on error
+      setIsFollowing(!newIsFollowing)
+      setViewedUser({
+        ...viewedUser,
+        followers: newIsFollowing ? viewedUser.followers - 1 : viewedUser.followers + 1,
+        isFollowing: !newIsFollowing,
+      })
+    }
   }
 
   const handlePostCreate = (newPost: Post) => {
     setUserPosts([newPost, ...userPosts])
+    if (viewedUser) {
+      setViewedUser({
+        ...viewedUser,
+        postCount: viewedUser.postCount + 1,
+      })
+    }
   }
 
-  const handleAvatarChange = async (file: File) => {
-    // In a real app, would upload to server here
-    const url = URL.createObjectURL(file)
-    setAvatarUrl(url)
+  const handleReportSubmit = async (reason: string, details: string) => {
+    if (!viewedUser) return
     
-    // TODO: Implement actual upload logic
-    // const formData = new FormData()
-    // formData.append('avatar', file)
-    // const response = await fetch('/api/user/avatar', {
-    //   method: 'POST',
-    //   body: formData,
-    // })
-    // const data = await response.json()
-    // setAvatarUrl(data.avatarUrl)
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
+      const response = await fetch(`${backendUrl}/api/user/${viewedUser.id}/report`, {
+        method: "POST",
+        headers: authUtils.getAuthHeaders(),
+        body: JSON.stringify({
+          reason,
+          description: details,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        const errorMessage = errorData.message || "Không thể báo cáo người dùng. Vui lòng thử lại."
+        setReportSuccessMessage(errorMessage)
+        setShowReportSuccessDialog(true)
+        return
+      }
+
+      const result = await response.json()
+      setReportSuccessMessage(result.message || "Đã báo cáo người dùng thành công!")
+      setShowReportSuccessDialog(true)
+    } catch (error) {
+      console.error("Error reporting user:", error)
+      setReportSuccessMessage("Đã xảy ra lỗi. Vui lòng thử lại sau.")
+      setShowReportSuccessDialog(true)
+    }
   }
 
-  if (!viewedUser) {
+  const handleAvatarFileSelect = (file: File) => {
+    // Read file and show crop dialog
+    const reader = new FileReader()
+    reader.onload = () => {
+      setSelectedImageSrc(reader.result as string)
+      setIsCropDialogOpen(true)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleCroppedImage = async (croppedBlob: Blob) => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
+      
+      // Convert Blob to File
+      const file = new File([croppedBlob], 'avatar.jpg', { type: 'image/jpeg' })
+      
+      // Step 1: Upload file to get URL
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      const token = authUtils.getToken()
+      if (!token) {
+        console.error('No authentication token found')
+        return
+      }
+      
+      const uploadResponse = await fetch(`${backendUrl}/api/upload/avatar`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      })
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({}))
+        console.error('Failed to upload avatar:', errorData)
+        return
+      }
+
+      const uploadResult = await uploadResponse.json()
+      const avatarUrl = uploadResult.url
+
+      // Step 2: Update user avatar in database
+      const updateResponse = await fetch(`${backendUrl}/api/user/avatar`, {
+        method: 'PUT',
+        headers: authUtils.getAuthHeaders(),
+        body: JSON.stringify({
+          avatarUrl: avatarUrl
+        }),
+      })
+
+      if (!updateResponse.ok) {
+        console.error('Failed to update avatar')
+        return
+      }
+
+      const updatedUser = await updateResponse.json()
+      
+      // Update local state with full URL
+      const fullAvatarUrl = updatedUser.avatarUrl.startsWith('http') 
+        ? updatedUser.avatarUrl 
+        : `${backendUrl}${updatedUser.avatarUrl}`
+      
+      setAvatarUrl(fullAvatarUrl)
+      
+      // Update viewedUser state
+      if (viewedUser) {
+        setViewedUser({
+          ...viewedUser,
+          avatar: fullAvatarUrl,
+        })
+      }
+      
+      // Refresh auth context if viewing own profile
+      if (isCurrentUser) {
+        await fetchUserInfo()
+      }
+    } catch (error) {
+      console.error('Error updating avatar:', error)
+    }
+  }
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="mx-auto max-w-7xl px-4 py-8">
-          <p className="text-center text-muted-foreground">Không tìm thấy người dùng</p>
+          <p className="text-center text-muted-foreground">Đang tải...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !viewedUser) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="mx-auto max-w-7xl px-4 py-8">
+          <p className="text-center text-muted-foreground">{error || "Không tìm thấy người dùng"}</p>
         </div>
       </div>
     )
@@ -234,12 +512,25 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         isOpen={isReportDialogOpen}
         onClose={() => setIsReportDialogOpen(false)}
         targetType="user"
-        onSubmit={(reason, details) => {
-          console.log("Report submitted:", { userId: viewedUser.id, reason, details })
-        }}
+        onSubmit={handleReportSubmit}
       />
 
       <LoginRequiredDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />
+
+      {/* Report Success Dialog */}
+      {showReportSuccessDialog && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Thông báo</h2>
+              <p className="text-muted-foreground mb-6">{reportSuccessMessage}</p>
+              <div className="flex justify-end">
+                <Button onClick={() => setShowReportSuccessDialog(false)}>Đóng</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Avatar View Dialog - Only show change button for current user */}
       <AvatarViewDialog
@@ -247,7 +538,15 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         onOpenChange={setIsAvatarDialogOpen}
         avatarUrl={avatarUrl}
         userName={viewedUser.name}
-        onAvatarChange={isCurrentUser ? handleAvatarChange : undefined}
+        onAvatarChange={isCurrentUser ? handleAvatarFileSelect : undefined}
+      />
+
+      {/* Avatar Crop Dialog */}
+      <AvatarCropDialog
+        isOpen={isCropDialogOpen}
+        onClose={() => setIsCropDialogOpen(false)}
+        imageSrc={selectedImageSrc}
+        onCropComplete={handleCroppedImage}
       />
     </div>
   )

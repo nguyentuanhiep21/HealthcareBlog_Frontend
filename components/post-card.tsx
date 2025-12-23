@@ -3,11 +3,9 @@
 import { useState, useEffect } from "react"
 import { Heart, MessageCircle, Bookmark, MoreVertical, Flag, Edit, ImageIcon, X, Trash2 } from "lucide-react"
 import type { Post } from "@/lib/types"
-import { CommentSection } from "./comment-section"
 import { ImageViewerModal } from "./image-viewer-modal"
 import { ReportDialog } from "./report-dialog"
 import { LoginRequiredDialog } from "./login-required-dialog"
-import { mockComments, mockUsers } from "@/lib/mock-data"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -28,7 +26,6 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
   const [isSaved, setIsSaved] = useState(post.isSaved)
   const [likeCount, setLikeCount] = useState(post.likes)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [showComments, setShowComments] = useState(false)
   const [showImageViewer, setShowImageViewer] = useState(false)
   const [showReportDialog, setShowReportDialog] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
@@ -91,12 +88,42 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
     }
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!isAuthenticated) {
       setShowLoginDialog(true)
       return
     }
-    setIsSaved(!isSaved)
+
+    const newIsSaved = !isSaved
+
+    // Optimistic update
+    setIsSaved(newIsSaved)
+
+    try {
+      const backendUrl = "https://localhost:7223"
+      const method = newIsSaved ? "POST" : "DELETE"
+
+      const response = await fetch(`${backendUrl}/api/savedpost/${post.id}`, {
+        method,
+        headers: authUtils.getAuthHeaders(),
+      })
+
+      if (!response.ok) {
+        // Revert on error
+        setIsSaved(!newIsSaved)
+        console.error("Lỗi khi lưu/bỏ lưu bài viết")
+        return
+      }
+
+      // Notify parent component if callback provided
+      if (onPostUpdate) {
+        onPostUpdate({ ...post, isSaved: newIsSaved })
+      }
+    } catch (error) {
+      console.error("Lỗi khi lưu/bỏ lưu bài viết:", error)
+      // Revert on error
+      setIsSaved(!newIsSaved)
+    }
   }
 
   const handleUpdatePost = async () => {
@@ -104,12 +131,37 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
 
     try {
       const backendUrl = "https://localhost:7223"
+      let finalImageUrl = editImage
+
+      // If image was changed and is a file (starts with data:), upload it
+      if (editImage && editImage.startsWith('data:')) {
+        const blob = await fetch(editImage).then(r => r.blob())
+        const formData = new FormData()
+        formData.append('file', blob, 'image.jpg')
+
+        const uploadResponse = await fetch(`${backendUrl}/api/upload/image`, {
+          method: 'POST',
+          headers: {
+            'Authorization': authUtils.getAuthHeaders()['Authorization'] || '',
+          },
+          body: formData,
+        })
+
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json()
+          finalImageUrl = uploadResult.url
+        } else {
+          console.error('Failed to upload image')
+          return
+        }
+      }
+
       const response = await fetch(`${backendUrl}/api/post/${post.id}`, {
         method: "PUT",
         headers: authUtils.getAuthHeaders(),
         body: JSON.stringify({
           content: editCaption,
-          imageUrl: editImage,
+          imageUrl: finalImageUrl || null,
         }),
       })
 
@@ -122,9 +174,13 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
       const result = await response.json()
       const updatedPostData = result.data
 
-      // Update local state
+      // Update local state with full URL
+      const fullImageUrl = updatedPostData.imageUrl 
+        ? (updatedPostData.imageUrl.startsWith('http') ? updatedPostData.imageUrl : `${backendUrl}${updatedPostData.imageUrl}`)
+        : undefined
+
       setCaption(editCaption)
-      setImage(editImage)
+      setImage(fullImageUrl)
       setIsEditMode(false)
 
       // Notify parent to update post list
@@ -132,7 +188,7 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
         onPostUpdate({
           ...post,
           caption: updatedPostData.content,
-          image: updatedPostData.imageUrl,
+          image: fullImageUrl,
         })
       }
     } catch (error) {
@@ -403,7 +459,7 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
               <div className="mt-4 flex gap-2 border-t border-border pt-4">
                 <label className="flex items-center gap-2 cursor-pointer text-primary hover:text-primary/80 transition">
                   <ImageIcon className="h-5 w-5" />
-                  <span className="text-sm">Thêm ảnh</span>
+                  <span className="text-sm">{editImage ? "Thay ảnh" : "Thêm ảnh"}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -446,9 +502,6 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
           </div>
         </div>
       )}
-
-      {/* Comments Modal */}
-      {showComments && <CommentSection comments={mockComments[post.id] || []} onClose={() => setShowComments(false)} />}
 
       {/* Image Viewer Modal */}
       <ImageViewerModal post={post} isOpen={showImageViewer} onClose={() => setShowImageViewer(false)} />

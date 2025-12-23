@@ -12,7 +12,7 @@ interface CreatePostBoxProps {
 }
 
 export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [caption, setCaption] = useState("")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -22,51 +22,6 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState("")
-  const [currentUser, setCurrentUser] = useState<{
-    id: string
-    name: string
-    avatar: string
-  } | null>(null)
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchUserInfo()
-    }
-  }, [isAuthenticated])
-
-  const fetchUserInfo = async () => {
-    try {
-      const token = localStorage.getItem("authToken")
-      if (!token) return
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/user/account`,
-        {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Accept": "application/json",
-          },
-        }
-      )
-
-      if (response.ok) {
-        const data = await response.json()
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
-        const avatarUrl = data.avatarUrl 
-          ? (data.avatarUrl.startsWith('http') ? data.avatarUrl : `${backendUrl}${data.avatarUrl}`)
-          : "/placeholder.svg"
-          
-        setCurrentUser({
-          id: data.id,
-          name: data.fullName || "User",
-          avatar: avatarUrl,
-        })
-      }
-    } catch (error) {
-      console.error("Fetch user info error:", error)
-    }
-  }
 
   const handleOpenCreate = () => {
     if (!isAuthenticated) {
@@ -180,13 +135,13 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
 
       if (response.ok && data.success) {
         // Create post object for UI update
-        if (currentUser) {
+        if (user) {
           const newPost: Post = {
             id: data.data.id.toString(),
             author: {
-              id: currentUser.id,
-              name: currentUser.name,
-              avatar: currentUser.avatar,
+              id: user.id,
+              name: user.fullName,
+              avatar: user.avatarUrl,
               bio: "",
               followers: 0,
               following: 0,
@@ -223,10 +178,10 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
     return (
       <div className="mb-6 rounded-lg border border-border bg-card p-4">
         <div className="flex gap-3">
-          {isAuthenticated && currentUser && (
+          {isAuthenticated && user && (
             <img
-              src={currentUser.avatar}
-              alt={currentUser.name}
+              src={user.avatarUrl}
+              alt={user.fullName}
               className="h-10 w-10 rounded-full object-cover"
             />
           )}
@@ -234,7 +189,7 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
             onClick={handleOpenCreate}
             className="flex-1 rounded-full border border-border bg-gray-100 px-4 py-2 text-left text-sm text-muted-foreground transition hover:bg-gray-200"
           >
-            {isAuthenticated && currentUser ? `${currentUser.name}, bạn đang nghĩ gì?` : "Bạn đang nghĩ gì?"}
+            {isAuthenticated && user ? `${user.fullName}, bạn đang nghĩ gì?` : "Bạn đang nghĩ gì?"}
           </button>
         </div>
         <LoginRequiredDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />
@@ -245,11 +200,11 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
   return (
     <div className="mb-6 rounded-lg border border-border bg-card p-6">
       <div className="mb-4 flex items-start gap-3">
-        {currentUser && (
+        {user && (
           <>
-            <img src={currentUser.avatar} alt={currentUser.name} className="h-10 w-10 rounded-full object-cover" />
+            <img src={user.avatarUrl} alt={user.fullName} className="h-10 w-10 rounded-full object-cover" />
             <div className="flex-1">
-              <h3 className="font-semibold">{currentUser.name}</h3>
+              <h3 className="font-semibold">{user.fullName}</h3>
             </div>
           </>
         )}

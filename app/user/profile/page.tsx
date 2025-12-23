@@ -5,17 +5,26 @@ import { useRouter } from "next/navigation"
 import { Navbar } from "@/components/navbar"
 import { PostCard } from "@/components/post-card"
 import { AvatarViewDialog } from "@/components/avatar-view-dialog"
-import { mockUsers, mockPosts } from "@/lib/mock-data"
+import { mockPosts } from "@/lib/mock-data"
+import { useAuth } from "@/components/auth-provider"
+import { authUtils } from "@/lib/auth-utils"
 
 export default function ProfilePage() {
   const router = useRouter()
-  const user = mockUsers.currentUser
-  const userPosts = mockPosts.filter((post) => post.author.id === user.id)
+  const { user, fetchUserInfo } = useAuth()
+  const userPosts = user ? mockPosts.filter((post) => post.author.id === user.id) : []
   const [activeTab, setActiveTab] = useState("home")
-  const [bio, setBio] = useState(user.bio)
+  const [bio, setBio] = useState(user?.bio || '')
   const [isEditingBio, setIsEditingBio] = useState(false)
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false)
-  const [avatarUrl, setAvatarUrl] = useState(user.avatar || "/placeholder.svg")
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || "/placeholder.svg")
+
+  useEffect(() => {
+    if (user) {
+      setBio(user.bio || '');
+      setAvatarUrl(user.avatarUrl || "/placeholder.svg");
+    }
+  }, [user]);
 
   useEffect(() => {
     router.push("/user/profile/current")
@@ -27,20 +36,64 @@ export default function ProfilePage() {
   }
 
   const handleAvatarChange = async (file: File) => {
-    // In a real app, would upload to server here
-    // For now, just update the preview
-    const url = URL.createObjectURL(file)
-    setAvatarUrl(url)
-    
-    // TODO: Implement actual upload logic
-    // const formData = new FormData()
-    // formData.append('avatar', file)
-    // const response = await fetch('/api/user/avatar', {
-    //   method: 'POST',
-    //   body: formData,
-    // })
-    // const data = await response.json()
-    // setAvatarUrl(data.avatarUrl)
+    try {
+      const backendUrl = "https://localhost:7223"
+      
+      // Step 1: Upload file to get URL
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      const token = authUtils.getToken()
+      if (!token) {
+        console.error('No authentication token found')
+        return
+      }
+      
+      const uploadResponse = await fetch(`${backendUrl}/api/upload/avatar`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      })
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({}))
+        console.error('Failed to upload avatar:', errorData)
+        return
+      }
+
+      const uploadResult = await uploadResponse.json()
+      const avatarUrl = uploadResult.url
+
+      // Step 2: Update user avatar in database
+      const updateResponse = await fetch(`${backendUrl}/api/user/avatar`, {
+        method: 'PUT',
+        headers: authUtils.getAuthHeaders(),
+        body: JSON.stringify({
+          avatarUrl: avatarUrl
+        }),
+      })
+
+      if (!updateResponse.ok) {
+        console.error('Failed to update avatar')
+        return
+      }
+
+      const updatedUser = await updateResponse.json()
+      
+      // Update local state with full URL
+      const fullAvatarUrl = updatedUser.avatarUrl.startsWith('http') 
+        ? updatedUser.avatarUrl 
+        : `${backendUrl}${updatedUser.avatarUrl}`
+      
+      setAvatarUrl(fullAvatarUrl)
+      
+      // Refresh auth context to update avatar everywhere
+      await fetchUserInfo()
+    } catch (error) {
+      console.error('Error updating avatar:', error)
+    }
   }
 
   return (
@@ -54,23 +107,23 @@ export default function ProfilePage() {
             {/* Avatar */}
             <img 
               src={avatarUrl} 
-              alt={user.name} 
+              alt={user?.fullName || "User"} 
               className="h-24 w-24 rounded-full cursor-pointer hover:opacity-80 transition"
               onClick={() => setIsAvatarDialogOpen(true)}
             />
 
             {/* Info */}
             <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-1">{user.name}</h1>
+              <h1 className="text-3xl font-bold mb-1">{user?.fullName || "Loading..."}</h1>
               <p className="text-muted-foreground mb-4">{bio}</p>
 
               <div className="flex gap-6 mb-4">
                 <div>
-                  <p className="text-lg font-semibold">{user.followers.toLocaleString("vi-VN")}</p>
+                  <p className="text-lg font-semibold">0</p>
                   <p className="text-sm text-muted-foreground">Người theo dõi</p>
                 </div>
                 <div>
-                  <p className="text-lg font-semibold">{user.following.toLocaleString("vi-VN")}</p>
+                  <p className="text-lg font-semibold">0</p>
                   <p className="text-sm text-muted-foreground">Đang theo dõi</p>
                 </div>
                 <div>

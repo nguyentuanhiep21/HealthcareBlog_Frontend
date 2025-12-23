@@ -6,14 +6,13 @@ import { useRouter } from "next/navigation"
 import { Search, Menu, Home, Bookmark, User, Settings, Users, UtensilsCrossed, LogOut, LogIn, KeyRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { mockUsers } from "@/lib/mock-data"
 import { NotificationDropdown } from "@/components/notification-dropdown"
 import { useAuth } from "@/components/auth-provider"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import Image from "next/image"
 
 export function Navbar() {
-  const { isAuthenticated, logout } = useAuth()
+  const { isAuthenticated, user, logout } = useAuth()
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false)
@@ -156,8 +155,8 @@ export function Navbar() {
                   onClick={() => setIsAvatarMenuOpen(!isAvatarMenuOpen)}
                 >
                   <img
-                    src={mockUsers.currentUser.avatar || "/placeholder.svg"}
-                    alt={mockUsers.currentUser.name}
+                    src={user?.avatarUrl || "/placeholder.svg"}
+                    alt={user?.fullName || "User"}
                     className="h-8 w-8 rounded-full"
                   />
                 </button>

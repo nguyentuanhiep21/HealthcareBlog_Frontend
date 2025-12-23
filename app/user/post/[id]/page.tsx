@@ -450,12 +450,37 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
     try {
       const backendUrl = "https://localhost:7223"
+      let finalImageUrl = editImage
+
+      // If image was changed and is a file (starts with data:), upload it
+      if (editImage && editImage.startsWith('data:')) {
+        const blob = await fetch(editImage).then(r => r.blob())
+        const formData = new FormData()
+        formData.append('file', blob, 'image.jpg')
+
+        const uploadResponse = await fetch(`${backendUrl}/api/upload/image`, {
+          method: 'POST',
+          headers: {
+            'Authorization': authUtils.getAuthHeaders()['Authorization'] || '',
+          },
+          body: formData,
+        })
+
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json()
+          finalImageUrl = uploadResult.url
+        } else {
+          console.error('Failed to upload image')
+          return
+        }
+      }
+
       const response = await fetch(`${backendUrl}/api/post/${id}`, {
         method: "PUT",
         headers: authUtils.getAuthHeaders(),
         body: JSON.stringify({
           content: editCaption,
-          imageUrl: editImage,
+          imageUrl: finalImageUrl || null,
         }),
       })
 
@@ -468,9 +493,13 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       const result = await response.json()
       const updatedPostData = result.data
 
-      // Update local state
+      // Update local state with full URL
+      const fullImageUrl = updatedPostData.imageUrl 
+        ? (updatedPostData.imageUrl.startsWith('http') ? updatedPostData.imageUrl : `${backendUrl}${updatedPostData.imageUrl}`)
+        : ""
+
       setCaption(editCaption)
-      setImage(editImage)
+      setImage(fullImageUrl)
       setIsEditMode(false)
 
       // Update post object
@@ -478,7 +507,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         setPost({
           ...post,
           caption: updatedPostData.content,
-          image: updatedPostData.imageUrl,
+          image: fullImageUrl,
         })
       }
     } catch (error) {
@@ -574,12 +603,12 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       <div className="border-b border-border bg-background/95 backdrop-blur h-16 flex items-center justify-between px-6">
         {/* Left - Close and Logo */}
         <div className="flex items-center gap-4">
-          <Link
-            href="/user"
+          <button
+            onClick={() => router.back()}
             className="rounded-full p-2 hover:bg-secondary transition text-muted-foreground hover:text-foreground"
           >
             <X className="h-6 w-6" />
-          </Link>
+          </button>
           <Link href="/user">
             <Image src="/care-logo.png" alt="Health Care Logo" width={288} height={96} className="h-24 w-auto" />
           </Link>
@@ -761,12 +790,45 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               </button>
 
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (!isAuthenticated) {
                     setShowLoginDialog(true)
                     return
                   }
-                  setIsSaved(!isSaved)
+
+                  const newIsSaved = !isSaved
+
+                  // Optimistic update
+                  setIsSaved(newIsSaved)
+
+                  try {
+                    const backendUrl = "https://localhost:7223"
+                    const method = newIsSaved ? "POST" : "DELETE"
+
+                    const response = await fetch(`${backendUrl}/api/savedpost/${id}`, {
+                      method,
+                      headers: authUtils.getAuthHeaders(),
+                    })
+
+                    if (!response.ok) {
+                      // Revert on error
+                      setIsSaved(!newIsSaved)
+                      console.error("Lỗi khi lưu/bỏ lưu bài viết")
+                      return
+                    }
+
+                    // Update post object
+                    if (post) {
+                      setPost({
+                        ...post,
+                        isSaved: newIsSaved
+                      })
+                    }
+                  } catch (error) {
+                    console.error("Lỗi khi lưu/bỏ lưu bài viết:", error)
+                    // Revert on error
+                    setIsSaved(!newIsSaved)
+                  }
                 }}
                 className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2 hover:bg-secondary transition text-base"
               >
@@ -1012,7 +1074,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               <div className="mt-4 flex gap-2 border-t border-border pt-4">
                 <label className="flex items-center gap-2 cursor-pointer text-primary hover:text-primary/80 transition">
                   <ImageIcon className="h-5 w-5" />
-                  <span className="text-sm">Thêm ảnh</span>
+                  <span className="text-sm">{editImage ? "Thay ảnh" : "Thêm ảnh"}</span>
                   <input
                     type="file"
                     accept="image/*"

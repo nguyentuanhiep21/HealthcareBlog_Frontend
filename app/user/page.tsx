@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { Navbar } from "@/components/navbar"
 import { CreatePostBox } from "@/components/create-post-box"
 import { PostCard } from "@/components/post-card"
-import { mockFeaturedPosts, mockSuggestedUsers } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { useAuth } from "@/components/auth-provider"
@@ -14,7 +13,17 @@ import type { Post } from "@/lib/types"
 
 export default function Home() {
   const { isAuthenticated } = useAuth()
+  interface SuggestedUser {
+    id: string
+    fullName: string
+    avatarUrl: string | null
+    followerCount: number
+    isFollowing: boolean
+  }
+
   const [posts, setPosts] = useState<Post[]>([])
+  const [trendingPosts, setTrendingPosts] = useState<Post[]>([])
+  const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
   const [showLoginDialog, setShowLoginDialog] = useState(false)
@@ -25,6 +34,8 @@ export default function Home() {
 
   useEffect(() => {
     fetchPosts()
+    fetchTrendingPosts()
+    fetchSuggestedUsers()
   }, [])
 
   useEffect(() => {
@@ -123,6 +134,99 @@ export default function Home() {
       setError("Đã xảy ra lỗi khi tải bài viết")
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchTrendingPosts = async () => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
+      const response = await fetch(
+        `${backendUrl}/api/post/trending`,
+        {
+          method: "GET",
+          headers: authUtils.getAuthHeaders(),
+        }
+      )
+
+      if (!response.ok) {
+        console.error("Failed to fetch trending posts")
+        return
+      }
+
+      const data = await response.json()
+      
+      // Map backend data to frontend Post type
+      const mappedPosts: Post[] = data.map((post: any) => {
+        const author = post.author || post.Author
+        const avatarUrl = author?.avatarUrl || author?.AvatarUrl
+        const fullAvatarUrl = avatarUrl 
+          ? (avatarUrl.startsWith('http') ? avatarUrl : `${backendUrl}${avatarUrl}`)
+          : "/placeholder.svg"
+          
+        const imageUrl = post.imageUrl || post.ImageUrl
+        const fullImageUrl = imageUrl
+          ? (imageUrl.startsWith('http') ? imageUrl : `${backendUrl}${imageUrl}`)
+          : undefined
+          
+        return {
+          id: post.id?.toString() || "",
+          author: {
+            id: author?.id || "",
+            name: author?.fullName || author?.FullName || "Unknown",
+            avatar: fullAvatarUrl,
+            bio: author?.bio || author?.Bio || "",
+            followers: 0,
+            following: 0,
+          },
+          caption: post.content || post.Content || "",
+          image: fullImageUrl,
+          likes: post.likeCount || post.LikeCount || 0,
+          comments: post.commentCount || post.CommentCount || 0,
+          isSaved: post.isSavedByCurrentUser || post.IsSavedByCurrentUser || false,
+          isLiked: post.isLikedByCurrentUser || post.IsLikedByCurrentUser || false,
+          createdAt: post.uploadTime || post.UploadTime || post.createdAt || post.CreatedAt || new Date().toISOString(),
+        }
+      })
+
+      setTrendingPosts(mappedPosts)
+    } catch (err) {
+      console.error("Error fetching trending posts:", err)
+    }
+  }
+
+  const fetchSuggestedUsers = async () => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
+      const response = await fetch(
+        `${backendUrl}/api/user/suggested`,
+        {
+          method: "GET",
+          headers: authUtils.getAuthHeaders(),
+        }
+      )
+
+      if (!response.ok) {
+        console.error("Failed to fetch suggested users")
+        return
+      }
+
+      const data: SuggestedUser[] = await response.json()
+      
+      // Map avatarUrl to full URL
+      const mappedUsers = data.map(user => ({
+        ...user,
+        avatarUrl: user.avatarUrl
+          ? (user.avatarUrl.startsWith('http') ? user.avatarUrl : `${backendUrl}${user.avatarUrl}`)
+          : null
+      }))
+      
+      setSuggestedUsers(mappedUsers)
+      
+      // Initialize followedUsers set based on isFollowing from API
+      const initialFollowed = new Set(mappedUsers.filter(u => u.isFollowing).map(u => u.id))
+      setFollowedUsers(initialFollowed)
+    } catch (err) {
+      console.error("Error fetching suggested users:", err)
     }
   }
 
@@ -229,57 +333,71 @@ export default function Home() {
             <div className="rounded-lg border border-border bg-card p-4">
               <h2 className="mb-4 text-lg font-bold">Bài viết nổi bật</h2>
               <div className="space-y-3">
-                {mockFeaturedPosts.map((post) => (
-                  <Link
-                    key={post.id}
-                    href={`/user/post/${post.id}`}
-                    className="group block rounded-lg overflow-hidden hover:opacity-80 transition"
-                  >
-                    <div className="flex gap-3">
-                      <img
-                        src={post.image || "/placeholder.svg"}
-                        alt={post.caption}
-                        className="h-20 w-20 rounded object-cover"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold line-clamp-2 group-hover:underline">{post.caption}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{post.author.name}</p>
+                {trendingPosts.length > 0 ? (
+                  trendingPosts.map((post) => (
+                    <Link
+                      key={post.id}
+                      href={`/user/post/${post.id}`}
+                      className="group block rounded-lg overflow-hidden hover:opacity-80 transition"
+                    >
+                      <div className="flex gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold line-clamp-2 group-hover:underline">{post.caption}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{post.author.name}</p>
+                        </div>
+                        {post.image && (
+                          <img
+                            src={post.image}
+                            alt={post.caption}
+                            className="h-20 w-20 rounded object-cover flex-shrink-0"
+                          />
+                        )}
                       </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">Chưa có bài viết nổi bật hôm nay</p>
+                )}
               </div>
             </div>
 
-            {/* Suggested Users */}
+            {/* Suggested Users - TODO: Replace with API */}
             <div className="rounded-lg border border-border bg-card p-4">
               <h2 className="mb-4 text-lg font-bold">Thành viên nổi bật</h2>
               <div className="space-y-3">
-                {mockSuggestedUsers.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Link href={`/user/profile/${user.id}`} className="hover:underline">
-                        <img src={user.avatar || "/placeholder.svg"} alt={user.name} className="h-10 w-10 rounded-full" />
-                      </Link>
-                      <div className="min-w-0">
-                        <Link href={`/user/profile/${user.id}`} className="hover:underline text-sm font-semibold truncate">
-                          {user.name}
+                {suggestedUsers.length > 0 ? (
+                  suggestedUsers.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Link href={`/user/profile/${user.id}`} className="hover:underline">
+                          <img 
+                            src={user.avatarUrl || "/placeholder.svg"} 
+                            alt={user.fullName} 
+                            className="h-10 w-10 rounded-full object-cover" 
+                          />
                         </Link>
-                        <p className="text-xs text-muted-foreground">
-                          {user.followers.toLocaleString("vi-VN")} người theo dõi
-                        </p>
+                        <div className="min-w-0">
+                          <Link href={`/user/profile/${user.id}`} className="hover:underline text-sm font-semibold truncate">
+                            {user.fullName}
+                          </Link>
+                          <p className="text-xs text-muted-foreground">
+                            {user.followerCount.toLocaleString("vi-VN")} người theo dõi
+                          </p>
+                        </div>
                       </div>
+                      <Button
+                        size="sm"
+                        variant={followedUsers.has(user.id) ? "outline" : "default"}
+                        className={followedUsers.has(user.id) ? "" : "bg-primary text-primary-foreground hover:bg-primary/90"}
+                        onClick={() => handleFollowClick(user.id)}
+                      >
+                        {followedUsers.has(user.id) ? "Đang theo dõi" : "Theo dõi"}
+                      </Button>
                     </div>
-                    <Button
-                      size="sm"
-                      variant={followedUsers.has(user.id) ? "outline" : "default"}
-                      className={followedUsers.has(user.id) ? "" : "bg-primary text-primary-foreground hover:bg-primary/90"}
-                      onClick={() => handleFollowClick(user.id)}
-                    >
-                      {followedUsers.has(user.id) ? "Đang theo dõi" : "Theo dõi"}
-                    </Button>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">Chưa có thành viên nổi bật</p>
+                )}
               </div>
             </div>
 
@@ -292,18 +410,11 @@ export default function Home() {
                     <Link
                       key={post.id}
                       href={`/user/post/${post.id}`}
-                      className="group block rounded-lg overflow-hidden hover:opacity-80 transition"
+                      className="group block rounded-lg overflow-hidden hover:opacity-80 transition p-2"
                     >
-                      <div className="flex gap-3">
-                        <img
-                          src={post.image || "/placeholder.svg?height=60&width=60&query=default"}
-                          alt={post.caption}
-                          className="h-16 w-16 rounded object-cover"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold group-hover:underline">{post.author.name}</p>
-                          <p className="text-xs text-muted-foreground line-clamp-2">{post.caption.substring(0, 60)}...</p>
-                        </div>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-sm font-semibold group-hover:underline">{post.author.name}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{post.caption}</p>
                       </div>
                     </Link>
                   ))}

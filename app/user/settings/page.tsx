@@ -1,22 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
-import { mockUsers } from '@/lib/mock-data';
+import { useAuth } from '@/components/auth-provider';
+import { authUtils } from '@/lib/auth-utils';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const user = mockUsers.currentUser;
+  const { user, isAuthenticated, fetchUserInfo } = useAuth();
   const [formData, setFormData] = useState({
-    firstName: user.name.split(' ')[0],
-    lastName: user.name.split(' ').slice(1).join(' '),
-    email: user.email || 'user@example.com',
-    phone: user.phone || '0123456789',
-    bio: user.bio || '',
+    fullName: '',
+    email: '',
+    phoneNumber: '',
+    bio: '',
   });
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/auth/login');
+      return;
+    }
+    
+    if (user) {
+      setFormData({
+        fullName: user.fullName || '',
+        email: user.email || '',
+        phoneNumber: user.phoneNumber || '',
+        bio: user.bio || '',
+      });
+    }
+  }, [user, isAuthenticated, router]);
 
   const [saveMessage, setSaveMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -26,14 +44,46 @@ export default function SettingsPage() {
     }));
   };
 
-  const handleSave = () => {
-    setSaveMessage('Cài đặt đã được lưu thành công!');
-    setTimeout(() => setSaveMessage(''), 3000);
-    // In a real app, would save to database here
+  const handleSave = async () => {
+    setIsLoading(true);
+    setSaveMessage('');
+    setErrorMessage('');
+    
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7223';
+      const response = await fetch(`${backendUrl}/api/user/account`, {
+        method: 'PUT',
+        headers: authUtils.getAuthHeaders(),
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          phoneNumber: formData.phoneNumber,
+          bio: formData.bio,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setErrorMessage(errorData.message || 'Đã xảy ra lỗi khi cập nhật thông tin');
+        return;
+      }
+
+      const updatedUser = await response.json();
+      
+      // Refresh auth context to update user info everywhere
+      await fetchUserInfo();
+      
+      setSaveMessage('Cài đặt đã được lưu thành công!');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setErrorMessage('Đã xảy ra lỗi khi cập nhật thông tin');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCancel = () => {
-    router.push(`/user/profile/${user.id}`);
+    router.push(`/user/profile/current`);
   };
 
   return (
@@ -51,31 +101,26 @@ export default function SettingsPage() {
               {saveMessage}
             </div>
           )}
+          
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="p-4 bg-red-50 dark:bg-red-950 text-red-900 dark:text-red-100 rounded-lg">
+              {errorMessage}
+            </div>
+          )}
 
           {/* Name Section */}
           <div>
             <h2 className="text-lg font-semibold mb-4">Thông tin cá nhân</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Họ</label>
-                <input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Tên</label>
-                <input
-                  type="text"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Họ và tên</label>
+              <input
+                type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
             </div>
           </div>
 
@@ -89,16 +134,17 @@ export default function SettingsPage() {
                   type="email"
                   name="email"
                   value={formData.email}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled
+                  className="w-full px-4 py-2 border border-border rounded-lg bg-secondary text-muted-foreground cursor-not-allowed"
                 />
+                <p className="text-xs text-muted-foreground mt-1">Email không thể thay đổi</p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">Số điện thoại</label>
                 <input
                   type="tel"
-                  name="phone"
-                  value={formData.phone}
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
@@ -123,13 +169,15 @@ export default function SettingsPage() {
           <div className="flex gap-3 pt-4">
             <button
               onClick={handleSave}
-              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium transition"
+              disabled={isLoading}
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Lưu thay đổi
+              {isLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
             </button>
             <button 
               onClick={handleCancel}
-              className="px-6 py-2 border border-border rounded-lg hover:bg-secondary text-foreground font-medium transition"
+              disabled={isLoading}
+              className="px-6 py-2 border border-border rounded-lg hover:bg-secondary text-foreground font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Hủy
             </button>
