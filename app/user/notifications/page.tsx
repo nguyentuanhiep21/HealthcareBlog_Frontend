@@ -71,9 +71,9 @@ export default function NotificationsPage() {
           id: n.actor.id,
           fullName: n.actor.fullName,
           avatarUrl: n.actor.avatarUrl 
-            ? (n.actor.avatarUrl.startsWith('http') 
+            ? (n.actor.avatarUrl && n.actor.avatarUrl.startsWith('http') 
                 ? n.actor.avatarUrl 
-                : `${backendUrl}${n.actor.avatarUrl}`)
+                : n.actor.avatarUrl ? `${backendUrl}${n.actor.avatarUrl}` : "/placeholder.svg")
             : '/placeholder.svg'
         } : null,
         postId: n.postId,

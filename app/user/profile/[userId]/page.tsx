@@ -91,9 +91,9 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         
         // Map backend DTO to frontend format
         const fullAvatarUrl = data.avatarUrl 
-          ? (data.avatarUrl.startsWith('http') 
+          ? (data.avatarUrl && data.avatarUrl.startsWith('http') 
               ? data.avatarUrl 
-              : `${backendUrl}${data.avatarUrl}`)
+              : data.avatarUrl ? `${backendUrl}${data.avatarUrl}` : "/placeholder.svg")
           : "/placeholder.svg"
         
         const profileData: ViewedUserProfile = {
@@ -305,9 +305,11 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
       const updatedUser = await updateResponse.json()
       
       // Update local state with full URL
-      const fullAvatarUrl = updatedUser.avatarUrl.startsWith('http') 
-        ? updatedUser.avatarUrl 
-        : `${backendUrl}${updatedUser.avatarUrl}`
+      const fullAvatarUrl = updatedUser.avatarUrl
+        ? (updatedUser.avatarUrl.startsWith('http') 
+            ? updatedUser.avatarUrl 
+            : `${backendUrl}${updatedUser.avatarUrl}`)
+        : '/placeholder.svg'
       
       setAvatarUrl(fullAvatarUrl)
       

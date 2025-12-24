@@ -51,7 +51,8 @@ export default function LoginPage() {
         // Lưu token sử dụng authUtils
         authUtils.setToken(data.token)
         
-        login()
+        // Wait for login to complete (including fetchUserInfo)
+        await login()
         
         // Auto redirect based on email
         if (email.toLowerCase() === 'admin@healthcareblog.com') {

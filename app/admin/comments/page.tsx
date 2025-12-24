@@ -43,7 +43,7 @@ export default function AdminCommentsPage() {
 
   const getFullAvatarUrl = (avatarUrl: string | null) => {
     if (!avatarUrl) return "/placeholder.svg"
-    if (avatarUrl.startsWith("http")) return avatarUrl
+    if (avatarUrl && avatarUrl.startsWith("http")) return avatarUrl
     return `${backendUrl}${avatarUrl}`
   }
 

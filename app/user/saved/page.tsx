@@ -53,7 +53,7 @@ export default function SavedPage() {
         const author = post.author || post.Author;
         const avatarUrl = author?.avatarUrl || author?.AvatarUrl;
         const fullAvatarUrl = avatarUrl 
-          ? (avatarUrl.startsWith('http') ? avatarUrl : `${backendUrl}${avatarUrl}`)
+          ? (avatarUrl && avatarUrl.startsWith('http') ? avatarUrl : avatarUrl ? `${backendUrl}${avatarUrl}` : "/placeholder.svg")
           : "/placeholder.svg";
           
         const imageUrl = post.imageUrl || post.ImageUrl;

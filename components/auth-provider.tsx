@@ -17,7 +17,7 @@ export interface UserInfo {
 interface AuthContextType {
   isAuthenticated: boolean
   user: UserInfo | null
-  login: () => void
+  login: () => Promise<void>
   logout: () => void
   fetchUserInfo: () => Promise<void>
   isLoading: boolean
@@ -48,23 +48,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const userData = await response.json()
-        const fullAvatarUrl = userData.avatarUrl 
+        console.log("User data from API:", userData)
+        
+        const fullAvatarUrl = userData.avatarUrl && userData.avatarUrl.trim()
           ? (userData.avatarUrl.startsWith('http') 
               ? userData.avatarUrl 
               : `${backendUrl}${userData.avatarUrl}`)
           : "/placeholder.svg"
 
-        setUser({
+        const userInfo: UserInfo = {
           id: userData.id,
           fullName: userData.fullName,
           email: userData.email,
           avatarUrl: fullAvatarUrl,
           bio: userData.bio,
           phoneNumber: userData.phoneNumber,
-          isAdmin: userData.isAdmin || false,
-        })
+          isAdmin: userData.isAdmin === true || userData.isAdmin === 'true',
+        }
+        
+        console.log("Setting user info:", userInfo)
+        setUser(userInfo)
       } else {
         // Token invalid or expired
+        console.error("Failed to fetch user info:", response.status)
         setUser(null)
         setIsAuthenticated(false)
         authUtils.removeToken()
@@ -96,10 +102,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadAuth()
   }, [])
 
-  const login = () => {
+  const login = async () => {
     setIsAuthenticated(true)
-    // Fetch user info after login
-    fetchUserInfo()
+    // Fetch user info after login and wait for it
+    await fetchUserInfo()
   }
 
   const logout = () => {

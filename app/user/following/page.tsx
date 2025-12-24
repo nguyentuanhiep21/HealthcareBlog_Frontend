@@ -67,9 +67,9 @@ export default function FollowingPage() {
         id: u.id,
         fullName: u.fullName,
         avatarUrl: u.avatarUrl 
-          ? (u.avatarUrl.startsWith('http') 
+          ? (u.avatarUrl && u.avatarUrl.startsWith('http') 
               ? u.avatarUrl 
-              : `${backendUrl}${u.avatarUrl}`)
+              : u.avatarUrl ? `${backendUrl}${u.avatarUrl}` : "/placeholder.svg")
           : '/placeholder.svg',
         bio: u.bio || '',
         followerCount: u.followerCount || 0,

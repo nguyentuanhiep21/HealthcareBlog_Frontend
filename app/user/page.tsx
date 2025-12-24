@@ -57,9 +57,11 @@ export default function Home() {
           setCurrentUser({
             id: userData.id,
             name: userData.fullName,
-            avatar: userData.avatarUrl.startsWith('http') 
-              ? userData.avatarUrl 
-              : `${backendUrl}${userData.avatarUrl}`,
+            avatar: userData.avatarUrl
+              ? (userData.avatarUrl.startsWith('http') 
+                  ? userData.avatarUrl 
+                  : `${backendUrl}${userData.avatarUrl}`)
+              : '/placeholder.svg',
           })
         }
       } catch (error) {
@@ -99,7 +101,7 @@ export default function Home() {
       // Map backend data to frontend Post type
       const mappedPosts: Post[] = postsArray.map((post: any) => {
         const avatarUrl = post.author?.avatarUrl
-        const fullAvatarUrl = avatarUrl 
+        const fullAvatarUrl = avatarUrl && avatarUrl.trim()
           ? (avatarUrl.startsWith('http') ? avatarUrl : `${backendUrl}${avatarUrl}`)
           : "/placeholder.svg"
           

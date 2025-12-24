@@ -87,9 +87,11 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           setCurrentUser({
             id: userData.id,
             name: userData.fullName,
-            avatar: userData.avatarUrl.startsWith('http') 
-              ? userData.avatarUrl 
-              : `${backendUrl}${userData.avatarUrl}`,
+            avatar: userData.avatarUrl
+              ? (userData.avatarUrl.startsWith('http') 
+                  ? userData.avatarUrl 
+                  : `${backendUrl}${userData.avatarUrl}`)
+              : '/placeholder.svg',
           })
         }
       } catch (error) {
@@ -132,9 +134,11 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           author: {
             id: data.author.id,
             name: data.author.fullName,
-            avatar: data.author.avatarUrl.startsWith('http') 
-              ? data.author.avatarUrl 
-              : `${backendUrl}${data.author.avatarUrl}`,
+            avatar: data.author.avatarUrl
+              ? (data.author.avatarUrl.startsWith('http') 
+                  ? data.author.avatarUrl 
+                  : `${backendUrl}${data.author.avatarUrl}`)
+              : '/placeholder.svg',
           },
           caption: data.content,
           image: data.imageUrl ? 
@@ -165,10 +169,10 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               id: comment.author?.id || comment.authorId || "",
               name: comment.author?.fullName || "Unknown",
               avatar: comment.author?.avatarUrl 
-                ? (comment.author.avatarUrl.startsWith('http') 
+                ? (comment.author.avatarUrl && comment.author.avatarUrl.startsWith('http') 
                     ? comment.author.avatarUrl 
-                    : `${backendUrl}${comment.author.avatarUrl}`)
-                : "/images/logo.png",
+                    : comment.author.avatarUrl ? `${backendUrl}${comment.author.avatarUrl}` : "/placeholder.svg")
+                : "/placeholder.svg",
             },
             text: comment.content || "",
             likes: comment.likeCount || 0,
@@ -355,9 +359,11 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         author: {
           id: commentData.user.id,
           name: commentData.user.fullName,
-          avatar: commentData.user.avatarUrl.startsWith('http') 
-            ? commentData.user.avatarUrl 
-            : `${backendUrl}${commentData.user.avatarUrl}`,
+          avatar: commentData.user.avatarUrl
+            ? (commentData.user.avatarUrl.startsWith('http') 
+                ? commentData.user.avatarUrl 
+                : `${backendUrl}${commentData.user.avatarUrl}`)
+            : '/placeholder.svg',
         },
         text: commentData.content,
         likes: 0,

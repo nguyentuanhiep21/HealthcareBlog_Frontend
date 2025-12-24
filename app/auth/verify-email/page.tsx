@@ -48,7 +48,7 @@ export default function VerifyEmailPage() {
 
         if (response.ok && data.success) {
           setStatus("success")
-          setMessage(data.message || "Email đã được xác thực thành công!")
+          setMessage("Email đã được xác thực thành công!")
         } else {
           // Kiểm tra nếu email đã được xác thực trước đó
           const errorMessage = data.message?.toLowerCase() || ""
@@ -57,7 +57,7 @@ export default function VerifyEmailPage() {
             setMessage("Email đã được xác thực trước đó. Bạn có thể đăng nhập ngay!")
           } else {
             setStatus("error")
-            setMessage(data.message || "Xác thực email thất bại. Link có thể đã hết hạn hoặc không hợp lệ.")
+            setMessage("Xác thực email thất bại. Link có thể đã hết hạn hoặc không hợp lệ.")
           }
         }
       } catch (error) {
@@ -162,21 +162,6 @@ export default function VerifyEmailPage() {
               </>
             )}
           </div>
-
-          {/* Help Text */}
-          {status !== "loading" && (
-            <div className="pt-4 border-t border-border">
-              <p className="text-xs text-center text-muted-foreground">
-                Cần hỗ trợ?{" "}
-                <Link
-                  href="mailto:support@healthcare.com"
-                  className="text-primary hover:text-primary/80 font-medium"
-                >
-                  Liên hệ với chúng tôi
-                </Link>
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>

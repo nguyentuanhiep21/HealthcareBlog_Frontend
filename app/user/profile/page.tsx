@@ -84,9 +84,11 @@ export default function ProfilePage() {
       const updatedUser = await updateResponse.json()
       
       // Update local state with full URL
-      const fullAvatarUrl = updatedUser.avatarUrl.startsWith('http') 
-        ? updatedUser.avatarUrl 
-        : `${backendUrl}${updatedUser.avatarUrl}`
+      const fullAvatarUrl = updatedUser.avatarUrl
+        ? (updatedUser.avatarUrl.startsWith('http') 
+            ? updatedUser.avatarUrl 
+            : `${backendUrl}${updatedUser.avatarUrl}`)
+        : '/placeholder.svg'
       
       setAvatarUrl(fullAvatarUrl)
       
