@@ -11,6 +11,7 @@ export interface UserInfo {
   avatarUrl: string
   bio?: string
   phoneNumber?: string
+  isAdmin: boolean
 }
 
 interface AuthContextType {
@@ -60,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           avatarUrl: fullAvatarUrl,
           bio: userData.bio,
           phoneNumber: userData.phoneNumber,
+          isAdmin: userData.isAdmin || false,
         })
       } else {
         // Token invalid or expired

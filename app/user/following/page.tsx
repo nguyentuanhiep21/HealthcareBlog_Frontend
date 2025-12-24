@@ -20,7 +20,7 @@ interface FollowingUser {
 
 export default function FollowingPage() {
   const router = useRouter()
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const [followingUsers, setFollowingUsers] = useState<FollowingUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -28,6 +28,9 @@ export default function FollowingPage() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
 
   useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return
+
     if (!isAuthenticated) {
       router.push('/auth/login')
       return
@@ -36,7 +39,7 @@ export default function FollowingPage() {
     if (user?.id) {
       fetchFollowingUsers()
     }
-  }, [user, isAuthenticated, router])
+  }, [user, isAuthenticated, router, authLoading])
 
   const fetchFollowingUsers = async () => {
     if (!user?.id) return
@@ -125,7 +128,7 @@ export default function FollowingPage() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-2">Đang theo dõi</h1>
         
-        {isLoading ? (
+        {authLoading || isLoading ? (
           <div className="text-center py-12">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
             <p className="mt-4 text-muted-foreground">Đang tải...</p>

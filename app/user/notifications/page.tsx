@@ -27,19 +27,22 @@ interface Notification {
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+
     if (!isAuthenticated) {
       router.push('/auth/login');
       return;
     }
     fetchNotifications();
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, authLoading]);
 
   const fetchNotifications = async () => {
     setIsLoading(true);
@@ -207,7 +210,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* Loading State */}
-        {isLoading && (
+        {(authLoading || isLoading) && (
           <div className="text-center py-12">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
             <p className="mt-4 text-muted-foreground">Đang tải...</p>
@@ -223,7 +226,7 @@ export default function NotificationsPage() {
         )}
 
         {/* Notifications List */}
-        {!isLoading && !error && (
+        {!authLoading && !isLoading && !error && (
           <div className="space-y-2">
             {filteredNotifications.length > 0 ? (
               filteredNotifications.map((notification) => (

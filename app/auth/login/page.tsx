@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [loginAs, setLoginAs] = useState<'user' | 'admin'>('user')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,8 +51,39 @@ export default function LoginPage() {
       if (response.ok && data.token) {
         // Lưu token sử dụng authUtils
         authUtils.setToken(data.token)
-        login()
-        router.push("/user")
+        
+        // Fetch user info to check admin role
+        const userResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/user/account`,
+          {
+            headers: {
+              "Authorization": `Bearer ${data.token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        )
+        
+        if (userResponse.ok) {
+          const userData = await userResponse.json()
+          
+          // Check if trying to login as admin but not an admin
+          if (loginAs === 'admin' && !userData.isAdmin) {
+            authUtils.removeToken()
+            setError("Tài khoản này không có quyền quản trị viên.")
+            return
+          }
+          
+          login()
+          
+          // Redirect based on role
+          if (loginAs === 'admin' && userData.isAdmin) {
+            router.push("/admin")
+          } else {
+            router.push("/user")
+          }
+        } else {
+          setError("Không thể xác thực thông tin người dùng.")
+        }
       } else {
         setError(data.message || "Email hoặc mật khẩu không chính xác.")
       }
@@ -89,6 +121,37 @@ export default function LoginPage() {
               <span>{error}</span>
             </div>
           )}
+
+          {/* Login As Selector */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Đăng nhập với vai trò
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setLoginAs('user')}
+                className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                  loginAs === 'user'
+                    ? 'border-primary bg-primary/10 text-primary font-semibold'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                Người dùng
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginAs('admin')}
+                className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                  loginAs === 'admin'
+                    ? 'border-primary bg-primary/10 text-primary font-semibold'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                Quản trị viên
+              </button>
+            </div>
+          </div>
 
           {/* Email Field */}
           <div className="space-y-2">
