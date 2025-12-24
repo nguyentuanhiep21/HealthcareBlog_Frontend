@@ -1,4 +1,5 @@
 import { AuthProvider } from "@/components/auth-provider"
+import { UserAuthGuard } from "@/components/user-auth-guard"
 
 export default function UserLayout({
   children,
@@ -7,7 +8,9 @@ export default function UserLayout({
 }) {
   return (
     <AuthProvider>
-      {children}
+      <UserAuthGuard>
+        {children}
+      </UserAuthGuard>
     </AuthProvider>
   )
 }

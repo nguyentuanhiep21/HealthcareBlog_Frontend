@@ -4,6 +4,18 @@ export function toGMT7(date: Date): Date {
   return new Date(utc + (3600000 * 7))
 }
 
+// Format date string to GMT+7 locale string
+export function formatDateGMT7(dateString: string, options?: Intl.DateTimeFormatOptions): string {
+  const date = toGMT7(new Date(dateString))
+  return date.toLocaleString("vi-VN", options)
+}
+
+// Format date string to GMT+7 date only (no time)
+export function formatDateOnlyGMT7(dateString: string): string {
+  const date = toGMT7(new Date(dateString))
+  return date.toLocaleDateString("vi-VN")
+}
+
 export function formatTimeAgo(dateString: string): string {
   const now = toGMT7(new Date())
   const date = toGMT7(new Date(dateString))

@@ -168,7 +168,7 @@ export default function SavedPage() {
                       <div>
                         <p className="font-semibold text-sm">{post.author.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(post.createdAt).toLocaleDateString('vi-VN')}
+                          {formatDateOnlyGMT7(post.createdAt)}
                         </p>
                       </div>
                     </div>

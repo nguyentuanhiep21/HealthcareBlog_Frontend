@@ -1,10 +1,22 @@
+"use client"
+
 import type { ReactNode } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Users, FileText, MessageSquare, LayoutDashboard } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Users, FileText, MessageSquare, LayoutDashboard, LogOut } from "lucide-react"
 import { AdminAuthGuard } from "@/components/admin-auth-guard"
+import { Button } from "@/components/ui/button"
+import { authUtils } from "@/lib/auth-utils"
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
+  const router = useRouter()
+
+  const handleLogout = () => {
+    authUtils.removeToken()
+    router.push("/auth/login")
+  }
+
   return (
     <AdminAuthGuard>
       <div className="min-h-screen bg-background">
@@ -15,9 +27,15 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <Link href="/admin">
               <Image src="/care-logo.png" alt="Health Care Logo" width={288} height={96} className="h-24 w-auto" />
             </Link>
-            <Link href="/user" className="text-sm text-muted-foreground hover:text-primary">
-              Về trang chủ
-            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-muted-foreground hover:text-destructive"
+            >
+              <LogOut className="h-4 w-4" />
+              Đăng xuất
+            </Button>
           </div>
         </div>
       </header>

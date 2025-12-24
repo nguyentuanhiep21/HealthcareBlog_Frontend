@@ -66,6 +66,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const [showDeletePostDialog, setShowDeletePostDialog] = useState(false)
   const [showReportSuccessDialog, setShowReportSuccessDialog] = useState(false)
   const [reportSuccessMessage, setReportSuccessMessage] = useState("")
+  const [isReportSuccess, setIsReportSuccess] = useState(true)
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [commentError, setCommentError] = useState<string | null>(null)
 
@@ -401,18 +402,26 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           const errorMessage = errorData.message || errorData.title || "Không thể báo cáo bình luận. Vui lòng thử lại."
           console.error("Đã xảy ra lỗi khi báo cáo bình luận:", errorMessage)
           setReportSuccessMessage(errorMessage)
+          setIsReportSuccess(false)
           setReportingCommentId(null)
+          setShowReportDialog(false)
           setShowReportSuccessDialog(true)
           return
         }
 
         const result = await response.json()
         setReportSuccessMessage(result.message || "Đã báo cáo bình luận thành công!")
+        setIsReportSuccess(true)
         setReportingCommentId(null)
+        setShowReportDialog(false)
+        setShowReportSuccessDialog(true)
       } catch (error) {
         console.error("Error reporting comment:", error)
         setReportSuccessMessage("Đã xảy ra lỗi. Vui lòng thử lại sau.")
+        setIsReportSuccess(false)
         setReportingCommentId(null)
+        setShowReportDialog(false)
+        setShowReportSuccessDialog(true)
       }
     } else {
       try {
@@ -431,18 +440,25 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           const errorMessage = errorData.message || errorData.title || "Không thể báo cáo bài viết. Vui lòng thử lại."
           console.error("Đã xảy ra lỗi khi báo cáo bài viết:", errorMessage)
           setReportSuccessMessage(errorMessage)
+          setIsReportSuccess(false)
+          setShowReportDialog(false)
           setShowReportSuccessDialog(true)
           return
         }
 
         const result = await response.json()
         setReportSuccessMessage(result.message || "Đã báo cáo bài viết thành công!")
+        setIsReportSuccess(true)
+        setShowReportDialog(false)
+        setShowReportSuccessDialog(true)
       } catch (error) {
         console.error("Error reporting post:", error)
         setReportSuccessMessage("Đã xảy ra lỗi. Vui lòng thử lại sau.")
+        setIsReportSuccess(false)
+        setShowReportDialog(false)
+        setShowReportSuccessDialog(true)
       }
     }
-    setShowReportSuccessDialog(true)
   }
 
   const handleUpdatePost = async () => {
@@ -1204,21 +1220,6 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           <div className="bg-card rounded-lg max-w-md w-full">
             <div className="p-6">
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
-                  <svg
-                    className="w-8 h-8 text-red-600 dark:text-red-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </div>
                 <h2 className="text-xl font-semibold mb-2">Thông báo</h2>
                 <p className="text-muted-foreground mb-6">
                   {reportSuccessMessage}

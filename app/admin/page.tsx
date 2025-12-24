@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Users, FileText, MessageSquare, AlertCircle, Lock, TrendingUp, UserCheck, ShieldAlert, CheckCircle, XCircle, ArrowRight, Clock, Activity } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
+import { authUtils } from "@/lib/auth-utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -34,13 +35,27 @@ interface RecentReport {
   createdAt: string
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7070/api"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
 
 export default function AdminDashboardPage() {
-  const { token } = useAuth()
-  const [stats, setStats] = useState<AdminStatsDTO | null>(null)
+  const [stats, setStats] = useState<AdminStatsDTO>({
+    totalUsers: 0,
+    totalPosts: 0,
+    totalComments: 0,
+    pendingReports: 0,
+    lockedUsers: 0,
+    newUsersToday: 0,
+    newPostsToday: 0,
+    userReports: 0,
+    postReports: 0,
+    commentReports: 0,
+    resolvedReports: 0,
+    rejectedReports: 0,
+    activeUsers: 0,
+  })
   const [recentReports, setRecentReports] = useState<RecentReport[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchStats()
@@ -48,10 +63,15 @@ export default function AdminDashboardPage() {
   }, [])
 
   const fetchStats = async () => {
-    if (!token) return
+    const token = authUtils.getToken()
+    if (!token) {
+      setError("Chưa đăng nhập")
+      setLoading(false)
+      return
+    }
 
     try {
-      const response = await fetch(`${API_URL}/User/admin/stats`, {
+      const response = await fetch(`${API_URL}/api/User/admin/stats`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -60,18 +80,25 @@ export default function AdminDashboardPage() {
       if (response.ok) {
         const data = await response.json()
         setStats(data)
+        setError(null)
+      } else {
+        const errorText = await response.text()
+        console.error("API error:", response.status, errorText)
+        setError(`Lỗi API: ${response.status}`)
       }
     } catch (error) {
       console.error("Error fetching stats:", error)
+      setError("Không thể kết nối API")
     }
   }
 
   const fetchRecentReports = async () => {
+    const token = authUtils.getToken()
     if (!token) return
 
     setLoading(true)
     try {
-      const response = await fetch(`${API_URL}/Report?page=1&pageSize=5`, {
+      const response = await fetch(`${API_URL}/api/Report?page=1&pageSize=5`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -79,10 +106,16 @@ export default function AdminDashboardPage() {
 
       if (response.ok) {
         const data = await response.json()
-        setRecentReports(data)
+        // data có thể là array hoặc object với items
+        const items = Array.isArray(data) ? data : (data.items || [])
+        setRecentReports(items)
+      } else {
+        console.error("Report API error:", response.status)
+        setRecentReports([])
       }
     } catch (error) {
       console.error("Error fetching recent reports:", error)
+      setRecentReports([])
     } finally {
       setLoading(false)
     }
@@ -99,13 +132,14 @@ export default function AdminDashboardPage() {
     )
   }
 
-  if (!stats) {
+  if (error) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="text-center">
           <AlertCircle className="h-8 w-8 mx-auto mb-2 text-destructive" />
-          <p className="text-muted-foreground">Không thể tải dữ liệu</p>
-          <Button onClick={fetchStats} variant="outline" className="mt-4">
+          <p className="text-muted-foreground mb-2">Không thể tải dữ liệu</p>
+          <p className="text-sm text-destructive">{error}</p>
+          <Button onClick={() => { fetchStats(); fetchRecentReports(); }} variant="outline" className="mt-4">
             Thử lại
           </Button>
         </div>
@@ -315,11 +349,11 @@ export default function AdminDashboardPage() {
                   >
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={report.reportedByAvatar || "/placeholder.svg"} />
-                      <AvatarFallback>{report.reportedByName[0]}</AvatarFallback>
+                      <AvatarFallback>{report.reportedByName?.[0] || "?"}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium">{report.reportedByName}</p>
+                        <p className="text-sm font-medium">{report.reportedByName || "Unknown"}</p>
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs ${
                             report.status === "Pending"
@@ -337,7 +371,7 @@ export default function AdminDashboardPage() {
                       </p>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        {new Date(report.createdAt).toLocaleDateString("vi-VN")}
+                        {formatDateOnlyGMT7(report.createdAt)}
                       </div>
                     </div>
                   </div>

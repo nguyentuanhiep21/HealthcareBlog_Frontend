@@ -43,6 +43,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
   const [avatarUrl, setAvatarUrl] = useState("/placeholder.svg")
   const [showReportSuccessDialog, setShowReportSuccessDialog] = useState(false)
   const [reportSuccessMessage, setReportSuccessMessage] = useState("")
+  const [isReportSuccess, setIsReportSuccess] = useState(true)
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false)
   const [selectedImageSrc, setSelectedImageSrc] = useState<string>("")
   
@@ -226,16 +227,19 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         const errorData = await response.json()
         const errorMessage = errorData.message || "Không thể báo cáo người dùng. Vui lòng thử lại."
         setReportSuccessMessage(errorMessage)
+        setIsReportSuccess(false)
         setShowReportSuccessDialog(true)
         return
       }
 
       const result = await response.json()
       setReportSuccessMessage(result.message || "Đã báo cáo người dùng thành công!")
+      setIsReportSuccess(true)
       setShowReportSuccessDialog(true)
     } catch (error) {
       console.error("Error reporting user:", error)
       setReportSuccessMessage("Đã xảy ra lỗi. Vui lòng thử lại sau.")
+      setIsReportSuccess(false)
       setShowReportSuccessDialog(true)
     }
   }
@@ -481,10 +485,15 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-card rounded-lg max-w-md w-full">
             <div className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Thông báo</h2>
-              <p className="text-muted-foreground mb-6">{reportSuccessMessage}</p>
-              <div className="flex justify-end">
-                <Button onClick={() => setShowReportSuccessDialog(false)}>Đóng</Button>
+              <div className="flex flex-col items-center text-center">
+                <h2 className="text-xl font-semibold mb-2">Thông báo</h2>
+                <p className="text-muted-foreground mb-6">{reportSuccessMessage}</p>
+                <Button
+                  className="w-full"
+                  onClick={() => setShowReportSuccessDialog(false)}
+                >
+                  Đóng
+                </Button>
               </div>
             </div>
           </div>
