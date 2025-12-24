@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Users, FileText, MessageSquare } from "lucide-react"
+import { Users, FileText, MessageSquare, LayoutDashboard } from "lucide-react"
 import { AdminAuthGuard } from "@/components/admin-auth-guard"
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -12,7 +12,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
-            <Link href="/admin/users">
+            <Link href="/admin">
               <Image src="/care-logo.png" alt="Health Care Logo" width={288} height={96} className="h-24 w-auto" />
             </Link>
             <Link href="/user" className="text-sm text-muted-foreground hover:text-primary">
@@ -26,6 +26,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <nav className="border-b bg-secondary/30">
         <div className="container mx-auto px-4">
           <div className="flex gap-6">
+            <Link
+              href="/admin"
+              className="flex items-center gap-2 border-b-2 border-transparent px-4 py-3 text-sm font-medium transition-colors hover:border-primary hover:text-primary"
+            >
+              <LayoutDashboard className="h-5 w-5" />
+              Dashboard
+            </Link>
             <Link
               href="/admin/users"
               className="flex items-center gap-2 border-b-2 border-transparent px-4 py-3 text-sm font-medium transition-colors hover:border-primary hover:text-primary"
