@@ -18,6 +18,7 @@ export function Navbar() {
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [showLoginDialog, setShowLoginDialog] = useState(false)
+  const [avatarError, setAvatarError] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -155,9 +156,10 @@ export function Navbar() {
                   onClick={() => setIsAvatarMenuOpen(!isAvatarMenuOpen)}
                 >
                   <img
-                    src={user?.avatarUrl || "/placeholder.svg"}
+                    src={avatarError || !user?.avatarUrl ? "/placeholder.svg" : user.avatarUrl}
                     alt={user?.fullName || "User"}
-                    className="h-8 w-8 rounded-full"
+                    className="h-8 w-8 rounded-full object-cover"
+                    onError={() => setAvatarError(true)}
                   />
                 </button>
 

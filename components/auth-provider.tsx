@@ -19,6 +19,7 @@ interface AuthContextType {
   login: () => void
   logout: () => void
   fetchUserInfo: () => Promise<void>
+  isLoading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState<UserInfo | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
   // Fetch user info from API
@@ -73,17 +75,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Load auth state and user info on mount
   useEffect(() => {
-    try {
-      const hasAuth = authUtils.isAuthenticated()
-      setIsAuthenticated(hasAuth)
-      
-      if (hasAuth) {
-        fetchUserInfo()
+    const loadAuth = async () => {
+      try {
+        const hasAuth = authUtils.isAuthenticated()
+        setIsAuthenticated(hasAuth)
+        
+        if (hasAuth) {
+          await fetchUserInfo()
+        }
+      } catch (error) {
+        console.error("Failed to load auth state from localStorage:", error)
+      } finally {
+        setMounted(true)
+        setIsLoading(false)
       }
-    } catch (error) {
-      console.error("Failed to load auth state from localStorage:", error)
     }
-    setMounted(true)
+    
+    loadAuth()
   }, [])
 
   const login = () => {
@@ -100,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, fetchUserInfo }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, fetchUserInfo, isLoading }}>
       {children}
     </AuthContext.Provider>
   )

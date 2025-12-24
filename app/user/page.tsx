@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Navbar } from "@/components/navbar"
 import { CreatePostBox } from "@/components/create-post-box"
 import { PostCard } from "@/components/post-card"
+import { SafeAvatar } from "@/components/safe-avatar"
 import { Button } from "@/components/ui/button"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { useAuth } from "@/components/auth-provider"
@@ -12,7 +13,7 @@ import Link from "next/link"
 import type { Post } from "@/lib/types"
 
 export default function Home() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   interface SuggestedUser {
     id: string
     fullName: string
@@ -366,35 +367,41 @@ export default function Home() {
               <h2 className="mb-4 text-lg font-bold">Thành viên nổi bật</h2>
               <div className="space-y-3">
                 {suggestedUsers.length > 0 ? (
-                  suggestedUsers.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Link href={`/user/profile/${user.id}`} className="hover:underline">
-                          <img 
-                            src={user.avatarUrl || "/placeholder.svg"} 
-                            alt={user.fullName} 
-                            className="h-10 w-10 rounded-full object-cover" 
-                          />
-                        </Link>
-                        <div className="min-w-0">
-                          <Link href={`/user/profile/${user.id}`} className="hover:underline text-sm font-semibold truncate">
-                            {user.fullName}
+                  suggestedUsers.map((suggestedUser) => {
+                    const isCurrentUser = user && suggestedUser.id === user.id;
+                    
+                    return (
+                      <div key={suggestedUser.id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Link href={`/user/profile/${suggestedUser.id}`} className="hover:underline">
+                            <SafeAvatar
+                              src={suggestedUser.avatarUrl}
+                              alt={suggestedUser.fullName}
+                              className="h-10 w-10 rounded-full object-cover"
+                            />
                           </Link>
-                          <p className="text-xs text-muted-foreground">
-                            {user.followerCount.toLocaleString("vi-VN")} người theo dõi
-                          </p>
+                          <div className="min-w-0">
+                            <Link href={`/user/profile/${suggestedUser.id}`} className="hover:underline text-sm font-semibold truncate">
+                              {suggestedUser.fullName}
+                            </Link>
+                            <p className="text-xs text-muted-foreground">
+                              {suggestedUser.followerCount.toLocaleString("vi-VN")} người theo dõi
+                            </p>
+                          </div>
                         </div>
+                        {!isCurrentUser && (
+                          <Button
+                            size="sm"
+                            variant={followedUsers.has(suggestedUser.id) ? "outline" : "default"}
+                            className={followedUsers.has(suggestedUser.id) ? "" : "bg-primary text-primary-foreground hover:bg-primary/90"}
+                            onClick={() => handleFollowClick(suggestedUser.id)}
+                          >
+                            {followedUsers.has(suggestedUser.id) ? "Đang theo dõi" : "Theo dõi"}
+                          </Button>
+                        )}
                       </div>
-                      <Button
-                        size="sm"
-                        variant={followedUsers.has(user.id) ? "outline" : "default"}
-                        className={followedUsers.has(user.id) ? "" : "bg-primary text-primary-foreground hover:bg-primary/90"}
-                        onClick={() => handleFollowClick(user.id)}
-                      >
-                        {followedUsers.has(user.id) ? "Đang theo dõi" : "Theo dõi"}
-                      </Button>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-4">Chưa có thành viên nổi bật</p>
                 )}

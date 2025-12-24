@@ -8,6 +8,7 @@ import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { CreatePostBox } from "@/components/create-post-box"
 import { AvatarViewDialog } from "@/components/avatar-view-dialog"
 import { AvatarCropDialog } from "@/components/avatar-crop-dialog"
+import { SafeAvatar } from "@/components/safe-avatar"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Flag } from "lucide-react"
@@ -34,7 +35,6 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("home")
   const [bio, setBio] = useState("")
-  const [isEditingBio, setIsEditingBio] = useState(false)
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
@@ -148,11 +148,6 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
     
     fetchUserProfile()
   }, [userId, user])
-
-  const handleSaveBio = () => {
-    setIsEditingBio(false)
-    // In a real app, would save to database here
-  }
 
   const handleFollowClick = async () => {
     if (!isAuthenticated) {
@@ -360,12 +355,13 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         <div className="mb-8 rounded-lg border border-border bg-card p-8">
           <div className="flex gap-6 items-start">
             {/* Avatar */}
-            <img
-              src={avatarUrl}
-              alt={viewedUser.name}
-              className="h-24 w-24 rounded-full cursor-pointer hover:opacity-80 transition"
-              onClick={() => setIsAvatarDialogOpen(true)}
-            />
+            <div onClick={() => setIsAvatarDialogOpen(true)} className="cursor-pointer">
+              <SafeAvatar
+                src={avatarUrl}
+                alt={viewedUser.name}
+                className="h-24 w-24 rounded-full hover:opacity-80 transition"
+              />
+            </div>
 
             {/* Info */}
             <div className="flex-1">
@@ -395,7 +391,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
                   </div>
                 )}
               </div>
-              <p className="text-muted-foreground mb-4">{bio}</p>
+              <p className="text-muted-foreground mb-4 line-clamp-1">{bio}</p>
 
               <div className="flex gap-6 mb-4">
                 <div>
@@ -459,44 +455,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
             <div className="space-y-6">
               <div>
                 <h3 className="font-semibold mb-2">Giới thiệu</h3>
-                {isCurrentUser ? (
-                  isEditingBio ? (
-                    <div className="space-y-2">
-                      <textarea
-                        value={bio}
-                        onChange={(e) => setBio(e.target.value)}
-                        className="w-full p-3 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                        rows={4}
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleSaveBio}
-                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium"
-                        >
-                          Lưu
-                        </button>
-                        <button
-                          onClick={() => {
-                            setBio(viewedUser.bio)
-                            setIsEditingBio(false)
-                          }}
-                          className="px-4 py-2 border border-border rounded-lg hover:bg-secondary text-foreground font-medium"
-                        >
-                          Hủy
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <p
-                      onClick={() => setIsEditingBio(true)}
-                      className="text-muted-foreground cursor-pointer hover:text-foreground transition"
-                    >
-                      {bio || "Chưa có giới thiệu. Bấm để thêm."}
-                    </p>
-                  )
-                ) : (
-                  <p className="text-muted-foreground">{bio || "Chưa có giới thiệu."}</p>
-                )}
+                <p className="text-muted-foreground">{bio || "Chưa có giới thiệu."}</p>
               </div>
 
               <div>

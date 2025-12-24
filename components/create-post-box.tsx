@@ -5,6 +5,7 @@ import { ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth-provider"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
+import { SafeAvatar } from "@/components/safe-avatar"
 import type { Post } from "@/lib/types"
 
 interface CreatePostBoxProps {
@@ -202,7 +203,7 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
       <div className="mb-4 flex items-start gap-3">
         {user && (
           <>
-            <img src={user.avatarUrl} alt={user.fullName} className="h-10 w-10 rounded-full object-cover" />
+            <SafeAvatar src={user.avatarUrl} alt={user.fullName} className="h-10 w-10 rounded-full object-cover" />
             <div className="flex-1">
               <h3 className="font-semibold">{user.fullName}</h3>
             </div>

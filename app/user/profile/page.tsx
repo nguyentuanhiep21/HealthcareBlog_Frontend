@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Navbar } from "@/components/navbar"
 import { PostCard } from "@/components/post-card"
 import { AvatarViewDialog } from "@/components/avatar-view-dialog"
+import { SafeAvatar } from "@/components/safe-avatar"
 import { mockPosts } from "@/lib/mock-data"
 import { useAuth } from "@/components/auth-provider"
 import { authUtils } from "@/lib/auth-utils"
@@ -194,7 +195,7 @@ export default function ProfilePage() {
                       </button>
                       <button
                         onClick={() => {
-                          setBio(user.bio)
+                          setBio(user?.bio || '')
                           setIsEditingBio(false)
                         }}
                         className="px-4 py-2 border border-border rounded-lg hover:bg-secondary text-foreground font-medium"
@@ -227,7 +228,7 @@ export default function ProfilePage() {
         open={isAvatarDialogOpen}
         onOpenChange={setIsAvatarDialogOpen}
         avatarUrl={avatarUrl}
-        userName={user.name}
+        userName={user?.fullName || 'User'}
         onAvatarChange={handleAvatarChange}
       />
     </div>
