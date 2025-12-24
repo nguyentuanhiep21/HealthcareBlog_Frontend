@@ -7,6 +7,7 @@ import { ImageViewerModal } from '@/components/image-viewer-modal';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authUtils } from '@/lib/auth-utils';
+import { formatDateOnlyGMT7 } from '@/lib/time-utils';
 import type { Post } from '@/lib/types';
 
 export default function SavedPage() {
