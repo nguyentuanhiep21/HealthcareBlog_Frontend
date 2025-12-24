@@ -69,13 +69,13 @@ export function AvatarViewDialog({
         className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
         onClick={handleOverlayClick}
       >
-        <div className="relative max-w-2xl w-full max-h-[80vh] flex flex-col items-center justify-center">
+        <div className="relative w-full flex flex-col items-center justify-center">
           {/* Avatar Image */}
           <div className="relative">
             <img
               src={previewUrl || "/placeholder.svg"}
               alt={userName}
-              className="max-w-full max-h-full object-contain rounded-lg"
+              className="max-w-[1080px] max-h-[600px] object-contain rounded-lg"
             />
 
             {/* Edit/Close Button - Only show if onAvatarChange is provided */}

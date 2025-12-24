@@ -1,28 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, AlertCircle, Trash2, FileText, XCircle } from "lucide-react"
+import { AlertCircle, Trash2, FileText, XCircle } from "lucide-react"
 import { authUtils } from "@/lib/auth-utils"
 import { formatDateGMT7 } from "@/lib/time-utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { ActionResultDialog } from "@/components/action-result-dialog"
-import Image from "next/image"
-
-interface ViewPostDTO {
-  id: number
-  userId: string
-  userName: string
-  userAvatar: string | null
-  content: string
-  imageUrl: string | null
-  likesCount: number
-  commentsCount: number
-  createdAt: string
-}
 
 interface ViewReportDTO {
   id: number
@@ -46,11 +32,8 @@ interface ViewReportDTO {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
 
 export default function AdminPostsPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [posts, setPosts] = useState<ViewPostDTO[]>([])
   const [reports, setReports] = useState<ViewReportDTO[]>([])
   const [reportFilter, setReportFilter] = useState<"all" | "Pending" | "Resolved" | "Rejected">("all")
-  const [loading, setLoading] = useState(false)
   const [reportLoading, setReportLoading] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: "", description: "", onConfirm: () => {}, isDestructive: false })
   const [resultDialog, setResultDialog] = useState({ isOpen: false, message: "", isSuccess: false })
@@ -65,40 +48,8 @@ export default function AdminPostsPage() {
   }
 
   useEffect(() => {
-    if (searchQuery) {
-      fetchPosts()
-    }
-  }, [searchQuery])
-
-  useEffect(() => {
     fetchReports()
   }, [])
-
-  const fetchPosts = async () => {
-    const token = authUtils.getToken()
-    if (!token) return
-
-    setLoading(true)
-    try {
-      const response = await fetch(
-        `${API_URL}/api/Post/admin/all?searchQuery=${encodeURIComponent(searchQuery)}&page=1&pageSize=20`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      )
-
-      if (response.ok) {
-        const data = await response.json()
-        setPosts(data)
-      }
-    } catch (error) {
-      console.error("Error fetching posts:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const fetchReports = async () => {
     const token = authUtils.getToken()
@@ -121,57 +72,6 @@ export default function AdminPostsPage() {
     } finally {
       setReportLoading(false)
     }
-  }
-
-  const handleDeletePost = async (postId: number) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: "Xóa bài viết",
-      description: "⚠️ Bạn có chắc chắn muốn xóa bài viết này không?\n\nHành động này KHÔNG THỂ HOÀN TÁC!",
-      isDestructive: true,
-      onConfirm: async () => {
-        setIsProcessing(true)
-        try {
-          const token = authUtils.getToken()
-          if (!token) return
-
-          const response = await fetch(`${API_URL}/api/Post/admin/${postId}`, {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          })
-
-          if (response.ok) {
-            setConfirmDialog({ ...confirmDialog, isOpen: false })
-            setResultDialog({
-              isOpen: true,
-              message: "Xóa bài viết thành công!",
-              isSuccess: true,
-            })
-            if (searchQuery) {
-              fetchPosts()
-            }
-          } else {
-            setResultDialog({
-              isOpen: true,
-              message: "Không thể xóa bài viết. Vui lòng thử lại.",
-              isSuccess: false,
-            })
-          }
-        } catch (error) {
-          console.error("Error deleting post:", error)
-          setResultDialog({
-            isOpen: true,
-            message: "Đã xảy ra lỗi. Vui lòng thử lại sau.",
-            isSuccess: false,
-          })
-        } finally {
-          setIsProcessing(false)
-          setConfirmDialog({ ...confirmDialog, isOpen: false })
-        }
-      },
-    })
   }
 
   const handleProcessPostReport = async (reportId: number, action: "Delete" | "Ignore", report: ViewReportDTO) => {
@@ -200,25 +100,18 @@ export default function AdminPostsPage() {
             body: JSON.stringify({ action }),
           })
 
-          setConfirmDialog({ ...confirmDialog, isOpen: false })
-
           if (response.ok) {
+            setConfirmDialog({ ...confirmDialog, isOpen: false })
             setResultDialog({
               isOpen: true,
-              message: `Đã ${action === "Delete" ? "xóa bài viết" : "bỏ qua báo cáo"} thành công!`,
+              message: action === "Delete" ? "Xóa bài viết thành công!" : "Bỏ qua báo cáo thành công!",
               isSuccess: true,
             })
             fetchReports()
           } else {
-            let errorMessage = "Đã xảy ra lỗi"
-            const contentType = response.headers.get("content-type")
-            if (contentType?.includes("application/json")) {
-              const errorData = await response.json()
-              errorMessage = errorData.message || errorData.title || errorMessage
-            }
             setResultDialog({
               isOpen: true,
-              message: errorMessage,
+              message: "Không thể xử lý báo cáo. Vui lòng thử lại.",
               isSuccess: false,
             })
           }
@@ -226,34 +119,34 @@ export default function AdminPostsPage() {
           console.error("Error processing report:", error)
           setResultDialog({
             isOpen: true,
-            message: "Đã xảy ra lỗi khi xử lý báo cáo",
+            message: "Đã xảy ra lỗi. Vui lòng thử lại sau.",
             isSuccess: false,
           })
         } finally {
           setIsProcessing(false)
+          setConfirmDialog({ ...confirmDialog, isOpen: false })
         }
       },
     })
   }
 
-  const filteredReports = reportFilter === "all" 
-    ? reports 
-    : reportFilter === "Resolved"
-    ? reports.filter((r) => r.status === "Resolved" || r.targetContent === null)
-    : reports.filter((r) => r.status === reportFilter)
-
   const stats = {
-    pending: reports.filter((r) => r.status === "Pending" && r.targetContent !== null).length,
-    resolved: reports.filter((r) => r.status === "Resolved" || r.targetContent === null).length,
+    pending: reports.filter((r) => r.status === "Pending").length,
+    resolved: reports.filter((r) => r.status === "Resolved").length,
     rejected: reports.filter((r) => r.status === "Rejected").length,
     total: reports.length,
   }
 
+  const filteredReports = reports.filter((report) => {
+    if (reportFilter === "all") return true
+    return report.status === reportFilter
+  })
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Quản lý bài viết</h1>
-        <p className="text-muted-foreground">Tìm kiếm bài viết hoặc xem báo cáo vi phạm</p>
+        <h1 className="text-3xl font-bold">Quản lý báo cáo bài viết</h1>
+        <p className="text-muted-foreground">Xem và xử lý các báo cáo vi phạm bài viết</p>
       </div>
 
       {/* Statistics Cards */}
@@ -288,240 +181,167 @@ export default function AdminPostsPage() {
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Tìm kiếm bài viết theo nội dung hoặc tác giả..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
+      {/* Filter Buttons */}
+      <div className="flex gap-2">
+        <Button
+          variant={reportFilter === "all" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setReportFilter("all")}
+        >
+          Tất cả ({stats.total})
+        </Button>
+        <Button
+          variant={reportFilter === "Pending" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setReportFilter("Pending")}
+        >
+          Chờ xử lý ({stats.pending})
+        </Button>
+        <Button
+          variant={reportFilter === "Resolved" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setReportFilter("Resolved")}
+        >
+          Đã giải quyết ({stats.resolved})
+        </Button>
+        <Button
+          variant={reportFilter === "Rejected" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setReportFilter("Rejected")}
+        >
+          Đã từ chối ({stats.rejected})
+        </Button>
       </div>
 
-      {/* Search Results */}
-      {searchQuery && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Kết quả tìm kiếm ({posts.length})</h2>
-          {loading ? (
-            <p className="text-center text-muted-foreground">Đang tải...</p>
-          ) : posts.length > 0 ? (
-            <div className="space-y-3">
-              {posts.map((post) => (
-                <div key={post.id} className="rounded-lg border bg-card p-4 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={getFullAvatarUrl(post.userAvatar)} alt={post.userName} />
-                      <AvatarFallback>{post.userName[0]}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-semibold">{post.userName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDateGMT7(post.createdAt, {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          day: "numeric",
-                          month: "numeric",
-                          year: "numeric",
-                        })}
-                      </p>
+      {/* Reports List */}
+      <div className="space-y-4">
+        {reportLoading ? (
+          <p className="text-center text-muted-foreground">Đang tải...</p>
+        ) : filteredReports.length > 0 ? (
+          <div className="space-y-3">
+            {filteredReports.map((report) => (
+              <div key={report.id} className="rounded-lg border bg-card p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-destructive" />
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Báo cáo #{report.id}
+                    </span>
+                  </div>
+                  <Badge
+                    variant={
+                      report.status === "Pending"
+                        ? "warning"
+                        : report.status === "Resolved"
+                          ? "success"
+                          : "secondary"
+                    }
+                  >
+                    {report.status === "Pending"
+                      ? "Chờ xử lý"
+                      : report.status === "Resolved"
+                        ? "Đã giải quyết"
+                        : "Đã từ chối"}
+                  </Badge>
+                </div>
+
+                {/* Reporter and Target Side by Side */}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {/* Reporter */}
+                  <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950">
+                    <p className="mb-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
+                      👤 NGƯỜI BÁO CÁO
+                    </p>
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-10 w-10 flex-shrink-0">
+                        <AvatarImage src={getFullAvatarUrl(report.reportedByAvatar)} />
+                        <AvatarFallback>{report.reportedByName[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold">{report.reportedByName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDateGMT7(report.createdAt, {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            day: "numeric",
+                            month: "numeric",
+                            year: "numeric",
+                          })}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  <p className="text-sm">{post.content}</p>
-
-                  {post.imageUrl && (
-                    <div className="relative h-48 w-full overflow-hidden rounded-lg">
-                      <Image src={post.imageUrl || "/placeholder.svg"} alt="Post" fill className="object-cover" />
+                  {/* Target Post Author */}
+                  <div className="rounded-lg border-2 border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950">
+                    <p className="mb-2 text-sm font-semibold text-red-700 dark:text-red-300">
+                      ⚠️ TÁC GIẢ BÀI VIẾT
+                    </p>
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-10 w-10 flex-shrink-0">
+                        <AvatarImage
+                          src={getFullAvatarUrl(report.targetUserAvatar)}
+                          alt={report.targetUserName || "User"}
+                        />
+                        <AvatarFallback>{(report.targetUserName || "U")[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold">{report.targetUserName || "Đã xóa"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {report.targetUserId ? `ID: ${report.targetUserId}` : "Người dùng đã bị xóa"}
+                        </p>
+                      </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Post Content */}
+                <div className="rounded-lg border-2 border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-900 dark:bg-yellow-950">
+                  <p className="mb-2 text-sm font-semibold text-yellow-700 dark:text-yellow-300">
+                    📋 NỘI DUNG BÀI VIẾT
+                  </p>
+                  <p className="text-sm line-clamp-3">{report.targetContent || "Nội dung không khả dụng"}</p>
+                </div>
+
+                {/* Report Reason */}
+                <div>
+                  <p className="text-sm font-medium">Lý do báo cáo: {report.reason}</p>
+                  {report.description && (
+                    <p className="text-sm text-muted-foreground mt-1">Chi tiết: {report.description}</p>
                   )}
+                </div>
 
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>{post.likesCount} lượt thích</span>
-                    <span>{post.commentsCount} bình luận</span>
-                  </div>
-
+                {report.status === "Pending" && (
                   <div className="flex gap-2">
-                    <Button variant="destructive" size="sm" onClick={() => handleDeletePost(post.id)}>
-                      <Trash2 className="mr-2 h-4 w-4" />
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleProcessPostReport(report.id, "Delete", report)}
+                      className="gap-2"
+                      disabled={isProcessing}
+                    >
+                      <Trash2 className="h-4 w-4" />
                       Xóa bài viết
                     </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground">Không tìm thấy bài viết nào</p>
-          )}
-        </div>
-      )}
-
-      {/* Reports List */}
-      {!searchQuery && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Báo cáo bài viết</h2>
-            <div className="flex gap-2">
-              <Button
-                variant={reportFilter === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setReportFilter("all")}
-              >
-                Tất cả ({stats.total})
-              </Button>
-              <Button
-                variant={reportFilter === "Pending" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setReportFilter("Pending")}
-              >
-                Chờ xử lý ({stats.pending})
-              </Button>
-              <Button
-                variant={reportFilter === "Resolved" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setReportFilter("Resolved")}
-              >
-                Đã giải quyết ({stats.resolved})
-              </Button>
-              <Button
-                variant={reportFilter === "Rejected" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setReportFilter("Rejected")}
-              >
-                Đã từ chối ({stats.rejected})
-              </Button>
-            </div>
-          </div>
-
-          {reportLoading ? (
-            <p className="text-center text-muted-foreground">Đang tải...</p>
-          ) : filteredReports.length > 0 ? (
-            <div className="space-y-3">
-              {filteredReports.map((report) => (
-                <div key={report.id} className="rounded-lg border bg-card p-4 space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5 text-destructive" />
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Báo cáo #{report.id}
-                      </span>
-                    </div>
-                    <Badge
-                      variant={
-                        report.status === "Pending"
-                          ? "warning"
-                          : report.status === "Resolved"
-                            ? "success"
-                            : "secondary"
-                      }
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleProcessPostReport(report.id, "Ignore", report)}
+                      className="gap-2"
+                      disabled={isProcessing}
                     >
-                      {report.status === "Pending"
-                        ? "Chờ xử lý"
-                        : report.status === "Resolved"
-                          ? "Đã giải quyết"
-                          : "Đã từ chối"}
-                    </Badge>
+                      <XCircle className="h-4 w-4" />
+                      Bỏ qua
+                    </Button>
                   </div>
-
-                  {/* Reporter and Target Side by Side */}
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {/* Reporter */}
-                    <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950">
-                      <p className="mb-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
-                        👤 NGƯỜI BÁO CÁO
-                      </p>
-                      <div className="flex items-start gap-3">
-                        <Avatar className="h-10 w-10 flex-shrink-0">
-                          <AvatarImage src={getFullAvatarUrl(report.reportedByAvatar)} />
-                          <AvatarFallback>{report.reportedByName[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-semibold">{report.reportedByName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDateGMT7(report.createdAt, {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              day: "numeric",
-                              month: "numeric",
-                              year: "numeric",
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Target Post Author */}
-                    <div className="rounded-lg border-2 border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950">
-                      <p className="mb-2 text-sm font-semibold text-red-700 dark:text-red-300">
-                        ⚠️ TÁC GIẢ BÀI VIẾT
-                      </p>
-                      <div className="flex items-start gap-3">
-                        <Avatar className="h-10 w-10 flex-shrink-0">
-                          <AvatarImage
-                            src={getFullAvatarUrl(report.targetUserAvatar)}
-                            alt={report.targetUserName || "User"}
-                          />
-                          <AvatarFallback>{(report.targetUserName || "U")[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-semibold">{report.targetUserName || "Đã xóa"}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {report.targetUserId ? `ID: ${report.targetUserId}` : "Người dùng đã bị xóa"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Post Content */}
-                  <div className="rounded-lg border-2 border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-900 dark:bg-yellow-950">
-                    <p className="mb-2 text-sm font-semibold text-yellow-700 dark:text-yellow-300">
-                      📋 NỘI DUNG BÀI VIẾT
-                    </p>
-                    <p className="text-sm line-clamp-3">{report.targetContent || "Nội dung không khả dụng"}</p>
-                  </div>
-
-                  {/* Report Reason */}
-                  <div>
-                    <p className="text-sm font-medium">Lý do báo cáo: {report.reason}</p>
-                    {report.description && (
-                      <p className="text-sm text-muted-foreground mt-1">Chi tiết: {report.description}</p>
-                    )}
-                  </div>
-
-                  {report.status === "Pending" && (
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleProcessPostReport(report.id, "Delete", report)}
-                        className="gap-2"
-                        disabled={isProcessing}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Xóa bài viết
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleProcessPostReport(report.id, "Ignore", report)}
-                        className="gap-2"
-                        disabled={isProcessing}
-                      >
-                        <XCircle className="h-4 w-4" />
-                        Bỏ qua
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground">Không có báo cáo nào</p>
-          )}
-        </div>
-      )}
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-muted-foreground">Không có báo cáo nào</p>
+        )}
+      </div>
 
       {/* Confirm Dialog */}
       <ConfirmDialog
