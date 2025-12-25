@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Mail, ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react"
+import { Mail, ArrowLeft, CheckCircle2, AlertCircle, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -143,12 +143,11 @@ export default function ForgotPasswordPage() {
 
         {/* Resend option when success */}
         {success && (
-          <div className="pt-4 border-t border-border">
+          <div className="space-y-3 pt-4 border-t border-border">
             <Button
               type="button"
               onClick={() => { setSuccess(false); setEmail(""); }}
-              variant="outline"
-              className="w-full h-10"
+              className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition"
             >
               Gửi Lại Email
             </Button>

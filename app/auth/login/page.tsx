@@ -3,9 +3,16 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useAuth } from "@/components/auth-provider"
 import { authUtils } from "@/lib/auth-utils"
 
@@ -17,10 +24,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [emailNotVerified, setEmailNotVerified] = useState(false)
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false)
+  const [isResendingEmail, setIsResendingEmail] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setEmailNotVerified(false)
 
     if (!email || !password) {
       setError("Vui lòng điền đầy đủ thông tin")
@@ -61,13 +73,66 @@ export default function LoginPage() {
           router.push("/user")
         }
       } else {
-        setError(data.message || "Email hoặc mật khẩu không chính xác.")
+        const message = data.message || ""
+        if (message.includes("Email chưa được xác thực")) {
+          setEmailNotVerified(true)
+          setShowVerificationDialog(true)
+        } else {
+          setError(message || "Email hoặc mật khẩu không chính xác.")
+        }
       }
     } catch (error) {
       console.error("Login error:", error)
       setError("Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại sau.")
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleResendVerificationEmail = async () => {
+    if (!email) {
+      setError("Vui lòng nhập email của bạn")
+      return
+    }
+
+    setIsResendingEmail(true)
+    setResendSuccess(false)
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/User/resend-verification`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          body: JSON.stringify({
+            email: email,
+          }),
+        }
+      )
+
+      const contentType = response.headers.get("content-type")
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error("Response is not JSON:", await response.text())
+        setError("Lỗi kết nối với server. Vui lòng đảm bảo backend đang chạy đúng.")
+        setIsResendingEmail(false)
+        return
+      }
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setResendSuccess(true)
+      } else {
+        setError(data.message || "Không thể gửi lại email. Vui lòng thử lại.")
+      }
+    } catch (error) {
+      console.error("Resend verification email error:", error)
+      setError("Đã xảy ra lỗi. Vui lòng thử lại sau.")
+    } finally {
+      setIsResendingEmail(false)
     }
   }
 
@@ -92,8 +157,8 @@ export default function LoginPage() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm">
+              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
@@ -188,6 +253,62 @@ export default function LoginPage() {
           </Link>
         </p>
       </div>
+
+      {/* Email Verification Dialog */}
+      <Dialog open={showVerificationDialog} onOpenChange={setShowVerificationDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex justify-center mb-4">
+              <div className="rounded-full bg-yellow-500/10 p-3">
+                <AlertCircle className="h-12 w-12 text-yellow-600 dark:text-yellow-500" />
+              </div>
+            </div>
+            <DialogTitle className="text-center text-lg">
+              Email Chưa Được Xác Thực
+            </DialogTitle>
+            <DialogDescription className="text-center pt-2">
+              Email của bạn chưa được xác thực. Vui lòng xác thực email trước để tiếp tục.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {!resendSuccess ? (
+              <>
+                <p className="text-sm text-muted-foreground text-center">
+                  Chúng tôi sẽ gửi lại email xác thực đến <span className="font-medium text-foreground">{email}</span>
+                </p>
+                <Button
+                  onClick={handleResendVerificationEmail}
+                  disabled={isResendingEmail}
+                  className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                >
+                  {isResendingEmail ? "Đang gửi..." : "Gửi Lại Email Xác Thực"}
+                </Button>
+              </>
+            ) : (
+              <div className="space-y-3 text-center py-2">
+                <div className="flex justify-center">
+                  <div className="rounded-full bg-green-500/10 p-3">
+                    <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-500" />
+                  </div>
+                </div>
+                <p className="text-sm font-medium text-green-600 dark:text-green-500">
+                  Email xác thực đã được gửi!
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Vui lòng kiểm tra hộp thư của bạn và làm theo hướng dẫn để xác thực email.
+                </p>
+                <Button
+                  onClick={() => setShowVerificationDialog(false)}
+                  className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                >
+                  Đã Hiểu
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
