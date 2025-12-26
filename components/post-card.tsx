@@ -140,10 +140,11 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
         const formData = new FormData()
         formData.append('file', blob, 'image.jpg')
 
+        const authHeaders = authUtils.getAuthHeaders() as Record<string, string>
         const uploadResponse = await fetch(`${backendUrl}/api/upload/image`, {
           method: 'POST',
           headers: {
-            'Authorization': authUtils.getAuthHeaders()['Authorization'] || '',
+            'Authorization': authHeaders['Authorization'] || '',
           },
           body: formData,
         })
@@ -397,7 +398,9 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
 
             <button
               onClick={handleSave}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 hover:bg-secondary transition"
+              disabled={!!(currentUser && post.author.id === currentUser.id)}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 hover:bg-secondary transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              title={currentUser && post.author.id === currentUser.id ? "Bạn không thể lưu bài viết của mình" : ""}
             >
               <Bookmark className={`h-5 w-5 ${isSaved ? "fill-current text-primary" : "text-muted-foreground"}`} />
               <span className={`text-sm ${isSaved ? "text-primary font-semibold" : "text-muted-foreground"}`}>Lưu</span>

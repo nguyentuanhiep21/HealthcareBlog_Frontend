@@ -12,7 +12,6 @@ export default function SettingsPage() {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
-    phoneNumber: '',
     bio: '',
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +31,6 @@ export default function SettingsPage() {
       setFormData({
         fullName: user.fullName || '',
         email: user.email || '',
-        phoneNumber: user.phoneNumber || '',
         bio: user.bio || '',
       });
     }
@@ -61,7 +59,6 @@ export default function SettingsPage() {
         headers: authUtils.getAuthHeaders(),
         body: JSON.stringify({
           fullName: formData.fullName,
-          phoneNumber: formData.phoneNumber,
           bio: formData.bio,
         }),
       });
@@ -182,16 +179,6 @@ export default function SettingsPage() {
                   className="w-full px-4 py-2 border border-border rounded-lg bg-secondary text-muted-foreground cursor-not-allowed"
                 />
                 <p className="text-xs text-muted-foreground mt-1">Email không thể thay đổi</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Số điện thoại</label>
-                <input
-                  type="tel"
-                  name="phoneNumber"
-                  value={formData.phoneNumber}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
               </div>
             </div>
           </div>

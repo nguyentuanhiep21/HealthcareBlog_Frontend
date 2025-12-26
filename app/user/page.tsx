@@ -249,7 +249,7 @@ export default function Home() {
     setPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId))
   }
 
-  const handleFollowClick = (userId: string) => {
+  const handleFollowClick = async (userId: string) => {
     if (!isAuthenticated) {
       setShowLoginDialog(true)
       return
@@ -259,21 +259,61 @@ export default function Home() {
       setSelectedUserId(userId)
       setShowUnfollowDialog(true)
     } else {
-      setFollowedUsers((prev) => {
-        const newSet = new Set(prev)
-        newSet.add(userId)
-        return newSet
-      })
+      // Follow user
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
+        const response = await fetch(`${backendUrl}/api/follow/${userId}`, {
+          method: "POST",
+          headers: authUtils.getAuthHeaders(),
+        })
+
+        if (response.ok) {
+          setFollowedUsers((prev) => {
+            const newSet = new Set(prev)
+            newSet.add(userId)
+            return newSet
+          })
+          
+          // Cập nhật follower count
+          setSuggestedUsers((prev) =>
+            prev.map((u) =>
+              u.id === userId ? { ...u, followerCount: u.followerCount + 1 } : u
+            )
+          )
+        }
+      } catch (error) {
+        console.error("Error following user:", error)
+      }
     }
   }
 
-  const handleConfirmUnfollow = () => {
+  const handleConfirmUnfollow = async () => {
     if (selectedUserId) {
-      setFollowedUsers((prev) => {
-        const newSet = new Set(prev)
-        newSet.delete(selectedUserId)
-        return newSet
-      })
+      // Unfollow user
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
+        const response = await fetch(`${backendUrl}/api/follow/${selectedUserId}`, {
+          method: "DELETE",
+          headers: authUtils.getAuthHeaders(),
+        })
+
+        if (response.ok) {
+          setFollowedUsers((prev) => {
+            const newSet = new Set(prev)
+            newSet.delete(selectedUserId)
+            return newSet
+          })
+
+          // Cập nhật follower count
+          setSuggestedUsers((prev) =>
+            prev.map((u) =>
+              u.id === selectedUserId ? { ...u, followerCount: Math.max(0, u.followerCount - 1) } : u
+            )
+          )
+        }
+      } catch (error) {
+        console.error("Error unfollowing user:", error)
+      }
     }
     setShowUnfollowDialog(false)
     setSelectedUserId(null)

@@ -449,7 +449,13 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
             {isCurrentUser && <CreatePostBox onPostCreate={handlePostCreate} />}
 
             {userPosts.length > 0 ? (
-              userPosts.map((post) => <PostCard key={post.id} post={post} />)
+              userPosts.map((post) => (
+                <PostCard 
+                  key={post.id} 
+                  post={post}
+                  currentUser={user ? { id: user.id, name: user.fullName || "", avatar: user.avatarUrl || "" } : null}
+                />
+              ))
             ) : (
               <div className="text-center py-12 text-muted-foreground">Chưa có bài viết nào</div>
             )}

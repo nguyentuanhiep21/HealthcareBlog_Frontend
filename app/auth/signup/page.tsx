@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Mail, Lock, User, Phone, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -12,7 +12,6 @@ export default function SignupPage() {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
-    phone: "",
     password: "",
     confirmPassword: "",
   })
@@ -47,7 +46,7 @@ export default function SignupPage() {
     setSuccess(false)
 
     // Validation
-    if (!formData.fullName || !formData.email || !formData.phone || !formData.password) {
+    if (!formData.fullName || !formData.email || !formData.password) {
       setError("Vui lòng điền tất cả các trường")
       return
     }
@@ -75,7 +74,6 @@ export default function SignupPage() {
           body: JSON.stringify({
             fullName: formData.fullName,
             email: formData.email,
-            phoneNumber: formData.phone,
             password: formData.password,
           }),
         }
@@ -90,7 +88,6 @@ export default function SignupPage() {
         setFormData({
           fullName: "",
           email: "",
-          phone: "",
           password: "",
           confirmPassword: "",
         })
@@ -185,26 +182,6 @@ export default function SignupPage() {
                 type="email"
                 placeholder="your@email.com"
                 value={formData.email}
-                onChange={handleChange}
-                className="pl-10 bg-input border-border focus:border-primary focus:ring-primary"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Phone */}
-          <div className="space-y-2">
-            <label htmlFor="phone" className="text-sm font-medium text-foreground">
-              Số Điện Thoại
-            </label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-              <Input
-                id="phone"
-                name="phone"
-                type="tel"
-                placeholder="0912345678"
-                value={formData.phone}
                 onChange={handleChange}
                 className="pl-10 bg-input border-border focus:border-primary focus:ring-primary"
                 required
