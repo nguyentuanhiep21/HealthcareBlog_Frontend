@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,7 +13,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { MealSuggestionsChat } from '@/components/meal-suggestions-chat'
-import { X, MessageCircle, Settings } from 'lucide-react'
+import { X, MessageCircle, Settings, Loader2 } from 'lucide-react'
+import { nutritionApi, NutritionDataDto } from '@/lib/nutrition-api'
+import { authUtils } from '@/lib/auth-utils'
 
 export default function MealSuggestionsPage() {
   const [gender, setGender] = useState('')
@@ -28,6 +30,11 @@ export default function MealSuggestionsPage() {
     weight: '',
   })
   const [initialRequest, setInitialRequest] = useState('')
+  const [nutritionData, setNutritionData] = useState<NutritionDataDto | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const hasLoadedData = useRef(false)
+  const [chatKey, setChatKey] = useState(Date.now()) // Key to force re-mount
 
   const calculateBMI = (h: string, w: string) => {
     if (!h || !w) return null
@@ -41,6 +48,52 @@ export default function MealSuggestionsPage() {
     return 'Béo phì'
   }
 
+  // Load user's nutrition data on mount
+  useEffect(() => {
+    // Prevent duplicate calls in StrictMode
+    if (hasLoadedData.current) return
+    hasLoadedData.current = true
+
+    const loadUserData = async () => {
+      try {
+        // Check if user is logged in
+        if (!authUtils.isAuthenticated()) {
+          console.log('User not logged in, skipping API call')
+          setIsLoading(false)
+          return
+        }
+
+        setIsLoading(true)
+        const data = await nutritionApi.getUserData()
+        setNutritionData(data)
+
+        // If user has profile, pre-fill the form
+        if (data.profile) {
+          setGender(data.profile.gender)
+          setAge(data.profile.age.toString())
+          setHeight(data.profile.height.toString())
+          setWeight(data.profile.weight.toString())
+          setUserInfo({
+            gender: data.profile.gender,
+            age: data.profile.age.toString(),
+            height: data.profile.height.toString(),
+            weight: data.profile.weight.toString(),
+          })
+        }
+      } catch (error: any) {
+        console.error('Error loading nutrition data:', error)
+        // If 401, user not authenticated - just skip
+        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+          console.log('User not authenticated, skipping data load')
+        }
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadUserData()
+  }, [])
+
   const handleStartChat = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -49,8 +102,27 @@ export default function MealSuggestionsPage() {
       return
     }
 
-    const bmi = calculateBMI(height, weight)
-    const request = `Tôi là một người ${gender?.toLowerCase()}. Thông tin chi tiết về tôi:
+    try {
+      setIsSaving(true)
+
+      // Check if user is logged in
+      if (authUtils.isAuthenticated()) {
+        // Create new session (will delete old one)
+        await nutritionApi.createNewSession({
+          gender,
+          age: parseInt(age),
+          height: parseFloat(height),
+          weight: parseFloat(weight),
+        })
+        
+        // Clear old session data to force new chat
+        setNutritionData(prev => prev ? { ...prev, activeSession: null } : null)
+      } else {
+        console.log('User not logged in, session not saved to database')
+      }
+
+      const bmi = calculateBMI(height, weight)
+      const request = `Tôi là một người ${gender?.toLowerCase()}. Thông tin chi tiết về tôi:
 - Tuổi: ${age} tuổi
 - Chiều cao: ${height}cm
 - Cân nặng: ${weight}kg
@@ -58,36 +130,65 @@ export default function MealSuggestionsPage() {
 
 Vui lòng gợi ý bữa ăn phù hợp cho tôi.`
 
-    setInitialRequest(request)
-    setUserInfo({
-      gender,
-      age,
-      height,
-      weight,
-    })
+      // Clear any previous session storage for initial request
+      const sessionKey = `initial-request-sent-${request.substring(0, 50)}`
+      sessionStorage.removeItem(sessionKey)
+
+      setInitialRequest(request)
+      setUserInfo({
+        gender,
+        age,
+        height,
+        weight,
+      })
+      setChatKey(Date.now()) // Generate new key to force re-mount
+      setShowChat(true)
+    } catch (error) {
+      console.error('Error creating session:', error)
+      alert('Có lỗi xảy ra khi tạo phiên chat. Vui lòng thử lại.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleContinueChat = () => {
+    // Load existing session and show chat
+    // Set userInfo from existing profile if available
+    if (nutritionData?.profile) {
+      setUserInfo({
+        gender: nutritionData.profile.gender,
+        age: nutritionData.profile.age.toString(),
+        height: nutritionData.profile.height.toString(),
+        weight: nutritionData.profile.weight.toString(),
+      })
+    }
+    setInitialRequest('') // No initial request, just continue
     setShowChat(true)
   }
 
   const handleReset = () => {
     setShowChat(false)
-    setGender('')
-    setAge('')
-    setHeight('')
-    setWeight('')
-    setUserInfo({
-      gender: '',
-      age: '',
-      height: '',
-      weight: '',
-    })
-    // Data is only stored in component state, automatically cleared on reset
+    // Keep the form data, don't reset
+  }
+
+  const hasSavedSession = nutritionData?.activeSession !== null && nutritionData?.activeSession !== undefined
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 pt-4 pb-0">
         {!showChat ? (
           // Setup Form
           <div className="grid md:grid-cols-2 gap-8">
@@ -100,6 +201,29 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi.`
               <p className="text-muted-foreground mb-6">
                 Điền thông tin của bạn để bắt đầu chat với AI dinh dưỡng
               </p>
+
+              {/* Continue Chat Button - Show if user has saved session */}
+              {hasSavedSession && (
+                <div className="mb-6">
+                  <Button 
+                    onClick={handleContinueChat} 
+                    className="w-full" 
+                    size="lg"
+                    variant="outline"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Tiếp tục chat từ lần trước
+                  </Button>
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">Hoặc bắt đầu mới</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* BMI Display */}
               {height && weight && (
@@ -184,9 +308,18 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi.`
                 </div>
 
                 {/* Submit Button */}
-                <Button type="submit" className="w-full" size="lg">
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Bắt đầu chat với AI
+                <Button type="submit" className="w-full" size="lg" disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Đang tạo...
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      {hasSavedSession ? 'Bắt đầu chat mới (xóa chat cũ)' : 'Bắt đầu chat với AI'}
+                    </>
+                  )}
                 </Button>
               </form>
             </div>
@@ -199,10 +332,6 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi.`
                   <li className="flex gap-2">
                     <span className="text-blue-500">✓</span>
                     <span>Gợi ý bữa ăn được cá nhân hóa dựa trên thông tin sức khỏe của bạn</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-blue-500">✓</span>
-                    <span>Tư vấn dinh dưỡng từ AI Gemini của Google</span>
                   </li>
                   <li className="flex gap-2">
                     <span className="text-blue-500">✓</span>
@@ -244,9 +373,6 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi.`
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold">Chat với Trợ lý Dinh dưỡng AI</h1>
-                <p className="text-muted-foreground mt-1">
-                  Đang chat với Google Gemini - Trợ lý dinh dưỡng cá nhân
-                </p>
               </div>
               <Button variant="outline" onClick={handleReset}>
                 <X className="h-4 w-4 mr-2" />
@@ -256,7 +382,7 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi.`
 
             {/* User Info Summary with BMI */}
             <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-lg p-2 flex justify-center">
-              <div className="grid grid-cols-5 gap-32">
+              <div className="grid grid-cols-5 gap-12 md:gap-20 lg:gap-32">
                 <div>
                   <p className="text-xs text-muted-foreground mb-0.5">Giới tính</p>
                   <p className="text-sm font-semibold">{userInfo.gender}</p>
@@ -275,18 +401,24 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi.`
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-0.5">BMI</p>
-                  <p className="text-sm font-semibold">
+                  <p className="text-sm font-semibold flex items-center gap-2">
                     <span className="text-blue-600">{calculateBMI(userInfo.height, userInfo.weight)}</span>
-                    <span className="text-muted-foreground mx-1">→</span>
-                    <span className="text-foreground">{getBMIStatus(parseFloat(calculateBMI(userInfo.height, userInfo.weight)!))}</span>
+                    <span className="text-xs text-muted-foreground font-normal">
+                      ({getBMIStatus(parseFloat(calculateBMI(userInfo.height, userInfo.weight)!))})
+                    </span>
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Chat Container */}
-            <div className="bg-card border border-border rounded-lg overflow-hidden" style={{ height: 'calc(100vh - 300px)' }}>
-              <MealSuggestionsChat userInfo={userInfo} initialRequest={initialRequest} />
+            <div className="bg-card border border-border rounded-lg overflow-hidden" style={{ height: 'calc(100vh - 220px)' }}>
+              <MealSuggestionsChat 
+                key={chatKey} // Force re-mount with unique key
+                userInfo={userInfo} 
+                initialRequest={initialRequest}
+                existingSession={nutritionData?.activeSession || null}
+              />
             </div>
           </div>
         )}
