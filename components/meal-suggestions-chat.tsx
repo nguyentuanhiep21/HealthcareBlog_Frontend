@@ -8,6 +8,46 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { nutritionApi, ChatSessionDto, MealDto as ApiMealDto } from '@/lib/nutrition-api'
 import { authUtils } from '@/lib/auth-utils'
 
+// Format markdown text to HTML for better display in chat
+const formatMarkdownText = (text: string): string => {
+  // Bold: **text** or __text__ -> <strong>text</strong>
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  text = text.replace(/__(.+?)__/g, '<strong>$1</strong>')
+  
+  // Italic: *text* or _text_ -> <em>text</em>
+  text = text.replace(/\*(.+?)\*/g, '<em>$1</em>')
+  text = text.replace(/_(.+?)_/g, '<em>$1</em>')
+  
+  // Line breaks
+  text = text.replace(/\n/g, '<br />')
+  
+  return text
+}
+
+// Component to render formatted text (with HTML tags)
+const FormattedText = ({ content }: { content: string }) => {
+  try {
+    if (!content || typeof content !== 'string') {
+      console.warn('Invalid content for FormattedText:', content)
+      return <p className="text-sm whitespace-pre-wrap leading-relaxed">Lỗi: Không thể hiển thị tin nhắn</p>
+    }
+
+    const formatted = formatMarkdownText(content)
+    return (
+      <p
+        className="text-sm whitespace-pre-wrap leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: formatted }}
+      />
+    )
+  } catch (error) {
+    console.error('Error rendering FormattedText:', error)
+    // Fallback: display raw text without formatting
+    return (
+      <p className="text-sm whitespace-pre-wrap leading-relaxed">{content}</p>
+    )
+  }
+}
+
 interface MealSuggestionsChatProps {
   userInfo?: {
     gender?: string
@@ -51,14 +91,33 @@ const parseMealsFromJSON = (text: string): ParsedResponse | null => {
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       // Not JSON, return null to indicate text response
+      console.log('No JSON found in response, treating as text response')
       return null
     }
 
     const jsonText = jsonMatch[0]
-    const data = JSON.parse(jsonText)
+    
+    let data
+    try {
+      data = JSON.parse(jsonText)
+    } catch (parseError) {
+      console.log('Failed to parse JSON, treating as text response:', parseError)
+      return null
+    }
 
-    if (!data.meals || !Array.isArray(data.meals)) {
-      // Invalid structure, return null
+    // Check if this is a valid meal suggestion JSON (has meals array with valid structure)
+    if (!data.meals || !Array.isArray(data.meals) || data.meals.length === 0) {
+      console.log('Invalid or empty meals structure, treating as text response')
+      return null
+    }
+
+    // Validate that at least one meal has items
+    const hasValidMeals = data.meals.some((meal: any) => 
+      meal.items && Array.isArray(meal.items) && meal.items.length > 0
+    )
+
+    if (!hasValidMeals) {
+      console.log('No valid meals found, treating as text response')
       return null
     }
 
@@ -69,12 +128,13 @@ const parseMealsFromJSON = (text: string): ParsedResponse | null => {
       icon: getMealIcon(meal.name || ''),
     }))
 
+    console.log('Successfully parsed meals JSON:', meals.length, 'meals')
     return {
       analysis: data.analysis || undefined,
       meals: meals
     }
   } catch (error) {
-    console.error('❌ Failed to parse meals JSON:', error)
+    console.error('❌ Unexpected error parsing meals:', error)
     // Return null to indicate text response
     return null
   }
@@ -305,7 +365,7 @@ export function MealSuggestionsChat({ userInfo, initialRequest, existingSession 
             {message.role === 'user' ? (
               // User message
               <div className="max-w-xs md:max-w-md lg:max-w-lg px-4 py-3 rounded-lg bg-primary text-primary-foreground rounded-br-none">
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                <FormattedText content={message.content} />
                 <span className="text-xs mt-1 block text-primary-foreground/70">
                   {message.timestamp.toLocaleTimeString('vi-VN', {
                     hour: '2-digit',
@@ -339,37 +399,47 @@ export function MealSuggestionsChat({ userInfo, initialRequest, existingSession 
                     )}
                     
                     {/* Meals Section */}
-                    {message.parsedResponse.meals.map((meal, idx) => (
-                      <div
-                        key={idx}
-                        className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 animate-in fade-in slide-in-from-bottom-2"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="font-bold text-lg text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                            <span className="text-xl">{meal.icon}</span>
-                            {meal.name}
-                          </h3>
-                          {meal.calories && meal.calories > 0 && (
-                            <span className="text-sm font-semibold px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300">
-                              🔥 {meal.calories} kcal
-                            </span>
-                          )}
+                    {message.parsedResponse.meals && message.parsedResponse.meals.length > 0 ? (
+                      message.parsedResponse.meals.map((meal, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 animate-in fade-in slide-in-from-bottom-2"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="font-bold text-lg text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                              <span className="text-xl">{meal.icon}</span>
+                              {meal.name}
+                            </h3>
+                            {meal.calories && meal.calories > 0 && (
+                              <span className="text-sm font-semibold px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300">
+                                🔥 {meal.calories} kcal
+                              </span>
+                            )}
+                          </div>
+                          <ul className="space-y-2">
+                            {meal.items && meal.items.length > 0 ? (
+                              meal.items.map((item, itemIdx) => (
+                                <li key={itemIdx} className="text-sm text-foreground flex gap-2">
+                                  <span className="text-blue-600 dark:text-blue-400 font-semibold">•</span>
+                                  <span>{item}</span>
+                                </li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-muted-foreground italic">Chưa có thông tin về món ăn</li>
+                            )}
+                          </ul>
                         </div>
-                        <ul className="space-y-2">
-                          {meal.items.map((item, itemIdx) => (
-                            <li key={itemIdx} className="text-sm text-foreground flex gap-2">
-                              <span className="text-blue-600 dark:text-blue-400 font-semibold">•</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
+                      ))
+                    ) : (
+                      <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                        <p className="text-sm text-foreground">Không có thông tin thực đơn để hiển thị</p>
                       </div>
-                    ))}
+                    )}
                   </>
                 ) : (
                   // Plain text response (Q&A, explanations)
                   <div className="bg-card border border-border px-4 py-3 rounded-lg rounded-bl-none">
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                    <FormattedText content={message.content} />
                   </div>
                 )}
                 <span className="text-xs text-muted-foreground block mt-2">

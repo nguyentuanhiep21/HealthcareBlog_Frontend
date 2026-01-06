@@ -122,7 +122,7 @@ export default function MealSuggestionsPage() {
       }
 
       const bmi = calculateBMI(height, weight)
-      const request = `Tôi là một người ${gender?.toLowerCase()}. Thông tin chi tiết về tôi:
+      const request = `Tôi là một ${gender?.toLowerCase()} giới. Thông tin chi tiết về tôi:
 - Tuổi: ${age} tuổi
 - Chiều cao: ${height}cm
 - Cân nặng: ${weight}kg

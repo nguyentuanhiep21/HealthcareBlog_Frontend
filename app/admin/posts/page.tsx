@@ -145,7 +145,7 @@ export default function AdminPostsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Quản lý báo cáo bài viết</h1>
+        <h1 className="text-3xl font-bold">Quản lý bài viết</h1>
         <p className="text-muted-foreground">Xem và xử lý các báo cáo vi phạm bài viết</p>
       </div>
 
