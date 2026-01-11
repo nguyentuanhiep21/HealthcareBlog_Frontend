@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { useAuth } from "@/components/auth-provider"
 import { authUtils } from "@/lib/auth-utils"
+import { getApiUrl } from "@/lib/utils"
 import Link from "next/link"
 import type { Post } from "@/lib/types"
 
@@ -47,7 +48,7 @@ export default function Home() {
       if (!token) return
       
       try {
-        const backendUrl = "https://localhost:7223"
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
         const response = await fetch(`${backendUrl}/api/user/account`, {
           headers: authUtils.getAuthHeaders(),
         })

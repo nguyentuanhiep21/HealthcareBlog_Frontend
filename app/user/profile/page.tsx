@@ -38,7 +38,7 @@ export default function ProfilePage() {
 
   const handleAvatarChange = async (file: File) => {
     try {
-      const backendUrl = "https://localhost:7223"
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
       
       // Step 1: Upload file to get URL
       const formData = new FormData()

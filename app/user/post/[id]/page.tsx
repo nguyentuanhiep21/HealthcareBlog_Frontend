@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation"
 import { ReportDialog } from "@/components/report-dialog"
 import { formatTimeAgo } from "@/lib/time-utils"
 import { authUtils } from "@/lib/auth-utils"
+import { getApiUrl } from "@/lib/utils"
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -77,7 +78,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       if (!token) return
 
       try {
-        const backendUrl = "https://localhost:7223"
+        const backendUrl = getApiUrl()
         const response = await fetch(`${backendUrl}/api/user/account`, {
           headers: authUtils.getAuthHeaders(),
         })
@@ -110,7 +111,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         setIsLoading(true)
         setError(null)
         
-        const backendUrl = "https://localhost:7223"
+        const backendUrl = getApiUrl()
         const headers = authUtils.getAuthHeaders()
         
         const response = await fetch(`${backendUrl}/api/post/${id}`, {
@@ -230,7 +231,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     setLikeCount(newLikeCount)
 
     try {
-      const backendUrl = "https://localhost:7223"
+      const backendUrl = getApiUrl()
       const endpoint = "like"
       const method = newIsLiked ? "POST" : "DELETE"
 
@@ -285,7 +286,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     )
 
     try {
-      const backendUrl = "https://localhost:7223"
+      const backendUrl = getApiUrl()
       const endpoint = "like"
       const method = newIsLiked ? "POST" : "DELETE"
 
@@ -326,7 +327,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     setCommentError(null)
 
     try {
-      const backendUrl = "https://localhost:7223"
+      const backendUrl = getApiUrl()
       const token = authUtils.getToken()
       
       if (!token) {
@@ -393,7 +394,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const handleReportSubmit = async (reason: string, details: string) => {
     if (reportingCommentId) {
       try {
-        const backendUrl = "https://localhost:7223"
+        const backendUrl = getApiUrl()
         const response = await fetch(`${backendUrl}/api/comment/${reportingCommentId}/report`, {
           method: "POST",
           headers: authUtils.getAuthHeaders(),
@@ -431,7 +432,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       }
     } else {
       try {
-        const backendUrl = "https://localhost:7223"
+        const backendUrl = getApiUrl()
         const response = await fetch(`${backendUrl}/api/post/${id}/report`, {
           method: "POST",
           headers: authUtils.getAuthHeaders(),
@@ -471,7 +472,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     if (!editCaption.trim()) return
 
     try {
-      const backendUrl = "https://localhost:7223"
+      const backendUrl = getApiUrl()
       let finalImageUrl = editImage
 
       // If image was changed and is a file (starts with data:), upload it
@@ -539,7 +540,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
   const handleDeletePost = async () => {
     try {
-      const backendUrl = "https://localhost:7223"
+      const backendUrl = getApiUrl()
       const response = await fetch(`${backendUrl}/api/post/${id}`, {
         method: "DELETE",
         headers: authUtils.getAuthHeaders(),
@@ -560,7 +561,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
   const handleUpdateComment = async (commentId: string, newText: string) => {
     try {
-      const backendUrl = "https://localhost:7223"
+      const backendUrl = getApiUrl()
       const response = await fetch(`${backendUrl}/api/comment/${commentId}`, {
         method: "PUT",
         headers: authUtils.getAuthHeaders(),
@@ -590,7 +591,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
   const handleDeleteComment = async (commentId: string) => {
     try {
-      const backendUrl = "https://localhost:7223"
+      const backendUrl = getApiUrl()
       const response = await fetch(`${backendUrl}/api/comment/${commentId}`, {
         method: "DELETE",
         headers: authUtils.getAuthHeaders(),
@@ -824,7 +825,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   setIsSaved(newIsSaved)
 
                   try {
-                    const backendUrl = "https://localhost:7223"
+                    const backendUrl = getApiUrl()
                     const method = newIsSaved ? "POST" : "DELETE"
 
                     const response = await fetch(`${backendUrl}/api/savedpost/${id}`, {

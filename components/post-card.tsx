@@ -11,6 +11,7 @@ import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { formatTimeAgo } from "@/lib/time-utils"
 import { authUtils } from "@/lib/auth-utils"
+import { getApiUrl } from "@/lib/utils"
 
 interface PostCardProps {
   post: Post
@@ -60,7 +61,7 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
     setLikeCount(newLikeCount)
 
     try {
-      const backendUrl = "https://localhost:7223"
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
       const endpoint = "like"
       const method = newIsLiked ? "POST" : "DELETE"
 
@@ -101,7 +102,7 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
     setIsSaved(newIsSaved)
 
     try {
-      const backendUrl = "https://localhost:7223"
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
       const method = newIsSaved ? "POST" : "DELETE"
 
       const response = await fetch(`${backendUrl}/api/savedpost/${post.id}`, {
@@ -131,7 +132,7 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
     if (!editCaption.trim()) return
 
     try {
-      const backendUrl = "https://localhost:7223"
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
       let finalImageUrl = editImage
 
       // If image was changed and is a file (starts with data:), upload it
@@ -200,7 +201,7 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
 
   const handleDeletePost = async () => {
     try {
-      const backendUrl = "https://localhost:7223"
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
       const response = await fetch(`${backendUrl}/api/post/${post.id}`, {
         method: "DELETE",
         headers: authUtils.getAuthHeaders(),
@@ -237,7 +238,7 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
 
   const handleReportSubmit = async (reason: string, details: string) => {
     try {
-      const backendUrl = "https://localhost:7223"
+      const backendUrl = getApiUrl()
       const response = await fetch(`${backendUrl}/api/post/${post.id}/report`, {
         method: "POST",
         headers: authUtils.getAuthHeaders(),
