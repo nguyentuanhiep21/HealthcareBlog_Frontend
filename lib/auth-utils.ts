@@ -46,9 +46,9 @@ export const authUtils = {
   /**
    * Get authorization headers for API requests
    */
-  getAuthHeaders: (): HeadersInit => {
+  getAuthHeaders: (): Record<string, string> => {
     const token = authUtils.getToken()
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       "Content-Type": "application/json",
     }
     if (token) {

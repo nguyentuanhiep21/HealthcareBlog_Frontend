@@ -330,7 +330,7 @@ export default function Home() {
       <Navbar />
 
       <div className="mx-auto max-w-7xl">
-        <div className="grid grid-cols-1 gap-6 px-4 py-8 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 px-4 py-4 lg:grid-cols-3">
           {/* Main Feed */}
           <div className="lg:col-span-2">
             <CreatePostBox onPostCreate={handlePostCreate} />
@@ -372,7 +372,7 @@ export default function Home() {
           </div>
 
           {/* Sidebar */}
-          <div className="hidden lg:block space-y-6">
+          <div className="hidden lg:block space-y-3 fixed top-20 right-8 w-80 max-h-[calc(100vh-5rem)] overflow-y-auto">
             {/* Featured Posts */}
             <div className="rounded-lg border border-border bg-card p-4">
               <h2 className="mb-4 text-lg font-bold">Bài viết nổi bật</h2>
