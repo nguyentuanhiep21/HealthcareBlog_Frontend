@@ -372,7 +372,7 @@ export default function Home() {
           </div>
 
           {/* Sidebar */}
-          <div className="hidden lg:block space-y-3 fixed top-20 right-8 w-80 max-h-[calc(100vh-5rem)] overflow-y-auto">
+          <div className="hidden lg:block space-y-3 sticky top-20 h-fit">
             {/* Featured Posts */}
             <div className="rounded-lg border border-border bg-card p-4">
               <h2 className="mb-4 text-lg font-bold">Bài viết nổi bật</h2>
