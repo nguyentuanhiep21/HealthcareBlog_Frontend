@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Send, Loader2, AlertCircle } from 'lucide-react'
-import { sendMessageToGemini, Message } from '@/lib/gemini-service'
+import { sendMessageToAI, Message } from '@/lib/xiaomimimo-service'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { nutritionApi, ChatSessionDto, MealDto as ApiMealDto } from '@/lib/nutrition-api'
 import { authUtils } from '@/lib/auth-utils'
@@ -203,7 +203,7 @@ export function MealSuggestionsChat({ userInfo, initialRequest, existingSession 
         setError(null)
 
         try {
-          const response = await sendMessageToGemini(initialRequest, [])
+          const response = await sendMessageToAI(initialRequest, [])
           
           const assistantMessage: Message = {
             id: Date.now().toString(),
@@ -297,7 +297,7 @@ export function MealSuggestionsChat({ userInfo, initialRequest, existingSession 
     try {
       // Send the current input directly, with updated conversation history including the new user message
       const updatedHistory = [...messages, userMessage]
-      const response = await sendMessageToGemini(currentInput, updatedHistory)
+      const response = await sendMessageToAI(currentInput, updatedHistory)
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),

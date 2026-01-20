@@ -1,4 +1,4 @@
-// OpenRouter AI Service for meal suggestions - Client Side
+// OpenRouter AI Service (Xiaomimimo) for meal suggestions - Client Side
 export interface Message {
   id: string
   content: string
@@ -71,7 +71,7 @@ Yêu cầu khi trả lời các câu hỏi tiếp theo:
 - Không dùng JSON
 - Trả lời ngắn gọn, rõ ràng`
 
-export async function sendMessageToGemini(userMessage: string, conversationHistory: Message[]): Promise<string> {
+export async function sendMessageToAI(userMessage: string, conversationHistory: Message[]): Promise<string> {
   const OPENROUTER_API_KEY = typeof window !== "undefined" 
     ? process.env.NEXT_PUBLIC_OPENROUTER_API_KEY
     : process.env.NEXT_PUBLIC_OPENROUTER_API_KEY
