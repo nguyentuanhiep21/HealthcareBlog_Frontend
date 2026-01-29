@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { ActionResultDialog } from "@/components/action-result-dialog"
+import { LockAccountDialog } from "@/components/lock-account-dialog"
 
 interface AdminUser {
   id: string
@@ -25,6 +26,7 @@ interface AdminUser {
   isLocked: boolean
   createdAt: string
   lockedAt: string | null
+  unlockDate: string | null
 }
 
 interface ViewReportDTO {
@@ -58,6 +60,7 @@ export default function AdminUsersPage() {
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: "", description: "", onConfirm: () => {}, isDestructive: false })
   const [resultDialog, setResultDialog] = useState({ isOpen: false, message: "", isSuccess: false })
   const [isProcessing, setIsProcessing] = useState(false)
+  const [lockDialog, setLockDialog] = useState({ isOpen: false, userId: "", userName: "" })
 
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
 
@@ -129,61 +132,118 @@ export default function AdminUsersPage() {
     }
   }
 
-  const handleToggleLock = async (userId: string, isCurrentlyLocked: boolean) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: isCurrentlyLocked ? "Mở khóa tài khoản" : "Khóa tài khoản",
-      description: isCurrentlyLocked 
-        ? "Bạn có chắc chắn muốn mở khóa tài khoản này không?"
-        : "Bạn có chắc chắn muốn khóa tài khoản này không?",
-      isDestructive: !isCurrentlyLocked,
-      onConfirm: async () => {
-        setIsProcessing(true)
-        try {
-          const token = authUtils.getToken()
-          if (!token) return
+  const handleToggleLock = async (userId: string, isCurrentlyLocked: boolean, userName: string) => {
+    if (isCurrentlyLocked) {
+      // Nếu đã khóa, hiện dialog xác nhận mở khóa
+      setConfirmDialog({
+        isOpen: true,
+        title: "Mở khóa tài khoản",
+        description: "Bạn có chắc chắn muốn mở khóa tài khoản này không?",
+        isDestructive: false,
+        onConfirm: async () => {
+          setIsProcessing(true)
+          try {
+            const token = authUtils.getToken()
+            if (!token) return
 
-          const response = await fetch(`${API_URL}/api/User/${userId}/toggle-lock`, {
-            method: "PUT",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              reason: isCurrentlyLocked ? null : "Khóa bởi admin",
-            }),
-          })
-
-          if (response.ok) {
-            setConfirmDialog({ ...confirmDialog, isOpen: false })
-            setResultDialog({
-              isOpen: true,
-              message: isCurrentlyLocked ? "Mở khóa tài khoản thành công!" : "Khóa tài khoản thành công!",
-              isSuccess: true,
+            const response = await fetch(`${API_URL}/api/User/${userId}/unlock`, {
+              method: "PUT",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
             })
-            if (searchQuery) {
-              fetchUsers()
+
+            if (response.ok) {
+              setConfirmDialog({ ...confirmDialog, isOpen: false })
+              setResultDialog({
+                isOpen: true,
+                message: "Mở khóa tài khoản thành công!",
+                isSuccess: true,
+              })
+              if (searchQuery) {
+                fetchUsers()
+              }
+            } else {
+              setResultDialog({
+                isOpen: true,
+                message: "Không thể xử lý yêu cầu. Vui lòng thử lại.",
+                isSuccess: false,
+              })
             }
-          } else {
+          } catch (error) {
+            console.error("Error unlocking user:", error)
             setResultDialog({
               isOpen: true,
-              message: "Không thể xử lý yêu cầu. Vui lòng thử lại.",
+              message: "Đã xảy ra lỗi. Vui lòng thử lại sau.",
               isSuccess: false,
             })
+          } finally {
+            setIsProcessing(false)
+            setConfirmDialog({ ...confirmDialog, isOpen: false })
           }
-        } catch (error) {
-          console.error("Error toggling user lock:", error)
-          setResultDialog({
-            isOpen: true,
-            message: "Đã xảy ra lỗi. Vui lòng thử lại sau.",
-            isSuccess: false,
-          })
-        } finally {
-          setIsProcessing(false)
-          setConfirmDialog({ ...confirmDialog, isOpen: false })
+        },
+      })
+    } else {
+      // Nếu chưa khóa, hiện dialog chọn ngày mở khóa
+      setLockDialog({
+        isOpen: true,
+        userId,
+        userName,
+      })
+    }
+  }
+
+  const handleLockWithDate = async (unlockDate: Date | null) => {
+    setIsProcessing(true)
+    try {
+      const token = authUtils.getToken()
+      if (!token) return
+
+      const response = await fetch(
+        `${API_URL}/api/User/${lockDialog.userId}/toggle-lock`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            unlockDate: unlockDate ? unlockDate.toISOString() : null,
+            reason: unlockDate ? "Khóa bởi admin tới ngày " + unlockDate.toLocaleDateString('vi-VN') : "Khóa vĩnh viễn bởi admin",
+          }),
         }
-      },
-    })
+      )
+
+      if (response.ok) {
+        setLockDialog({ isOpen: false, userId: "", userName: "" })
+        setResultDialog({
+          isOpen: true,
+          message: unlockDate
+            ? `Khóa tài khoản thành công! Sẽ mở khóa vào ${unlockDate.toLocaleDateString('vi-VN')}`
+            : "Khóa tài khoản thành công!",
+          isSuccess: true,
+        })
+        if (searchQuery) {
+          fetchUsers()
+        }
+      } else {
+        setResultDialog({
+          isOpen: true,
+          message: "Không thể xử lý yêu cầu. Vui lòng thử lại.",
+          isSuccess: false,
+        })
+      }
+    } catch (error) {
+      console.error("Error locking user:", error)
+      setResultDialog({
+        isOpen: true,
+        message: "Đã xảy ra lỗi. Vui lòng thử lại sau.",
+        isSuccess: false,
+      })
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   const handleDeleteUser = async (userId: string) => {
@@ -440,7 +500,7 @@ export default function AdminUsersPage() {
                     <Button
                       variant={user.isLocked ? "default" : "outline"}
                       size="sm"
-                      onClick={() => handleToggleLock(user.id, user.isLocked)}
+                      onClick={() => handleToggleLock(user.id, user.isLocked, user.username)}
                     >
                       {user.isLocked ? (
                         <>
@@ -654,6 +714,17 @@ export default function AdminUsersPage() {
         message={resultDialog.message}
         isSuccess={resultDialog.isSuccess}
         onClose={() => setResultDialog({ ...resultDialog, isOpen: false })}
+      />
+
+      {/* Lock Account Dialog */}
+      <LockAccountDialog
+        isOpen={lockDialog.isOpen}
+        userName={lockDialog.userName}
+        onCancel={() => setLockDialog({ isOpen: false, userId: "", userName: "" })}
+        onConfirm={(unlockDate) => {
+          handleLockWithDate(unlockDate)
+        }}
+        isProcessing={isProcessing}
       />
     </div>
   )

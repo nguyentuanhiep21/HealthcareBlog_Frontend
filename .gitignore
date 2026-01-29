@@ -12,6 +12,9 @@ build/
 .env.local
 .env.*.local
 
+# Documentation folder (local-only documentation)
+/docs/
+
 # IDE
 .vscode/
 .idea/
@@ -22,6 +25,5 @@ build/
 .DS_Store
 Thumbs.db
 
-# Development notes
-PHAN_TICH_CHUC_NANG.md
-MOBILE_AUTH_PROMPT.md
+/docs/
+
