@@ -113,7 +113,7 @@ export async function sendMessageToAI(userMessage: string, conversationHistory: 
     const timeoutId = setTimeout(() => abortController.abort(), 30000)
 
     const requestBody = {
-      model: "xiaomi/mimo-v2-flash:free",
+      model: "openai/gpt-oss-120b:free",
       messages: messages,
       temperature: 0.7,
       max_tokens: 8000,
@@ -122,6 +122,7 @@ export async function sendMessageToAI(userMessage: string, conversationHistory: 
     console.log("Request body:", JSON.stringify(requestBody, null, 2))
 
     const response = await fetch(
+      
       "https://openrouter.ai/api/v1/chat/completions",
       {
         method: "POST",
