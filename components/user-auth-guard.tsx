@@ -28,11 +28,8 @@ export function UserAuthGuard({ children }: { children: React.ReactNode }) {
         if (response.ok) {
           const userData = await response.json()
           
-          // Block admin from accessing user pages
-          if (userData.email?.toLowerCase() === 'admin@healthcareblog.com') {
-            router.push("/admin")
-            return
-          }
+          // Admin can now access user pages too (allow all authenticated users)
+          // No blocking logic here
         }
       } catch (error) {
         console.error("Auth check error:", error)

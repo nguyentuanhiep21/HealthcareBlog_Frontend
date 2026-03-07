@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [isAdminLogin, setIsAdminLogin] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [emailNotVerified, setEmailNotVerified] = useState(false)
@@ -38,6 +39,9 @@ export default function LoginPage() {
       setError("Vui lòng điền đầy đủ thông tin")
       return
     }
+
+    // Reset admin login state at start
+    const isAdminLoginMode = isAdminLogin
 
     setIsLoading(true)
 
@@ -66,10 +70,17 @@ export default function LoginPage() {
         // Wait for login to complete (including fetchUserInfo)
         await login()
         
-        // Auto redirect based on email
-        if (email.toLowerCase() === 'admin@healthcareblog.com') {
-          router.push("/admin")
+        // Check if admin login checkbox is checked
+        if (isAdminLoginMode) {
+          // For admin login, verify email is admin account
+          if (email.toLowerCase() === 'admin@healthcareblog.com') {
+            router.push("/admin")
+          } else {
+            setError("Tài khoản này không phải tài khoản quản trị viên. Vui lòng sử dụng tài khoản admin.")
+            authUtils.removeToken()
+          }
         } else {
+          // Regular user login - always go to /user regardless of account type
           router.push("/user")
         }
       } else {
@@ -220,16 +231,31 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Remember Me */}
-          <div className="flex items-center gap-2">
-            <input
-              id="remember"
-              type="checkbox"
-              className="w-4 h-4 rounded border-border bg-input cursor-pointer"
-            />
-            <label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
-              Ghi nhớ mật khẩu của tôi
-            </label>
+          {/* Remember Me & Admin Login */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <input
+                id="remember"
+                type="checkbox"
+                className="w-4 h-4 rounded border-border bg-input cursor-pointer"
+              />
+              <label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
+                Ghi nhớ mật khẩu của tôi
+              </label>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <input
+                id="admin-login"
+                type="checkbox"
+                checked={isAdminLogin}
+                onChange={(e) => setIsAdminLogin(e.target.checked)}
+                className="w-4 h-4 rounded border-border bg-input cursor-pointer"
+              />
+              <label htmlFor="admin-login" className="text-sm text-muted-foreground cursor-pointer">
+                Đăng nhập với tư cách quản trị viên
+              </label>
+            </div>
           </div>
 
           {/* Submit Button */}

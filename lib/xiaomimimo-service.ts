@@ -6,70 +6,33 @@ export interface Message {
   timestamp: Date
 }
 
-const systemPrompt = `Bạn là một chuyên gia dinh dưỡng chuyên nghiệp. Nhiệm vụ: phân tích tình trạng sức khỏe và gợi ý bữa ăn phù hợp.
+const systemPrompt = `Bạn là chuyên gia dinh dưỡng. Luôn trả lời bằng tiếng Việt.
 
-⚠️ LUÔN PHẢN HỒI BẰNG TIẾNG VIỆT - NEVER use any other language in your response
+PHÂN LOẠI RESPONSE:
 
-QUAN TRỌNG: 
-- Đọc kỹ toàn bộ lịch sử hội thoại để hiểu thông tin sức khỏe của người dùng (BMI, tuổi, chiều cao, cân nặng, giới tính)
-- Nếu người dùng hỏi thêm hoặc yêu cầu điều chỉnh, hãy dựa trên thông tin đã có trong cuộc trò chuyện
-- Luôn nhớ context và đưa ra câu trả lời phù hợp với tình trạng sức khỏe của họ
+1. KHI GỢI Ý BỮA ĂN: Trả lời JSON THUẦN (chỉ JSON, không markdown, không \`\`\`json\`\`\`)
+   - Yêu cầu gợi ý bữa ăn lần đầu
+   - Yêu cầu điều chỉnh/thay đổi thực đơn
+   
+   Format chính xác (KHÔNG THÊM PREFIX VÀO GIÁ TRỊ, dùng "calo" không "kcal"):
+   {"analysis":{"health_status":"gầy, bình thường, béo...","user_requirement":"ăn nhiều trứng, ít tinh bột, ...","suggestion":"tăng lượng trứng, giảm tinh bột, tăng protein..."},"meals":[{"name":"Bữa sáng","calories":450,"items":["Món 1 (200 calo)","Món 2 (250 calo)"]},{"name":"Bữa trưa","calories":650,"items":[...]},{"name":"Bữa tối","calories":700,"items":[...]}]}
+   
+   ⚠️ QUAN TRỌNG:
+   - CHỈ trả JSON, KHÔNG trả text kèm theo
+   - KHÔNG dùng markdown (\`\`\`json\`\`\`)
+   - KHÔNG dùng **bold** hoặc *italic* trong JSON
+   - Dùng đơn vị "calo" chứ KHÔNG phải "kcal"
+   - Có đúng 3 bữa (sáng, trưa, tối), mỗi bữa ≥2 món
+   - items là mảng strings với đơn vị "calo" (VD: ["Trứng (140 calo)", "Bánh mì (300 calo)"])
 
-🔴 QUAN TRỌNG - PHÂN LOẠI RESPONSE:
+2. KHI Q&A/TƯ VẤN: Trả lời TEXT (không JSON)
+   - Hỏi về thực phẩm, dinh dưỡng, cách chế biến
+   - Dùng **bold** và *italic* để nhấn mạnh
+   - Trả lời ngắn gọn
 
-**TRƯỜNG HỢP 1: TRẢ LỜI DẠNG JSON (Khi gợi ý thực đơn/bữa ăn)**
-Khi người dùng:
-- Yêu cầu gợi ý bữa ăn lần đầu
-- Yêu cầu thay đổi/điều chỉnh thực đơn
-- Yêu cầu thêm bữa ăn hay bữa phụ
-
-→ TRẢ LỜI JSON HOÀN TOÀN, KHÔNG CÓ TEXT NÀO KHÁC XUNG QUANH:
-{
-  "analysis": { "status": "...", "recommendation": "..." },
-  "meals": [{ "name": "...", "calories": ..., "items": [...] }, ...]
-}
-
-**TRƯỜNG HỢP 2: TRẢ LỜI DẠNG TEXT THƯỜNG (Khi Q&A/Tư vấn)**
-Khi người dùng:
-- Hỏi về lợi ích của một thực phẩm
-- Giải thích về dinh dưỡng
-- Hỏi cách chế biến món ăn
-- Hỏi bất cứ câu hỏi tư vấn nào
-
-→ TRẢ LỜI TEXT THƯỜNG, CÓ THỂ DÙNG:
-- **Bold text** để nhấn mạnh
-- *Italic text* để chú thích
-- Bullets hoặc numbering
-- KHÔNG DÙNG JSON NẾU KHÔNG PHẢI GỢI Ý BỮA ĂN
-
----
-
-Yêu cầu khi trả lời lần đầu (gợi ý bữa ăn):
-1. Phân tích tình trạng sức khỏe dựa trên BMI và thông tin cá nhân
-2. Đưa ra hướng ăn uống phù hợp (tăng/giảm cân, duy trì, cải thiện sức khỏe)
-3. Gợi ý 3 bữa chính (sáng, trưa, tối) và bữa phụ nếu cần
-4. Dùng nguyên liệu, món ăn truyền thống Việt Nam
-5. Tính toán calories cho từng bữa ăn
-6. Ngắn gọn, dễ hiểu, thực tế
-
-Yêu cầu khi trả lời các câu hỏi tiếp theo:
-- Nếu người dùng hỏi về món ăn cụ thể, giải thích chi tiết (TEXT format)
-- Nếu yêu cầu điều chỉnh thực đơn, đưa ra gợi ý mới (JSON format)
-- Nếu hỏi về dinh dưỡng, giải thích dựa trên tình trạng sức khỏe (TEXT format)
-- Nếu hỏi những nội dung không liên quan, từ chối trả lời
-
-**KHI GỢI Ý BỮA ĂN (JSON FORMAT), ĐẢM BẢO:**
-- Có ít nhất 3 bữa ăn (sáng, trưa, tối)
-- Mỗi bữa có ít nhất 2 món ăn
-- Có calories cho mỗi bữa
-- KHÔNG có text nào ngoài JSON
-- JSON phải hoàn toàn hợp lệ
-
-**KHI TRẢ LỜI Q&A (TEXT FORMAT):**
-- Có thể dùng **bold** và *italic* để nhấn mạnh
-- Dùng bullet points hoặc numbering
-- Không dùng JSON
-- Trả lời ngắn gọn, rõ ràng`
+Ghi nhớ context cuộc trò chuyện để đưa ra lời khuyên phù hợp.
+Nếu câu hỏi không liên quan, từ chối trả lời một cách lịch sự.
+`
 
 export async function sendMessageToAI(userMessage: string, conversationHistory: Message[]): Promise<string> {
   const OPENROUTER_API_KEY = typeof window !== "undefined" 
@@ -113,7 +76,7 @@ export async function sendMessageToAI(userMessage: string, conversationHistory: 
     const timeoutId = setTimeout(() => abortController.abort(), 30000)
 
     const requestBody = {
-      model: "openai/gpt-oss-120b:free",
+      model: "openai/gpt-oss-20b",
       messages: messages,
       temperature: 0.7,
       max_tokens: 8000,
@@ -175,6 +138,42 @@ export async function sendMessageToAI(userMessage: string, conversationHistory: 
     throw new Error("No text response from OpenRouter API")
   } catch (error) {
     console.error("Error calling OpenRouter API:", error)
+    throw error
+  }
+}
+
+/**
+ * Optimized version: Send only current message to backend
+ * Backend will handle context management & call AI with full session history
+ * This reduces API costs by not sending full conversation history each time
+ */
+export async function sendMessageToAIViaBackend(userMessage: string): Promise<string> {
+  try {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7223'
+    
+    const response = await fetch(`${API_URL}/api/nutrition/ai-message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
+      },
+      body: JSON.stringify({
+        message: userMessage,
+      }),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Backend AI API Error:', errorText)
+      throw new Error(`Backend error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    console.log('Backend AI Response:', data)
+    
+    return data.response || data.message || ''
+  } catch (error) {
+    console.error('Error calling backend AI endpoint:', error)
     throw error
   }
 }

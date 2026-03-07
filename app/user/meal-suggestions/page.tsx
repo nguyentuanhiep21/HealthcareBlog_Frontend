@@ -381,32 +381,27 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi.`
             </div>
 
             {/* User Info Summary with BMI */}
-            <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-lg p-2 flex justify-center">
-              <div className="grid grid-cols-5 gap-12 md:gap-20 lg:gap-32">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Giới tính</p>
+            <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-lg p-4 flex justify-center">
+              <div className="grid grid-cols-5 gap-8 md:gap-12 lg:gap-16 w-full max-w-4xl px-4">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Giới tính</p>
                   <p className="text-sm font-semibold">{userInfo.gender}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Tuổi</p>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Tuổi</p>
                   <p className="text-sm font-semibold">{userInfo.age} tuổi</p>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Chiều cao</p>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Chiều cao</p>
                   <p className="text-sm font-semibold">{userInfo.height}cm</p>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Cân nặng</p>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Cân nặng</p>
                   <p className="text-sm font-semibold">{userInfo.weight}kg</p>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">BMI</p>
-                  <p className="text-sm font-semibold flex items-center gap-2">
-                    <span className="text-blue-600">{calculateBMI(userInfo.height, userInfo.weight)}</span>
-                    <span className="text-xs text-muted-foreground font-normal">
-                      ({getBMIStatus(parseFloat(calculateBMI(userInfo.height, userInfo.weight)!))})
-                    </span>
-                  </p>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground mb-1">BMI</p>
+                  <p className="text-sm font-semibold text-blue-600">{calculateBMI(userInfo.height, userInfo.weight)}</p>
                 </div>
               </div>
             </div>
