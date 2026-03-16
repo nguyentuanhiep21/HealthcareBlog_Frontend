@@ -67,8 +67,12 @@ interface Meal {
 }
 
 interface Analysis {
-  status: string
-  recommendation: string
+  health_status?: string
+  user_requirement?: string
+  suggestion?: string
+  // Fallback for old format
+  status?: string
+  recommendation?: string
 }
 
 interface ParsedResponse {
@@ -123,14 +127,37 @@ const parseMealsFromJSON = (text: string): ParsedResponse | null => {
 
     const meals: Meal[] = data.meals.map((meal: any) => ({
       name: meal.name || 'Bữa ăn',
-      items: Array.isArray(meal.items) ? meal.items : [],
+      items: Array.isArray(meal.items) 
+        ? meal.items.map((item: any) => {
+            // Ensure items are strings, convert objects to their string representation
+            let itemText = ''
+            if (typeof item === 'string') {
+              itemText = item
+            } else if (typeof item === 'object' && item !== null) {
+              itemText = (item as any).name || JSON.stringify(item)
+            } else {
+              itemText = String(item)
+            }
+            // Sanitize: replace kcal with calo
+            return itemText.replace(/kcal/gi, 'calo')
+          })
+        : [],
       calories: meal.calories || 0,
       icon: getMealIcon(meal.name || ''),
     }))
 
     console.log('Successfully parsed meals JSON:', meals.length, 'meals')
+    
+    // Ensure analysis has all required fields (support both old and new format)
+    const analysis = data.analysis || {}
+    const validatedAnalysis: Analysis = {
+      health_status: analysis.health_status || analysis.status || 'Không có thông tin',
+      user_requirement: analysis.user_requirement || 'Không có yêu cầu',
+      suggestion: analysis.suggestion || analysis.recommendation || 'Vui lòng tư vấn thêm',
+    }
+    
     return {
-      analysis: data.analysis || undefined,
+      analysis: validatedAnalysis,
       meals: meals
     }
   } catch (error) {
@@ -379,21 +406,31 @@ export function MealSuggestionsChat({ userInfo, initialRequest, existingSession 
                 {message.parsedResponse ? (
                   <>
                     {/* Analysis Section */}
-                    {message.parsedResponse.analysis && (
+                    {message.parsedResponse.analysis && (message.parsedResponse.analysis.health_status || message.parsedResponse.analysis.user_requirement || message.parsedResponse.analysis.suggestion) && (
                       <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
                         <h3 className="font-bold text-lg text-purple-900 dark:text-purple-100 mb-3 flex items-center gap-2">
                           <span className="text-xl">📊</span>
-                          Phân tích tình trạng sức khỏe
+                          Phân tích
                         </h3>
-                        <div className="space-y-2">
-                          <div>
-                            <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">Tình trạng hiện tại:</p>
-                            <p className="text-sm text-foreground">{message.parsedResponse.analysis.status}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">Hướng ăn uống:</p>
-                            <p className="text-sm text-foreground">{message.parsedResponse.analysis.recommendation}</p>
-                          </div>
+                        <div className="space-y-3">
+                          {message.parsedResponse.analysis.health_status && (
+                            <div>
+                              <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">Tình trạng sức khỏe:</p>
+                              <p className="text-sm text-foreground">{message.parsedResponse.analysis.health_status}</p>
+                            </div>
+                          )}
+                          {message.parsedResponse.analysis.user_requirement && (
+                            <div>
+                              <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">Yêu cầu:</p>
+                              <p className="text-sm text-foreground">{message.parsedResponse.analysis.user_requirement}</p>
+                            </div>
+                          )}
+                          {message.parsedResponse.analysis.suggestion && (
+                            <div>
+                              <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">Hướng đề xuất:</p>
+                              <p className="text-sm text-foreground">{message.parsedResponse.analysis.suggestion}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -412,18 +449,27 @@ export function MealSuggestionsChat({ userInfo, initialRequest, existingSession 
                             </h3>
                             {meal.calories && meal.calories > 0 && (
                               <span className="text-sm font-semibold px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300">
-                                🔥 {meal.calories} kcal
+                                🔥 {meal.calories} calo
                               </span>
                             )}
                           </div>
                           <ul className="space-y-2">
                             {meal.items && meal.items.length > 0 ? (
-                              meal.items.map((item, itemIdx) => (
-                                <li key={itemIdx} className="text-sm text-foreground flex gap-2">
-                                  <span className="text-blue-600 dark:text-blue-400 font-semibold">•</span>
-                                  <span>{item}</span>
-                                </li>
-                              ))
+                              meal.items.map((item, itemIdx) => {
+                                // Handle both string and object items
+                                const itemText = typeof item === 'string' 
+                                  ? item 
+                                  : typeof item === 'object' && item !== null
+                                    ? (item as any).name || JSON.stringify(item)
+                                    : String(item)
+                                
+                                return (
+                                  <li key={itemIdx} className="text-sm text-foreground flex gap-2">
+                                    <span className="text-blue-600 dark:text-blue-400 font-semibold">•</span>
+                                    <span>{itemText}</span>
+                                  </li>
+                                )
+                              })
                             ) : (
                               <li className="text-sm text-muted-foreground italic">Chưa có thông tin về món ăn</li>
                             )}

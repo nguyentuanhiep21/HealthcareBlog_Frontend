@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AlertCircle, Trash2, FileText, XCircle, MessageSquare } from "lucide-react"
+import Link from "next/link"
+import { AlertCircle, Trash2, FileText, XCircle, MessageSquare, ExternalLink } from "lucide-react"
 import { authUtils } from "@/lib/auth-utils"
 import { formatDateGMT7 } from "@/lib/time-utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -263,24 +264,39 @@ export default function AdminCommentsPage() {
                     <p className="mb-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
                       👤 NGƯỜI BÁO CÁO
                     </p>
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-10 w-10 flex-shrink-0">
-                        <AvatarImage src={getFullAvatarUrl(report.reportedByAvatar)} />
-                        <AvatarFallback>{report.reportedByName[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold">{report.reportedByName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDateGMT7(report.createdAt, {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            day: "numeric",
-                            month: "numeric",
-                            year: "numeric",
-                          })}
-                        </p>
+                    {report.reportedById ? (
+                      <Link href={`/user/profile/${report.reportedById}`}>
+                        <div className="flex items-start gap-3 cursor-pointer hover:opacity-80 transition-opacity">
+                          <Avatar className="h-10 w-10 flex-shrink-0">
+                            <AvatarImage src={getFullAvatarUrl(report.reportedByAvatar)} />
+                            <AvatarFallback>{report.reportedByName[0]}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-semibold">{report.reportedByName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDateGMT7(report.createdAt, {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                day: "numeric",
+                                month: "numeric",
+                                year: "numeric",
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </Link>
+                    ) : (
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-10 w-10 flex-shrink-0">
+                          <AvatarImage src={getFullAvatarUrl(report.reportedByAvatar)} />
+                          <AvatarFallback>{report.reportedByName[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold">{report.reportedByName}</p>
+                          <p className="text-xs text-muted-foreground">ID không khả dụng</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Target Comment Author */}
@@ -288,21 +304,39 @@ export default function AdminCommentsPage() {
                     <p className="mb-2 text-sm font-semibold text-red-700 dark:text-red-300">
                       ⚠️ TÁC GIẢ BÌNH LUẬN
                     </p>
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-10 w-10 flex-shrink-0">
-                        <AvatarImage
-                          src={getFullAvatarUrl(report.targetUserAvatar)}
-                          alt={report.targetUserName || "User"}
-                        />
-                        <AvatarFallback>{(report.targetUserName || "U")[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold">{report.targetUserName || "Đã xóa"}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {report.targetUserId ? `ID: ${report.targetUserId}` : "Người dùng đã bị xóa"}
-                        </p>
+                    {report.targetUserId ? (
+                      <Link href={`/user/profile/${report.targetUserId}`}>
+                        <div className="flex items-start gap-3 cursor-pointer hover:opacity-80 transition-opacity">
+                          <Avatar className="h-10 w-10 flex-shrink-0">
+                            <AvatarImage
+                              src={getFullAvatarUrl(report.targetUserAvatar)}
+                              alt={report.targetUserName || "User"}
+                            />
+                            <AvatarFallback>{(report.targetUserName || "U")[0]}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-semibold">{report.targetUserName || "Đã xóa"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {report.targetUserId ? `ID: ${report.targetUserId}` : "Người dùng đã bị xóa"}
+                            </p>
+                          </div>
+                        </div>
+                      </Link>
+                    ) : (
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-10 w-10 flex-shrink-0">
+                          <AvatarImage
+                            src={getFullAvatarUrl(report.targetUserAvatar)}
+                            alt={report.targetUserName || "User"}
+                          />
+                          <AvatarFallback>{(report.targetUserName || "U")[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold">⚠️ {report.targetUserName || "Đã xóa"}</p>
+                          <p className="text-xs text-muted-foreground">Người dùng đã bị xóa</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
 
