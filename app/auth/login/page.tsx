@@ -45,6 +45,8 @@ export default function LoginPage() {
 
     setIsLoading(true)
 
+    authUtils.removeToken()
+
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/user/login`,
@@ -66,10 +68,10 @@ export default function LoginPage() {
       if (response.ok && data.token) {
         // Lưu token sử dụng authUtils
         authUtils.setToken(data.token)
-        
+
         // Wait for login to complete (including fetchUserInfo)
         await login()
-        
+
         // Check if admin login checkbox is checked
         if (isAdminLoginMode) {
           // For admin login, verify email is admin account
@@ -243,7 +245,7 @@ export default function LoginPage() {
                 Ghi nhớ mật khẩu của tôi
               </label>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <input
                 id="admin-login"
