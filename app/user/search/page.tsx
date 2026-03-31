@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Navbar } from "@/components/navbar"
 import { PostCard } from "@/components/post-card"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -17,7 +17,7 @@ interface SearchUser {
   isFollowing: boolean
 }
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const query = searchParams.get("q") || ""
@@ -415,5 +415,21 @@ function EmptyState({ type }: { type: "posts" | "users" | "all" }) {
       <h2 className="text-xl font-semibold mb-2">{message.title}</h2>
       <p className="text-muted-foreground">{message.description}</p>
     </div>
+  )
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="text-center py-12">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
+          <p className="mt-4 text-muted-foreground">Đang tải...</p>
+        </div>
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
   )
 }
