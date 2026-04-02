@@ -110,7 +110,10 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
           return
         }
 
-        finalImageUrl = `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}${uploadData.url}`
+        // Handle full URL from Supabase vs relative URL
+        finalImageUrl = uploadData.url.startsWith('http')
+          ? uploadData.url
+          : `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}${uploadData.url}`
         setUploadedImageUrl(finalImageUrl)
       } else if (uploadedImageUrl) {
         finalImageUrl = uploadedImageUrl
