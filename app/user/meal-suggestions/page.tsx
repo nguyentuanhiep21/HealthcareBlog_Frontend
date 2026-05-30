@@ -22,14 +22,12 @@ export default function MealSuggestionsPage() {
   const [age, setAge] = useState('')
   const [height, setHeight] = useState('')
   const [weight, setWeight] = useState('')
-  const [goal, setGoal] = useState('')
   const [showChat, setShowChat] = useState(false)
   const [userInfo, setUserInfo] = useState({
     gender: '',
     age: '',
     height: '',
     weight: '',
-    goal: '',
   })
   const [initialRequest, setInitialRequest] = useState('')
   const [nutritionData, setNutritionData] = useState<NutritionDataDto | null>(null)
@@ -80,7 +78,6 @@ export default function MealSuggestionsPage() {
             age: data.profile.age.toString(),
             height: data.profile.height.toString(),
             weight: data.profile.weight.toString(),
-            goal: '',
           })
         }
       } catch (error: any) {
@@ -100,7 +97,7 @@ export default function MealSuggestionsPage() {
   const handleStartChat = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!gender || !age || !height || !weight || !goal) {
+    if (!gender || !age || !height || !weight) {
       alert('Vui lòng điền đầy đủ thông tin')
       return
     }
@@ -130,9 +127,8 @@ export default function MealSuggestionsPage() {
 - Chiều cao: ${height}cm
 - Cân nặng: ${weight}kg
 - Chỉ số BMI: ${bmi} (${getBMIStatus(parseFloat(bmi!))})
-- Mục tiêu: ${goal}
 
-Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.toLowerCase()}.`
+Vui lòng gợi ý bữa ăn phù hợp cho tôi.`
 
       // Clear any previous session storage for initial request
       const sessionKey = `initial-request-sent-${request.substring(0, 50)}`
@@ -144,7 +140,6 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.
         age,
         height,
         weight,
-        goal,
       })
       setChatKey(Date.now()) // Generate new key to force re-mount
       setShowChat(true)
@@ -165,7 +160,6 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.
         age: nutritionData.profile.age.toString(),
         height: nutritionData.profile.height.toString(),
         weight: nutritionData.profile.weight.toString(),
-        goal: goal,
       })
     }
     setInitialRequest('') // No initial request, just continue
@@ -313,21 +307,6 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.
                   />
                 </div>
 
-                {/* Mục đích */}
-                <div className="space-y-2">
-                  <Label htmlFor="goal">Mục đích</Label>
-                  <Select value={goal} onValueChange={setGoal} required>
-                    <SelectTrigger id="goal">
-                      <SelectValue placeholder="Chọn mục đích" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Tăng cân">Tăng cân</SelectItem>
-                      <SelectItem value="Giảm cân">Giảm cân</SelectItem>
-                      <SelectItem value="Duy trì">Duy trì</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 {/* Submit Button */}
                 <Button type="submit" className="w-full" size="lg" disabled={isSaving}>
                   {isSaving ? (
@@ -338,7 +317,7 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.
                   ) : (
                     <>
                       <MessageCircle className="h-4 w-4 mr-2" />
-                      {hasSavedSession ? 'Gợi ý thực đơn mới (xóa cũ)' : 'Gợi ý thực đơn phù hợp'}
+                      {hasSavedSession ? 'Bắt đầu chat mới (xóa chat cũ)' : 'Bắt đầu chat với AI'}
                     </>
                   )}
                 </Button>
@@ -403,7 +382,7 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.
 
             {/* User Info Summary with BMI */}
             <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-lg p-4 flex justify-center">
-              <div className="grid grid-cols-6 gap-6 md:gap-10 lg:gap-14 w-full max-w-5xl px-4">
+              <div className="grid grid-cols-5 gap-8 md:gap-12 lg:gap-16 w-full max-w-4xl px-4">
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground mb-1">Giới tính</p>
                   <p className="text-sm font-semibold">{userInfo.gender}</p>
@@ -423,10 +402,6 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground mb-1">BMI</p>
                   <p className="text-sm font-semibold text-blue-600">{calculateBMI(userInfo.height, userInfo.weight)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground mb-1">Mục đích</p>
-                  <p className="text-sm font-semibold text-green-600">{userInfo.goal}</p>
                 </div>
               </div>
             </div>
