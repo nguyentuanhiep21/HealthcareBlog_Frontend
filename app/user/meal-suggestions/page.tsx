@@ -33,7 +33,7 @@ import {
   type MealSuggestionResponse,
   type Meal
 } from '@/lib/health-assessment-api'
-import { X, Utensils } from 'lucide-react'
+import { X, Utensils, RefreshCw } from 'lucide-react'
 
 export default function HealthAssessmentPage() {
   const [gender, setGender] = useState('')
@@ -432,8 +432,8 @@ export default function HealthAssessmentPage() {
 
                 {/* Gợi ý thực đơn Button */}
                 <div className="pt-2">
-                  <Button 
-                    onClick={handleSuggestMeal} 
+                  <Button
+                    onClick={handleSuggestMeal}
                     className="w-full h-12 text-md font-semibold flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"
                   >
                     <Utensils className="w-5 h-5" />
@@ -448,24 +448,36 @@ export default function HealthAssessmentPage() {
 
       {/* Meal Suggestion Modal */}
       {showMealModal && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           onClick={() => setShowMealModal(false)}
         >
-          <div 
+          <div
             className="bg-card border border-border rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center p-5 border-b border-border bg-muted/30">
               <div className="flex items-center gap-2">
                 <Utensils className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-bold">Thực đơn gợi ý</h2>
+                <h2 className="text-lg font-bold">Gợi ý thực đơn phù hợp</h2>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setShowMealModal(false)} className="rounded-full">
-                <X className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleSuggestMeal} 
+                  disabled={isSuggesting} 
+                  className="gap-2 rounded-full px-4"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isSuggesting ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">Gợi ý lại</span>
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => setShowMealModal(false)} className="rounded-full">
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
-            
+
             <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
               {isSuggesting && (
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
@@ -526,14 +538,14 @@ export default function HealthAssessmentPage() {
                           <p className="text-sm text-muted-foreground mt-1">{meal.data.description}</p>
                           <div className="flex flex-wrap gap-2 mt-3">
                             <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-md font-medium">1 phần: {meal.data.servingSizeDesc}</span>
-                            <span className="text-xs bg-red-500/10 text-red-500 px-2 py-1 rounded-md">P: {meal.data.proteinG}g</span>
-                            <span className="text-xs bg-yellow-500/10 text-yellow-600 px-2 py-1 rounded-md">C: {meal.data.carbsG}g</span>
-                            <span className="text-xs bg-blue-500/10 text-blue-500 px-2 py-1 rounded-md">F: {meal.data.fatG}g</span>
+                            <span className="text-xs bg-red-500/10 text-red-500 px-2 py-1 rounded-md">Proteins: {meal.data.proteinG}g</span>
+                            <span className="text-xs bg-yellow-500/10 text-yellow-600 px-2 py-1 rounded-md">Carbs: {meal.data.carbsG}g</span>
+                            <span className="text-xs bg-blue-500/10 text-blue-500 px-2 py-1 rounded-md">Fats: {meal.data.fatG}g</span>
                           </div>
                         </div>
                       </div>
                     ))}
-                    
+
                     {/* Snacks */}
                     {suggestionResult.snacks && suggestionResult.snacks.length > 0 && (
                       <div className="bg-card border border-border rounded-xl p-4 shadow-sm flex flex-col md:flex-row gap-4">
