@@ -29,7 +29,11 @@ import {
   getHealthScoreColor,
   getBmiCategoryColor,
   type HealthAssessResult,
+  suggestMealPlan,
+  type MealSuggestionResponse,
+  type Meal
 } from '@/lib/health-assessment-api'
+import { X, Utensils } from 'lucide-react'
 
 export default function HealthAssessmentPage() {
   const [gender, setGender] = useState('')
@@ -44,7 +48,34 @@ export default function HealthAssessmentPage() {
   const [assessError, setAssessError] = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Meal Suggestion state
+  const [isSuggesting, setIsSuggesting] = useState(false)
+  const [suggestionResult, setSuggestionResult] = useState<MealSuggestionResponse['data'] | null>(null)
+  const [suggestionError, setSuggestionError] = useState<string | null>(null)
+  const [showMealModal, setShowMealModal] = useState(false)
+
   const canAssess = !!(gender && age && height && weight && goal)
+
+  const handleSuggestMeal = async () => {
+    if (!assessResult) return
+    try {
+      setIsSuggesting(true)
+      setSuggestionError(null)
+      setShowMealModal(true)
+      const res = await suggestMealPlan({
+        caloriesKcal: assessResult.nutrition.caloriesKcal,
+        proteinG: assessResult.nutrition.proteinG,
+        carbsG: assessResult.nutrition.carbsG,
+        fatG: assessResult.nutrition.fatG,
+        goal: mapGoalToApi(goal)
+      })
+      setSuggestionResult(res.data)
+    } catch (err: any) {
+      setSuggestionError(err.message || 'Không thể gợi ý thực đơn')
+    } finally {
+      setIsSuggesting(false)
+    }
+  }
 
   /** Gọi API đánh giá sức khỏe — debounce 700ms */
   const triggerAssess = useCallback(() => {
@@ -398,11 +429,144 @@ export default function HealthAssessmentPage() {
                     <p className="text-sm leading-relaxed">{assessResult.advice}</p>
                   </div>
                 )}
+
+                {/* Gợi ý thực đơn Button */}
+                <div className="pt-2">
+                  <Button 
+                    onClick={handleSuggestMeal} 
+                    className="w-full h-12 text-md font-semibold flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"
+                  >
+                    <Utensils className="w-5 h-5" />
+                    Gợi ý thực đơn
+                  </Button>
+                </div>
               </>
             )}
           </div>
         </div>
       </div>
+
+      {/* Meal Suggestion Modal */}
+      {showMealModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => setShowMealModal(false)}
+        >
+          <div 
+            className="bg-card border border-border rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center p-5 border-b border-border bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Utensils className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-bold">Thực đơn gợi ý</h2>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowMealModal(false)} className="rounded-full">
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+              {isSuggesting && (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                  <p className="text-muted-foreground font-medium">Đang lên thực đơn cho bạn...</p>
+                </div>
+              )}
+
+              {suggestionError && !isSuggesting && (
+                <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-6 text-center space-y-3">
+                  <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
+                  <p className="text-destructive font-medium">{suggestionError}</p>
+                  <Button variant="outline" onClick={handleSuggestMeal}>Thử lại</Button>
+                </div>
+              )}
+
+              {suggestionResult && !isSuggesting && (
+                <div className="space-y-6">
+                  {/* Summary */}
+                  <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-primary">{suggestionResult.summary.coverageNote}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Tổng Calo: <span className="font-bold text-foreground">{suggestionResult.summary.totalCalories}</span> / {suggestionResult.summary.targetCalories} kcal
+                      </p>
+                    </div>
+                    <div className="flex gap-4 text-sm bg-background/50 p-2 rounded-lg border border-border/50">
+                      <div className="text-center">
+                        <span className="block text-xs text-muted-foreground">Protein</span>
+                        <span className="font-semibold">{suggestionResult.summary.totalProteinG}g</span>
+                      </div>
+                      <div className="text-center">
+                        <span className="block text-xs text-muted-foreground">Carbs</span>
+                        <span className="font-semibold">{suggestionResult.summary.totalCarbsG}g</span>
+                      </div>
+                      <div className="text-center">
+                        <span className="block text-xs text-muted-foreground">Fat</span>
+                        <span className="font-semibold">{suggestionResult.summary.totalFatG}g</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Meals */}
+                  <div className="space-y-4">
+                    {[
+                      { title: 'Bữa sáng', data: suggestionResult.breakfast, icon: '🌅' },
+                      { title: 'Bữa trưa', data: suggestionResult.lunch, icon: '☀️' },
+                      { title: 'Bữa tối', data: suggestionResult.dinner, icon: '🌙' }
+                    ].map((meal, idx) => meal.data && (
+                      <div key={idx} className="bg-card border border-border rounded-xl p-4 shadow-sm flex flex-col md:flex-row gap-4">
+                        <div className="md:w-1/4 flex flex-col items-center justify-center bg-muted/30 rounded-lg p-3 text-center">
+                          <span className="text-2xl mb-1">{meal.icon}</span>
+                          <span className="font-semibold text-sm">{meal.title}</span>
+                          <span className="text-xs text-muted-foreground font-medium mt-1">{meal.data.caloriesPerServing} kcal</span>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-base">{meal.data.name} <span className="text-xs font-normal text-muted-foreground ml-2">({meal.data.nameEn})</span></h3>
+                          <p className="text-sm text-muted-foreground mt-1">{meal.data.description}</p>
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-md font-medium">1 phần: {meal.data.servingSizeDesc}</span>
+                            <span className="text-xs bg-red-500/10 text-red-500 px-2 py-1 rounded-md">P: {meal.data.proteinG}g</span>
+                            <span className="text-xs bg-yellow-500/10 text-yellow-600 px-2 py-1 rounded-md">C: {meal.data.carbsG}g</span>
+                            <span className="text-xs bg-blue-500/10 text-blue-500 px-2 py-1 rounded-md">F: {meal.data.fatG}g</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Snacks */}
+                    {suggestionResult.snacks && suggestionResult.snacks.length > 0 && (
+                      <div className="bg-card border border-border rounded-xl p-4 shadow-sm flex flex-col md:flex-row gap-4">
+                        <div className="md:w-1/4 flex flex-col items-center justify-center bg-muted/30 rounded-lg p-3 text-center">
+                          <span className="text-2xl mb-1">🍎</span>
+                          <span className="font-semibold text-sm">Ăn vặt</span>
+                          <span className="text-xs text-muted-foreground font-medium mt-1">
+                            {suggestionResult.snacks.reduce((acc, s) => acc + s.caloriesPerServing, 0)} kcal
+                          </span>
+                        </div>
+                        <div className="flex-1 space-y-4">
+                          {suggestionResult.snacks.map((snack, idx) => (
+                            <div key={idx} className={idx > 0 ? "pt-4 border-t border-border/50" : ""}>
+                              <h3 className="font-bold text-base text-sm">{snack.name} <span className="text-xs font-normal text-muted-foreground ml-2">({snack.nameEn})</span></h3>
+                              <p className="text-xs text-muted-foreground mt-1">{snack.description}</p>
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                <span className="text-[11px] bg-primary/10 text-primary px-2 py-0.5 rounded-md font-medium">{snack.servingSizeDesc}</span>
+                                <span className="text-[11px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md">P: {snack.proteinG}g</span>
+                                <span className="text-[11px] bg-yellow-500/10 text-yellow-600 px-2 py-0.5 rounded-md">C: {snack.carbsG}g</span>
+                                <span className="text-[11px] bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded-md">F: {snack.fatG}g</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

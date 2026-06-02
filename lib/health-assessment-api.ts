@@ -102,3 +102,68 @@ export function getBmiCategoryColor(category: string): string {
   if (category.includes('Gầy')) return 'text-blue-500'
   return 'text-muted-foreground'
 }
+
+export interface MealSuggestionRequest {
+  caloriesKcal: number
+  proteinG: number
+  carbsG: number
+  fatG: number
+  goal: string
+}
+
+export interface Meal {
+  id: number
+  name: string
+  nameEn: string
+  mealType: string
+  caloriesPerServing: number
+  proteinG: number
+  carbsG: number
+  fatG: number
+  servingSizeDesc: string
+  tags: string[]
+  description: string
+  imageUrl: string | null
+}
+
+export interface MealSuggestionResponse {
+  message: string
+  data: {
+    breakfast: Meal
+    lunch: Meal
+    dinner: Meal
+    snacks: Meal[]
+    summary: {
+      targetCalories: number
+      totalCalories: number
+      totalProteinG: number
+      totalCarbsG: number
+      totalFatG: number
+      caloriesCoverage: number
+      coverageNote: string
+    }
+  }
+  success: boolean
+}
+
+/** Gọi API gợi ý thực đơn (public endpoint) */
+export async function suggestMealPlan(
+  request: MealSuggestionRequest
+): Promise<MealSuggestionResponse> {
+  const response = await fetch(`${API_URL}/api/MealSuggestion/recommend`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({
+      message: `Lỗi ${response.status}: ${response.statusText}`,
+    }))
+    throw new Error(errorData.message || 'Gợi ý thực đơn thất bại')
+  }
+
+  return response.json()
+}
