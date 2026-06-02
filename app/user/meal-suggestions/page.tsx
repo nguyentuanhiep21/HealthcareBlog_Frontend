@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,8 +13,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { MealSuggestionsChat } from '@/components/meal-suggestions-chat'
-import { X, MessageCircle, Settings, Loader2 } from 'lucide-react'
-import { nutritionApi, NutritionDataDto } from '@/lib/nutrition-api'
+import { X, MessageCircle, Settings, Loader2, HeartPulse, Flame, Beef, Wheat, Droplets, AlertCircle } from 'lucide-react'
+import {
+  assessHealth,
+  mapGenderToApi,
+  mapGoalToApi,
+  getHealthScoreColor,
+  getBmiCategoryColor,
+  type HealthAssessResult,
+} from '@/lib/health-assessment-api'
 import { authUtils } from '@/lib/auth-utils'
 
 export default function MealSuggestionsPage() {
@@ -32,11 +39,59 @@ export default function MealSuggestionsPage() {
     goal: '',
   })
   const [initialRequest, setInitialRequest] = useState('')
-  const [nutritionData, setNutritionData] = useState<NutritionDataDto | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const hasLoadedData = useRef(false)
-  const [chatKey, setChatKey] = useState(Date.now()) // Key to force re-mount
+  const [chatKey, setChatKey] = useState(Date.now())
+
+  // Health Assessment state
+  const [assessResult, setAssessResult] = useState<HealthAssessResult | null>(null)
+  const [isAssessing, setIsAssessing] = useState(false)
+  const [assessError, setAssessError] = useState<string | null>(null)
+  const assessDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const canAssess = gender && age && height && weight && goal
+
+  /** Gọi API đánh giá sức khỏe — debounce 600ms */
+  const triggerAssess = useCallback(() => {
+    if (!gender || !age || !height || !weight || !goal) return
+
+    const ageN = parseInt(age)
+    const heightN = parseFloat(height)
+    const weightN = parseFloat(weight)
+
+    // Client-side validation trước khi gọi API
+    if (ageN < 10 || ageN > 100) return
+    if (heightN < 100 || heightN > 250) return
+    if (weightN < 30 || weightN > 300) return
+
+    if (assessDebounceRef.current) clearTimeout(assessDebounceRef.current)
+
+    assessDebounceRef.current = setTimeout(async () => {
+      try {
+        setIsAssessing(true)
+        setAssessError(null)
+        const result = await assessHealth({
+          gender: mapGenderToApi(gender),
+          age: ageN,
+          height: heightN,
+          weight: weightN,
+          goal: mapGoalToApi(goal),
+        })
+        setAssessResult(result)
+      } catch (err: any) {
+        setAssessError(err.message || 'Không thể đánh giá sức khỏe')
+        setAssessResult(null)
+      } finally {
+        setIsAssessing(false)
+      }
+    }, 600)
+  }, [gender, age, height, weight, goal])
+
+  useEffect(() => {
+    triggerAssess()
+    return () => {
+      if (assessDebounceRef.current) clearTimeout(assessDebounceRef.current)
+    }
+  }, [triggerAssess])
 
   const calculateBMI = (h: string, w: string) => {
     if (!h || !w) return null
@@ -50,53 +105,6 @@ export default function MealSuggestionsPage() {
     return 'Béo phì'
   }
 
-  // Load user's nutrition data on mount
-  useEffect(() => {
-    // Prevent duplicate calls in StrictMode
-    if (hasLoadedData.current) return
-    hasLoadedData.current = true
-
-    const loadUserData = async () => {
-      try {
-        // Check if user is logged in
-        if (!authUtils.isAuthenticated()) {
-          console.log('User not logged in, skipping API call')
-          setIsLoading(false)
-          return
-        }
-
-        setIsLoading(true)
-        const data = await nutritionApi.getUserData()
-        setNutritionData(data)
-
-        // If user has profile, pre-fill the form
-        if (data.profile) {
-          setGender(data.profile.gender)
-          setAge(data.profile.age.toString())
-          setHeight(data.profile.height.toString())
-          setWeight(data.profile.weight.toString())
-          setUserInfo({
-            gender: data.profile.gender,
-            age: data.profile.age.toString(),
-            height: data.profile.height.toString(),
-            weight: data.profile.weight.toString(),
-            goal: '',
-          })
-        }
-      } catch (error: any) {
-        console.error('Error loading nutrition data:', error)
-        // If 401, user not authenticated - just skip
-        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-          console.log('User not authenticated, skipping data load')
-        }
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadUserData()
-  }, [])
-
   const handleStartChat = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -108,84 +116,54 @@ export default function MealSuggestionsPage() {
     try {
       setIsSaving(true)
 
-      // Check if user is logged in
-      if (authUtils.isAuthenticated()) {
-        // Create new session (will delete old one)
-        await nutritionApi.createNewSession({
-          gender,
-          age: parseInt(age),
-          height: parseFloat(height),
-          weight: parseFloat(weight),
-        })
-        
-        // Clear old session data to force new chat
-        setNutritionData(prev => prev ? { ...prev, activeSession: null } : null)
-      } else {
-        console.log('User not logged in, session not saved to database')
-      }
-
       const bmi = calculateBMI(height, weight)
-      const request = `Tôi là một ${gender?.toLowerCase()} giới. Thông tin chi tiết về tôi:
-- Tuổi: ${age} tuổi
-- Chiều cao: ${height}cm
-- Cân nặng: ${weight}kg
-- Chỉ số BMI: ${bmi} (${getBMIStatus(parseFloat(bmi!))})
-- Mục tiêu: ${goal}
+      const request = `Tôi là một ${gender?.toLowerCase()} giới. Thông tin chi tiết về tôi:\n- Tuổi: ${age} tuổi\n- Chiều cao: ${height}cm\n- Cân nặng: ${weight}kg\n- Chỉ số BMI: ${bmi} (${getBMIStatus(parseFloat(bmi!))})\n- Mục tiêu: ${goal}\n\nVui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.toLowerCase()}.`
 
-Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.toLowerCase()}.`
-
-      // Clear any previous session storage for initial request
       const sessionKey = `initial-request-sent-${request.substring(0, 50)}`
       sessionStorage.removeItem(sessionKey)
 
       setInitialRequest(request)
-      setUserInfo({
-        gender,
-        age,
-        height,
-        weight,
-        goal,
-      })
-      setChatKey(Date.now()) // Generate new key to force re-mount
+      setUserInfo({ gender, age, height, weight, goal })
+      setChatKey(Date.now())
       setShowChat(true)
     } catch (error) {
-      console.error('Error creating session:', error)
-      alert('Có lỗi xảy ra khi tạo phiên chat. Vui lòng thử lại.')
+      console.error('Error starting chat:', error)
+      alert('Có lỗi xảy ra. Vui lòng thử lại.')
     } finally {
       setIsSaving(false)
     }
   }
 
-  const handleContinueChat = () => {
-    // Load existing session and show chat
-    // Set userInfo from existing profile if available
-    if (nutritionData?.profile) {
-      setUserInfo({
-        gender: nutritionData.profile.gender,
-        age: nutritionData.profile.age.toString(),
-        height: nutritionData.profile.height.toString(),
-        weight: nutritionData.profile.weight.toString(),
-        goal: goal,
-      })
-    }
-    setInitialRequest('') // No initial request, just continue
-    setShowChat(true)
-  }
-
   const handleReset = () => {
     setShowChat(false)
-    // Keep the form data, don't reset
   }
 
-  const hasSavedSession = nutritionData?.activeSession !== null && nutritionData?.activeSession !== undefined
+  /** Render health score ring */
+  const HealthScoreRing = ({ score }: { score: number }) => {
+    const circumference = 2 * Math.PI * 36
+    const strokeDash = (score / 100) * circumference
+    const color =
+      score >= 80 ? '#10b981' : score >= 60 ? '#eab308' : score >= 40 ? '#f97316' : '#ef4444'
 
-  if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="flex items-center justify-center h-[calc(100vh-80px)]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
+      <div className="relative inline-flex items-center justify-center">
+        <svg width="88" height="88" viewBox="0 0 88 88" className="-rotate-90">
+          <circle cx="44" cy="44" r="36" fill="none" stroke="currentColor" strokeWidth="8" className="text-muted/30" />
+          <circle
+            cx="44"
+            cy="44"
+            r="36"
+            fill="none"
+            stroke={color}
+            strokeWidth="8"
+            strokeDasharray={`${strokeDash} ${circumference}`}
+            strokeLinecap="round"
+            style={{ transition: 'stroke-dasharray 0.8s ease' }}
+          />
+        </svg>
+        <span className="absolute text-xl font-bold" style={{ color }}>
+          {score}
+        </span>
       </div>
     )
   }
@@ -198,40 +176,17 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.
         {!showChat ? (
           // Setup Form
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Form Section */}
+            {/* ── Left: Form ── */}
             <div className="bg-card border border-border rounded-lg p-6 shadow-sm h-fit">
               <div className="flex items-center gap-2 mb-2">
                 <Settings className="h-5 w-5" />
                 <h1 className="text-2xl font-bold">Cài đặt thông tin sức khỏe</h1>
               </div>
               <p className="text-muted-foreground mb-6">
-                Điền thông tin của bạn để bắt đầu chat với AI dinh dưỡng
+                Điền thông tin của bạn để nhận đánh giá sức khỏe và bắt đầu chat với AI dinh dưỡng
               </p>
 
-              {/* Continue Chat Button - Show if user has saved session */}
-              {hasSavedSession && (
-                <div className="mb-6">
-                  <Button 
-                    onClick={handleContinueChat} 
-                    className="w-full" 
-                    size="lg"
-                    variant="outline"
-                  >
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Tiếp tục chat từ lần trước
-                  </Button>
-                  <div className="relative my-4">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">Hoặc bắt đầu mới</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* BMI Display */}
+              {/* BMI Quick Display */}
               {height && weight && (
                 <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
                   <div className="flex items-center justify-between">
@@ -262,7 +217,6 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.
                     <SelectContent>
                       <SelectItem value="Nam">Nam</SelectItem>
                       <SelectItem value="Nữ">Nữ</SelectItem>
-                      <SelectItem value="Khác">Khác</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -276,8 +230,8 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.
                     placeholder="Nhập tuổi của bạn"
                     value={age}
                     onChange={(e) => setAge(e.target.value)}
-                    min="1"
-                    max="120"
+                    min="10"
+                    max="100"
                     required
                   />
                 </div>
@@ -291,7 +245,7 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.
                     placeholder="Nhập chiều cao của bạn"
                     value={height}
                     onChange={(e) => setHeight(e.target.value)}
-                    min="50"
+                    min="100"
                     max="250"
                     required
                   />
@@ -306,29 +260,29 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.
                     placeholder="Nhập cân nặng của bạn"
                     value={weight}
                     onChange={(e) => setWeight(e.target.value)}
-                    min="20"
+                    min="30"
                     max="300"
                     step="0.1"
                     required
                   />
                 </div>
 
-                {/* Mục đích */}
+                {/* Goal */}
                 <div className="space-y-2">
-                  <Label htmlFor="goal">Mục đích</Label>
+                  <Label htmlFor="goal">Mục tiêu</Label>
                   <Select value={goal} onValueChange={setGoal} required>
                     <SelectTrigger id="goal">
-                      <SelectValue placeholder="Chọn mục đích" />
+                      <SelectValue placeholder="Chọn mục tiêu" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Tăng cân">Tăng cân</SelectItem>
-                      <SelectItem value="Giảm cân">Giảm cân</SelectItem>
+                      <SelectItem value="Tăng cân">Tăng cơ / Tăng cân</SelectItem>
+                      <SelectItem value="Giảm cân">Giảm mỡ / Giảm cân</SelectItem>
                       <SelectItem value="Duy trì">Duy trì</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Submit Button */}
+                {/* Submit */}
                 <Button type="submit" className="w-full" size="lg" disabled={isSaving}>
                   {isSaving ? (
                     <>
@@ -338,54 +292,150 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.
                   ) : (
                     <>
                       <MessageCircle className="h-4 w-4 mr-2" />
-                      {hasSavedSession ? 'Gợi ý thực đơn mới (xóa cũ)' : 'Gợi ý thực đơn phù hợp'}
+                      Gợi ý thực đơn phù hợp
                     </>
                   )}
                 </Button>
               </form>
             </div>
 
-            {/* Info Section */}
-            <div className="space-y-6">
-              <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">💡 Tính năng AI Dinh dưỡng</h2>
-                <ul className="space-y-3 text-sm">
-                  <li className="flex gap-2">
-                    <span className="text-blue-500">✓</span>
-                    <span>Gợi ý bữa ăn được cá nhân hóa dựa trên thông tin sức khỏe của bạn</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-blue-500">✓</span>
-                    <span>Giải đáp câu hỏi về lợi ích sức khỏe của các loại thực phẩm</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-blue-500">✓</span>
-                    <span>Hỗ trợ lập kế hoạch dinh dưỡng hàng ngày</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-blue-500">✓</span>
-                    <span>Chat trực tiếp - tương tác liên tục với trợ lý AI</span>
-                  </li>
-                </ul>
+            {/* ── Right: Health Assessment Panel ── */}
+            <div className="space-y-5">
+              {/* Header */}
+              <div className="flex items-center gap-2">
+                <HeartPulse className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-bold">Đánh giá sức khỏe</h2>
+                {isAssessing && (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-1" />
+                )}
               </div>
 
-              <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">⚠️ Lưu ý quan trọng</h2>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex gap-2">
-                    <span className="text-purple-500">•</span>
-                    <span>AI là trợ lý tư vấn, không thay thế lời khuyên của bác sĩ</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-purple-500">•</span>
-                    <span>Luôn tham khảo ý kiến chuyên gia y tế trước khi thay đổi chế độ ăn</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-purple-500">•</span>
-                    <span>Thông tin được cung cấp chỉ nhằm mục đích giáo dục</span>
-                  </li>
-                </ul>
-              </div>
+              {/* Empty state */}
+              {!canAssess && !assessResult && !isAssessing && (
+                <div className="bg-card border border-border rounded-xl p-8 text-center space-y-3">
+                  <HeartPulse className="h-12 w-12 mx-auto text-muted-foreground/40" />
+                  <p className="text-muted-foreground text-sm">
+                    Điền đầy đủ thông tin bên trái để xem kết quả đánh giá sức khỏe từ mô hình AI
+                  </p>
+                </div>
+              )}
+
+              {/* Loading skeleton */}
+              {isAssessing && (
+                <div className="bg-card border border-border rounded-xl p-6 space-y-4 animate-pulse">
+                  <div className="flex justify-center">
+                    <div className="h-24 w-24 rounded-full bg-muted" />
+                  </div>
+                  <div className="h-4 bg-muted rounded w-3/4 mx-auto" />
+                  <div className="h-3 bg-muted rounded w-1/2 mx-auto" />
+                  <div className="grid grid-cols-2 gap-3 mt-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="h-16 bg-muted rounded-lg" />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Error state */}
+              {assessError && !isAssessing && (
+                <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-5 flex gap-3">
+                  <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-destructive">{assessError}</p>
+                </div>
+              )}
+
+              {/* Assessment Result */}
+              {assessResult && !isAssessing && (
+                <>
+                  {/* Health Score Card */}
+                  <div className="bg-card border border-border rounded-xl p-6">
+                    <div className="flex items-center gap-6">
+                      <HealthScoreRing score={assessResult.healthScore} />
+                      <div className="flex-1">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                          Điểm sức khỏe
+                        </p>
+                        <p className={`text-3xl font-bold ${getHealthScoreColor(assessResult.healthScore)}`}>
+                          {assessResult.healthScore}/100
+                        </p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">BMI:</span>
+                          <span className="font-semibold">{assessResult.bmi}</span>
+                          <span className={`text-sm font-medium ${getBmiCategoryColor(assessResult.bmiCategory)}`}>
+                            ({assessResult.bmiCategory})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Nutrition Targets */}
+                  <div className="bg-card border border-border rounded-xl p-5">
+                    <p className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wide">
+                      Mục tiêu dinh dưỡng hằng ngày
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Calories */}
+                      <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 flex items-center gap-3">
+                        <Flame className="h-7 w-7 text-orange-500 flex-shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Calo</p>
+                          <p className="text-lg font-bold text-orange-500">
+                            {assessResult.nutrition.caloriesKcal.toLocaleString('vi-VN')}
+                          </p>
+                          <p className="text-xs text-muted-foreground">kcal</p>
+                        </div>
+                      </div>
+
+                      {/* Protein */}
+                      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-center gap-3">
+                        <Beef className="h-7 w-7 text-red-500 flex-shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Protein</p>
+                          <p className="text-lg font-bold text-red-500">
+                            {assessResult.nutrition.proteinG}g
+                          </p>
+                          <p className="text-xs text-muted-foreground">/ ngày</p>
+                        </div>
+                      </div>
+
+                      {/* Carbs */}
+                      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 flex items-center gap-3">
+                        <Wheat className="h-7 w-7 text-yellow-500 flex-shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Carbs</p>
+                          <p className="text-lg font-bold text-yellow-500">
+                            {assessResult.nutrition.carbsG}g
+                          </p>
+                          <p className="text-xs text-muted-foreground">/ ngày</p>
+                        </div>
+                      </div>
+
+                      {/* Fat */}
+                      <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 flex items-center gap-3">
+                        <Droplets className="h-7 w-7 text-blue-500 flex-shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Chất béo</p>
+                          <p className="text-lg font-bold text-blue-500">
+                            {assessResult.nutrition.fatG}g
+                          </p>
+                          <p className="text-xs text-muted-foreground">/ ngày</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Advice */}
+                  {assessResult.advice && (
+                    <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-xl p-5">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-2">
+                        💡 Lời khuyên cá nhân
+                      </p>
+                      <p className="text-sm leading-relaxed">{assessResult.advice}</p>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -422,7 +472,9 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground mb-1">BMI</p>
-                  <p className="text-sm font-semibold text-blue-600">{calculateBMI(userInfo.height, userInfo.weight)}</p>
+                  <p className="text-sm font-semibold text-blue-600">
+                    {calculateBMI(userInfo.height, userInfo.weight)}
+                  </p>
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground mb-1">Mục đích</p>
@@ -432,12 +484,15 @@ Vui lòng gợi ý bữa ăn phù hợp cho tôi dựa trên mục tiêu ${goal.
             </div>
 
             {/* Chat Container */}
-            <div className="bg-card border border-border rounded-lg overflow-hidden" style={{ height: 'calc(100vh - 220px)' }}>
-              <MealSuggestionsChat 
-                key={chatKey} // Force re-mount with unique key
-                userInfo={userInfo} 
+            <div
+              className="bg-card border border-border rounded-lg overflow-hidden"
+              style={{ height: 'calc(100vh - 220px)' }}
+            >
+              <MealSuggestionsChat
+                key={chatKey}
+                userInfo={userInfo}
                 initialRequest={initialRequest}
-                existingSession={nutritionData?.activeSession || null}
+                existingSession={null}
               />
             </div>
           </div>

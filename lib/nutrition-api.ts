@@ -57,6 +57,29 @@ export interface SaveChatMessageDto {
   parsedMeals: MealDto[] | null
 }
 
+export interface AssessHealthRequest {
+  gender: string
+  age: number
+  weight: number
+  height: number
+  goal: string
+}
+
+export interface AssessmentResult {
+  status: string
+  message?: string
+  bmi?: number
+  bmi_category?: string
+  health_score?: number
+  nutrition?: {
+    calories_kcal: number
+    protein_g: number
+    carbs_g: number
+    fat_g: number
+  }
+  advice?: string
+}
+
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const headers = authUtils.getAuthHeaders()
   
@@ -115,5 +138,15 @@ export const nutritionApi = {
   // Get user's nutrition profile
   async getProfile(): Promise<NutritionProfileDto> {
     return fetchWithAuth('/api/nutrition/profile')
+  },
+
+  // Assess health via ML model
+  async assessHealth(request: AssessHealthRequest): Promise<AssessmentResult> {
+    // allow anonymous without auth headers if user is not logged in, but fetchWithAuth handles it mostly
+    // wait, fetchWithAuth throws if no token? No, it just sends whatever token is there.
+    return fetchWithAuth('/api/nutrition/assess-health', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    })
   },
 }
