@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Search, Menu, Home, Bookmark, User, Settings, Users, UtensilsCrossed, LogOut, LogIn, KeyRound } from "lucide-react"
+import { Search, Menu, Home, Bookmark, User, Settings, Users, HeartPulse, LogOut, LogIn, KeyRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { NotificationDropdown } from "@/components/notification-dropdown"
@@ -98,27 +98,14 @@ export function Navbar() {
                           Đang theo dõi
                         </button>
                       )}
-                      {isAuthenticated ? (
-                        <Link
-                          href="/user/meal-suggestions"
-                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition"
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          <UtensilsCrossed className="h-5 w-5" />
-                          Gợi ý bữa ăn
-                        </Link>
-                      ) : (
-                        <button
-                          className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition text-left"
-                          onClick={() => {
-                            setIsMenuOpen(false)
-                            setShowLoginDialog(true)
-                          }}
-                        >
-                          <UtensilsCrossed className="h-5 w-5" />
-                          Gợi ý bữa ăn
-                        </button>
-                      )}
+                      <Link
+                        href="/user/meal-suggestions"
+                        className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent transition"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <HeartPulse className="h-5 w-5" />
+                        Đánh giá sức khỏe
+                      </Link>
                     </div>
                   </div>
                 </>
