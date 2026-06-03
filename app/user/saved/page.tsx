@@ -60,6 +60,14 @@ export default function SavedPage() {
         const fullImageUrl = imageUrl
           ? (imageUrl.startsWith('http') ? imageUrl : `${backendUrl}${imageUrl}`)
           : undefined;
+
+        // Build images list
+        const rawImages: string[] = Array.isArray(post.imageUrls || post.ImageUrls)
+          ? (post.imageUrls || post.ImageUrls)
+          : [];
+        const fullImages: string[] = rawImages.length > 0
+          ? rawImages.map((u: string) => u.startsWith('http') ? u : `${backendUrl}${u}`)
+          : (fullImageUrl ? [fullImageUrl] : []);
           
         return {
           id: post.id?.toString() || "",
@@ -72,7 +80,8 @@ export default function SavedPage() {
             following: 0,
           },
           caption: post.content || post.Content || "",
-          image: fullImageUrl,
+          image: fullImages[0],
+          images: fullImages.length > 0 ? fullImages : undefined,
           likes: post.likeCount || post.LikeCount || 0,
           comments: post.commentCount || post.CommentCount || 0,
           isSaved: true, // Already saved
@@ -204,11 +213,11 @@ export default function SavedPage() {
                     </div>
                   </div>
 
-                  {/* Image */}
-                  {post.image && (
+                  {/* Image — dùng ảnh đầu tiên làm thumbnail */}
+                  {(post.images?.[0] || post.image) && (
                     <div className="flex-shrink-0">
                       <img
-                        src={post.image}
+                        src={post.images?.[0] || post.image}
                         alt={post.caption}
                         className="h-32 w-32 rounded-lg object-cover cursor-pointer hover:opacity-80 transition"
                         onClick={() => handlePostClick(post.id)}

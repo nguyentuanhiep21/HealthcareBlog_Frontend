@@ -3,7 +3,7 @@
 import type React from "react"
 import Image from "next/image"
 import { useState, use, useEffect } from "react"
-import { Heart, Bookmark, MoreVertical, Flag, X, LogIn, Bell, User, Settings, Send, LogOut, Edit, ImageIcon, Trash2 } from "lucide-react"
+import { Heart, Bookmark, MoreVertical, Flag, X, LogIn, Bell, User, Settings, Send, LogOut, Edit, ImageIcon, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,8 @@ interface PostDetailPageProps {
   }>
 }
 
+const MAX_IMAGES = 5
+
 interface Post {
   id: string
   author: {
@@ -29,6 +31,7 @@ interface Post {
   }
   caption: string
   image: string
+  images?: string[] // multi-image support
   likes: number
   comments: number
   isLiked: boolean
@@ -58,8 +61,10 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const [isEditMode, setIsEditMode] = useState(false)
   const [caption, setCaption] = useState(post?.caption || "")
   const [image, setImage] = useState(post?.image || "")
+  const [images, setImages] = useState<string[]>([])
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [editCaption, setEditCaption] = useState(post?.caption || "")
-  const [editImage, setEditImage] = useState(post?.image || "")
+  const [editImages, setEditImages] = useState<string[]>([])
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editCommentText, setEditCommentText] = useState("")
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null)
@@ -130,6 +135,16 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         const data = await response.json()
         
         // Map backend DTO to frontend Post type
+        // Resolve images list (backward compat)
+        const resolvedImages: string[] = []
+        if (data.imageUrls && Array.isArray(data.imageUrls) && data.imageUrls.length > 0) {
+          for (const u of data.imageUrls) {
+            resolvedImages.push(u.startsWith('http') ? u : `${backendUrl}${u}`)
+          }
+        } else if (data.imageUrl) {
+          resolvedImages.push(data.imageUrl.startsWith('http') ? data.imageUrl : `${backendUrl}${data.imageUrl}`)
+        }
+
         const mappedPost: Post = {
           id: data.id.toString(),
           author: {
@@ -142,9 +157,8 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               : '/placeholder.svg',
           },
           caption: data.content,
-          image: data.imageUrl ? 
-            (data.imageUrl.startsWith('http') ? data.imageUrl : `${backendUrl}${data.imageUrl}`) 
-            : "",
+          image: resolvedImages[0] ?? "",
+          images: resolvedImages,
           likes: data.likeCount,
           comments: data.commentCount,
           isLiked: data.isLikedByCurrentUser || false,
@@ -158,8 +172,10 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         setLikeCount(mappedPost.likes)
         setCaption(mappedPost.caption)
         setImage(mappedPost.image)
+        setImages(resolvedImages)
+        setCurrentImageIndex(0)
         setEditCaption(mappedPost.caption)
-        setEditImage(mappedPost.image)
+        setEditImages(resolvedImages)
         
         // Map comments from backend
         if (data.comments && Array.isArray(data.comments)) {
@@ -473,28 +489,28 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
     try {
       const backendUrl = getApiUrl()
-      let finalImageUrl = editImage
 
-      // If image was changed and is a file (starts with data:), upload it
-      if (editImage && editImage.startsWith('data:')) {
-        const blob = await fetch(editImage).then(r => r.blob())
-        const formData = new FormData()
-        formData.append('file', blob, 'image.jpg')
-
-        const uploadResponse = await fetch(`${backendUrl}/api/upload/image`, {
-          method: 'POST',
-          headers: {
-            'Authorization': authUtils.getAuthHeaders()['Authorization'] || '',
-          },
-          body: formData,
-        })
-
-        if (uploadResponse.ok) {
-          const uploadResult = await uploadResponse.json()
-          finalImageUrl = uploadResult.url
+      // Upload any new images (data: URLs) and collect final URLs
+      const finalImages: string[] = []
+      for (const img of editImages) {
+        if (img.startsWith('data:')) {
+          const blob = await fetch(img).then(r => r.blob())
+          const formData = new FormData()
+          formData.append('file', blob, 'image.jpg')
+          const uploadResponse = await fetch(`${backendUrl}/api/upload/image`, {
+            method: 'POST',
+            headers: { 'Authorization': authUtils.getAuthHeaders()['Authorization'] || '' },
+            body: formData,
+          })
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json()
+            finalImages.push(uploadResult.url)
+          } else {
+            console.error('Failed to upload image')
+            return
+          }
         } else {
-          console.error('Failed to upload image')
-          return
+          finalImages.push(img)
         }
       }
 
@@ -503,7 +519,8 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         headers: authUtils.getAuthHeaders(),
         body: JSON.stringify({
           content: editCaption,
-          imageUrl: finalImageUrl || null,
+          imageUrl: finalImages[0] ?? null,
+          imageUrls: finalImages.length > 0 ? finalImages : null,
         }),
       })
 
@@ -516,22 +533,25 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       const result = await response.json()
       const updatedPostData = result.data
 
-      // Update local state with full URL
-      const fullImageUrl = updatedPostData.imageUrl 
-        ? (updatedPostData.imageUrl.startsWith('http') ? updatedPostData.imageUrl : `${backendUrl}${updatedPostData.imageUrl}`)
-        : ""
+      // Normalize URLs
+      const fullImages: string[] = []
+      if (updatedPostData.imageUrls && updatedPostData.imageUrls.length > 0) {
+        for (const u of updatedPostData.imageUrls) {
+          fullImages.push(u.startsWith('http') ? u : `${backendUrl}${u}`)
+        }
+      } else if (updatedPostData.imageUrl) {
+        const u = updatedPostData.imageUrl
+        fullImages.push(u.startsWith('http') ? u : `${backendUrl}${u}`)
+      }
 
       setCaption(editCaption)
-      setImage(fullImageUrl)
+      setImage(fullImages[0] ?? "")
+      setImages(fullImages)
+      setCurrentImageIndex(0)
       setIsEditMode(false)
 
-      // Update post object
       if (post) {
-        setPost({
-          ...post,
-          caption: updatedPostData.content,
-          image: fullImageUrl,
-        })
+        setPost({ ...post, caption: updatedPostData.content, image: fullImages[0] ?? "", images: fullImages })
       }
     } catch (error) {
       console.error("Đã xảy ra lỗi:", error)
@@ -705,10 +725,50 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
       {/* Content - Facebook style 60% image, 40% comments */}
       <div className="flex h-[calc(100vh-4rem)]">
-        {/* Left - Image (~60%) */}
-        <div className="flex-1 bg-black flex items-center justify-center overflow-hidden">
-          {image ? (
-            <img src={image || "/placeholder.svg"} alt="Post content" className="w-full h-full object-contain" />
+        {/* Left - Image Carousel (~60%) */}
+        <div className="flex-1 bg-black flex flex-col items-center justify-center overflow-hidden relative">
+          {images.length > 0 ? (
+            <>
+              <img
+                src={images[currentImageIndex] || "/placeholder.svg"}
+                alt={`Ảnh ${currentImageIndex + 1}`}
+                className="w-full h-full object-contain transition-opacity duration-200"
+              />
+              {/* Navigation arrows — only shown when multiple images */}
+              {images.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setCurrentImageIndex(i => Math.max(0, i - 1))}
+                    disabled={currentImageIndex === 0}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                    aria-label="Ảnh trước"
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentImageIndex(i => Math.min(images.length - 1, i + 1))}
+                    disabled={currentImageIndex === images.length - 1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                    aria-label="Ảnh tiếp theo"
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </button>
+                  {/* Dots indicator */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                    {images.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentImageIndex(idx)}
+                        className={`w-2 h-2 rounded-full transition ${
+                          idx === currentImageIndex ? "bg-white" : "bg-white/40 hover:bg-white/70"
+                        }`}
+                        aria-label={`Xem ảnh ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
           ) : (
             <div className="flex items-center justify-center text-muted-foreground text-lg">Không có hình ảnh</div>
           )}
@@ -1047,24 +1107,16 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
             <div className="border-b border-border p-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold">Chỉnh sửa bài viết</h2>
               <button
-                onClick={() => {
-                  setIsEditMode(false)
-                  setEditCaption(post?.caption || "")
-                  setEditImage(post?.image || "")
-                }}
+                onClick={() => { setIsEditMode(false); setEditCaption(post?.caption || ""); setEditImages(images) }}
                 className="rounded-full p-2 hover:bg-secondary transition"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
+
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
-                <img
-                  src={post.author.avatar || "/placeholder.svg"}
-                  alt={post.author.name}
-                  className="h-10 w-10 rounded-full"
-                />
+                <img src={post.author.avatar || "/placeholder.svg"} alt={post.author.name} className="h-10 w-10 rounded-full" />
                 <div>
                   <p className="font-semibold">{post.author.name}</p>
                   <p className="text-xs text-muted-foreground">Công khai</p>
@@ -1073,66 +1125,62 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
               <textarea
                 value={editCaption}
-                onChange={(e) => setEditCaption(e.target.value)}
+                onChange={e => setEditCaption(e.target.value)}
                 placeholder="Bạn đang nghĩ gì?"
                 className="w-full resize-none rounded-lg bg-gray-100 p-3 text-base outline-none focus:ring-2 focus:ring-primary min-h-[120px]"
               />
 
-              {editImage && (
-                <div className="mt-4 relative bg-secondary rounded-lg overflow-hidden">
-                  <img
-                    src={editImage}
-                    alt="Preview"
-                    className="w-full max-h-96 object-contain"
-                  />
-                  <button
-                    onClick={() => setEditImage("")}
-                    className="absolute top-2 right-2 bg-background/90 rounded-full p-2 hover:bg-background"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
+              {editImages.length > 0 && (
+                <div className={`mt-4 grid gap-2 ${
+                  editImages.length === 1 ? "grid-cols-1" :
+                  editImages.length === 2 ? "grid-cols-2" : "grid-cols-3"
+                }`}>
+                  {editImages.map((img, idx) => (
+                    <div key={idx} className="relative group rounded-lg overflow-hidden aspect-square bg-secondary">
+                      <img src={img} alt={`Ảnh ${idx + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => setEditImages(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full w-6 h-6 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
 
               <div className="mt-4 flex gap-2 border-t border-border pt-4">
-                <label className="flex items-center gap-2 cursor-pointer text-primary hover:text-primary/80 transition">
-                  <ImageIcon className="h-5 w-5" />
-                  <span className="text-sm">{editImage ? "Thay ảnh" : "Thêm ảnh"}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        const reader = new FileReader()
-                        reader.onload = (event) => {
-                          setEditImage(event.target?.result as string)
-                        }
-                        reader.readAsDataURL(file)
-                      }
-                    }}
-                    className="hidden"
-                  />
-                </label>
+                {editImages.length < MAX_IMAGES ? (
+                  <label className="flex items-center gap-2 cursor-pointer text-primary hover:text-primary/80 transition">
+                    <ImageIcon className="h-5 w-5" />
+                    <span className="text-sm">
+                      {editImages.length > 0 ? `Thêm ảnh (${editImages.length}/${MAX_IMAGES})` : "Thêm ảnh"}
+                    </span>
+                    <input
+                      type="file" accept="image/*" multiple className="hidden"
+                      onChange={e => {
+                        const files = Array.from(e.target.files || [])
+                        const remaining = MAX_IMAGES - editImages.length
+                        files.slice(0, remaining).forEach(file => {
+                          const reader = new FileReader()
+                          reader.onload = ev => setEditImages(prev => [...prev, ev.target?.result as string])
+                          reader.readAsDataURL(file)
+                        })
+                        e.target.value = ""
+                      }}
+                    />
+                  </label>
+                ) : (
+                  <span className="text-sm text-muted-foreground">Đã đính kèm tối đa {MAX_IMAGES} ảnh</span>
+                )}
               </div>
 
               <div className="flex gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    setIsEditMode(false)
-                    setEditCaption(post?.caption || "")
-                    setEditImage(post?.image || "")
-                  }}
-                >
+                <Button variant="outline" className="flex-1"
+                  onClick={() => { setIsEditMode(false); setEditCaption(post?.caption || ""); setEditImages(images) }}>
                   Hủy
                 </Button>
-                <Button
-                  className="flex-1 bg-primary hover:bg-primary/90"
-                  onClick={handleUpdatePost}
-                  disabled={!editCaption.trim()}
-                >
+                <Button className="flex-1 bg-primary hover:bg-primary/90" onClick={handleUpdatePost} disabled={!editCaption.trim()}>
                   Lưu thay đổi
                 </Button>
               </div>

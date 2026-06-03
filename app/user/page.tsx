@@ -110,6 +110,12 @@ export default function Home() {
         const fullImageUrl = imageUrl
           ? (imageUrl.startsWith('http') ? imageUrl : `${backendUrl}${imageUrl}`)
           : undefined
+
+        // Build images list (multi-image support)
+        const rawImages: string[] = Array.isArray(post.imageUrls) ? post.imageUrls : []
+        const fullImages: string[] = rawImages.length > 0
+          ? rawImages.map((u: string) => u.startsWith('http') ? u : `${backendUrl}${u}`)
+          : (fullImageUrl ? [fullImageUrl] : [])
           
         return {
           id: post.id?.toString() || "",
@@ -123,7 +129,8 @@ export default function Home() {
             isFollowing: post.author?.isFollowing || false,
           },
           caption: post.content || "",
-          image: fullImageUrl,
+          image: fullImages[0],
+          images: fullImages.length > 0 ? fullImages : undefined,
           likes: post.likeCount || 0,
           comments: post.commentCount || 0,
           isSaved: post.isSavedByCurrentUser || false,
@@ -171,6 +178,14 @@ export default function Home() {
         const fullImageUrl = imageUrl
           ? (imageUrl.startsWith('http') ? imageUrl : `${backendUrl}${imageUrl}`)
           : undefined
+
+        // Build images list
+        const rawImages: string[] = Array.isArray(post.imageUrls || post.ImageUrls)
+          ? (post.imageUrls || post.ImageUrls)
+          : []
+        const fullImages: string[] = rawImages.length > 0
+          ? rawImages.map((u: string) => u.startsWith('http') ? u : `${backendUrl}${u}`)
+          : (fullImageUrl ? [fullImageUrl] : [])
           
         return {
           id: post.id?.toString() || "",
@@ -183,7 +198,8 @@ export default function Home() {
             following: 0,
           },
           caption: post.content || post.Content || "",
-          image: fullImageUrl,
+          image: fullImages[0],
+          images: fullImages.length > 0 ? fullImages : undefined,
           likes: post.likeCount || post.LikeCount || 0,
           comments: post.commentCount || post.CommentCount || 0,
           isSaved: post.isSavedByCurrentUser || post.IsSavedByCurrentUser || false,
@@ -389,9 +405,9 @@ export default function Home() {
                           <p className="text-sm font-semibold line-clamp-2 group-hover:underline">{post.caption}</p>
                           <p className="text-xs text-muted-foreground mt-1">{post.author.name}</p>
                         </div>
-                        {post.image && (
+                        {(post.images && post.images.length > 0 ? post.images[0] : post.image) && (
                           <img
-                            src={post.image}
+                            src={post.images?.[0] || post.image}
                             alt={post.caption}
                             className="h-20 w-20 rounded object-cover flex-shrink-0"
                           />

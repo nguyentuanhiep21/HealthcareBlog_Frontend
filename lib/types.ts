@@ -12,7 +12,8 @@ export interface Post {
   id: string
   author: User
   caption: string
-  image?: string
+  image?: string    // backward compat: ảnh đầu tiên
+  images?: string[] // danh sách tất cả ảnh (tối đa 5)
   likes: number
   comments: number
   isSaved: boolean

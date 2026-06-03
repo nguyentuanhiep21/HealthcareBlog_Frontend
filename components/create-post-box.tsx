@@ -1,12 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ImageIcon } from "lucide-react"
+import { ImageIcon, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth-provider"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { SafeAvatar } from "@/components/safe-avatar"
 import type { Post } from "@/lib/types"
+
+const MAX_IMAGES = 5
 
 interface CreatePostBoxProps {
   onPostCreate?: (newPost: Post) => void
@@ -16,9 +18,9 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
   const { isAuthenticated, user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [caption, setCaption] = useState("")
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([])
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -34,36 +36,55 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
   }
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError("Vui lòng chọn file ảnh")
-      return
+    const remaining = MAX_IMAGES - selectedFiles.length
+    const toAdd = files.slice(0, remaining)
+
+    for (const file of toAdd) {
+      if (!file.type.startsWith("image/")) {
+        setError("Vui lòng chọn file ảnh")
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Kích thước ảnh không được vượt quá 5MB")
+        return
+      }
     }
 
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Kích thước ảnh không được vượt quá 5MB")
-      return
-    }
-
-    setSelectedFile(file)
     setError("")
+    setSelectedFiles(prev => [...prev, ...toAdd])
 
-    // Create preview
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      setImagePreview(event.target?.result as string)
-    }
-    reader.readAsDataURL(file)
+    // Create previews
+    const previews = await Promise.all(
+      toAdd.map(
+        file =>
+          new Promise<string>(resolve => {
+            const reader = new FileReader()
+            reader.onload = e => resolve(e.target?.result as string)
+            reader.readAsDataURL(file)
+          })
+      )
+    )
+    setImagePreviews(prev => [...prev, ...previews])
+
+    // Reset input so same file can be re-selected
+    e.target.value = ""
   }
 
-  const handleRemoveImage = () => {
-    setSelectedFile(null)
-    setImagePreview(null)
-    setUploadedImageUrl(null)
+  const handleRemoveImage = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
+    setImagePreviews(prev => prev.filter((_, i) => i !== index))
+    setUploadedImageUrls(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const resetForm = () => {
+    setCaption("")
+    setSelectedFiles([])
+    setImagePreviews([])
+    setUploadedImageUrls([])
+    setError("")
   }
 
   const handleSubmit = async () => {
@@ -79,44 +100,41 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
       const token = localStorage.getItem("authToken")
       if (!token) {
         setError("Vui lòng đăng nhập lại")
-        setTimeout(() => window.location.href = "/auth/login", 2000)
+        setTimeout(() => (window.location.href = "/auth/login"), 2000)
         return
       }
 
-      // Upload image first if selected
-      let finalImageUrl: string | null = null
-      if (selectedFile && !uploadedImageUrl) {
+      // Upload all selected images sequentially
+      const finalImageUrls: string[] = []
+      if (selectedFiles.length > 0) {
         setIsUploading(true)
-        const formData = new FormData()
-        formData.append('file', selectedFile)
+        for (const file of selectedFiles) {
+          const formData = new FormData()
+          formData.append("file", file)
 
-        const uploadResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/upload/image`,
-          {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${token}`,
-            },
-            body: formData,
+          const uploadResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/upload/image`,
+            {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            }
+          )
+
+          const uploadData = await uploadResponse.json()
+          if (!uploadResponse.ok || !uploadData.success) {
+            setError(uploadData.message || "Upload ảnh thất bại")
+            setIsLoading(false)
+            setIsUploading(false)
+            return
           }
-        )
 
-        const uploadData = await uploadResponse.json()
-        setIsUploading(false)
-
-        if (!uploadResponse.ok || !uploadData.success) {
-          setError(uploadData.message || "Upload ảnh thất bại")
-          setIsLoading(false)
-          return
+          const url = uploadData.url.startsWith("http")
+            ? uploadData.url
+            : `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}${uploadData.url}`
+          finalImageUrls.push(url)
         }
-
-        // Handle full URL from Supabase vs relative URL
-        finalImageUrl = uploadData.url.startsWith('http')
-          ? uploadData.url
-          : `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}${uploadData.url}`
-        setUploadedImageUrl(finalImageUrl)
-      } else if (uploadedImageUrl) {
-        finalImageUrl = uploadedImageUrl
+        setIsUploading(false)
       }
 
       const response = await fetch(
@@ -125,12 +143,13 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Accept": "application/json",
-            "Authorization": `Bearer ${token}`,
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             content: caption.trim(),
-            imageUrl: finalImageUrl,
+            imageUrl: finalImageUrls[0] ?? null,
+            imageUrls: finalImageUrls.length > 0 ? finalImageUrls : null,
           }),
         }
       )
@@ -138,7 +157,6 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
       const data = await response.json()
 
       if (response.ok && data.success) {
-        // Create post object for UI update
         if (user) {
           const newPost: Post = {
             id: data.data.id.toString(),
@@ -152,7 +170,8 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
               isFollowing: false,
             },
             caption: caption.trim(),
-            image: finalImageUrl || undefined,
+            image: finalImageUrls[0] ?? undefined,
+            images: finalImageUrls.length > 0 ? finalImageUrls : undefined,
             likes: 0,
             comments: 0,
             isLiked: false,
@@ -160,10 +179,7 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
             createdAt: new Date().toISOString(),
           }
 
-          setCaption("")
-          setSelectedFile(null)
-          setImagePreview(null)
-          setUploadedImageUrl(null)
+          resetForm()
           setIsOpen(false)
           onPostCreate?.(newPost)
         }
@@ -201,6 +217,8 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
     )
   }
 
+  const canAddMore = selectedFiles.length < MAX_IMAGES
+
   return (
     <div className="mb-6 rounded-lg border border-border bg-card p-6">
       <div className="mb-4 flex items-start gap-3">
@@ -213,11 +231,7 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
           </>
         )}
         <button
-          onClick={() => {
-            setIsOpen(false)
-            setCaption("")
-            handleRemoveImage()
-          }}
+          onClick={() => { setIsOpen(false); resetForm() }}
           className="text-2xl text-muted-foreground transition hover:text-foreground"
         >
           ×
@@ -226,10 +240,10 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
 
       <textarea
         value={caption}
-        onChange={(e) => setCaption(e.target.value)}
+        onChange={e => setCaption(e.target.value)}
         placeholder="Chia sẻ suy nghĩ của bạn"
         className="mb-4 w-full resize-none rounded-lg bg-gray-100 p-3 text-base outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary"
-        rows={6}
+        rows={4}
         disabled={isLoading}
       />
 
@@ -239,43 +253,64 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
         </div>
       )}
 
-      {imagePreview && (
-        <div className="mb-4 relative bg-secondary rounded-lg overflow-hidden">
-          <img src={imagePreview} alt="Preview" className="w-full h-auto max-h-96 object-contain" />
-          <button
-            onClick={handleRemoveImage}
-            className="absolute top-2 right-2 bg-background/90 text-foreground rounded-full h-8 w-8 flex items-center justify-center hover:bg-background transition"
-            type="button"
-          >
-            ×
-          </button>
+      {/* Image Previews Grid */}
+      {imagePreviews.length > 0 && (
+        <div className={`mb-4 grid gap-2 ${
+          imagePreviews.length === 1 ? "grid-cols-1" :
+          imagePreviews.length === 2 ? "grid-cols-2" :
+          imagePreviews.length === 3 ? "grid-cols-3" :
+          "grid-cols-2"
+        }`}>
+          {imagePreviews.map((preview, index) => (
+            <div key={index} className="relative group rounded-lg overflow-hidden bg-secondary aspect-square">
+              <img
+                src={preview}
+                alt={`Ảnh ${index + 1}`}
+                className="w-full h-full object-cover"
+              />
+              <button
+                onClick={() => handleRemoveImage(index)}
+                type="button"
+                className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full w-6 h-6 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
+                title="Xóa ảnh"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
-      <div className="mb-4 flex gap-2 border-t border-border pt-4">
-        <label className="flex items-center gap-2 cursor-pointer text-primary hover:text-primary/80 transition">
-          <ImageIcon className="h-5 w-5" />
-          <span className="text-sm">Thêm ảnh</span>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileSelect}
-            className="hidden"
-            disabled={isLoading || isUploading}
-          />
-        </label>
+      <div className="mb-4 flex items-center gap-3 border-t border-border pt-4">
+        {/* Add image button — hidden when max reached */}
+        {canAddMore && (
+          <label className="flex items-center gap-2 cursor-pointer text-primary hover:text-primary/80 transition">
+            <ImageIcon className="h-5 w-5" />
+            <span className="text-sm">
+              Thêm ảnh {selectedFiles.length > 0 ? `(${selectedFiles.length}/${MAX_IMAGES})` : ""}
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+              disabled={isLoading || isUploading}
+            />
+          </label>
+        )}
+        {!canAddMore && (
+          <span className="text-sm text-muted-foreground">
+            Đã đính kèm tối đa {MAX_IMAGES} ảnh
+          </span>
+        )}
       </div>
 
       <div className="flex gap-2">
         <Button
           variant="outline"
           className="flex-1 bg-transparent"
-          onClick={() => {
-            setIsOpen(false)
-            setCaption("")
-            handleRemoveImage()
-            setError("")
-          }}
+          onClick={() => { setIsOpen(false); resetForm() }}
           disabled={isLoading || isUploading}
         >
           Hủy
