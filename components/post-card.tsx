@@ -40,7 +40,7 @@ function PostImageGrid({ images, onClick }: { images: string[]; onClick: () => v
   const cls = "w-full h-full object-cover cursor-pointer hover:opacity-90 transition"
   
   // Use a fixed 1:1 container for the image block
-  const containerCls = "mb-4 w-full aspect-square max-w-[500px] mx-auto overflow-hidden rounded-lg bg-muted"
+  const containerCls = "mb-4 w-full aspect-square overflow-hidden rounded-lg bg-muted"
 
   if (images.length === 1) {
     return (
