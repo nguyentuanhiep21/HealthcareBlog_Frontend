@@ -140,6 +140,7 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
   const [editCaption, setEditCaption] = useState(post.caption)
   const [editImages, setEditImages] = useState<string[]>(resolveImages(post))
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     setIsLiked(post.isLiked)
@@ -258,6 +259,8 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
   }
 
   const handleDeletePost = async () => {
+    if (isDeleting) return
+    setIsDeleting(true)
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
       const response = await fetch(`${backendUrl}/api/post/${post.id}`, {
@@ -267,12 +270,14 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
       if (!response.ok) {
         const errorData = await response.json()
         console.error("Đã xảy ra lỗi khi xóa bài viết:", errorData.message)
+        setIsDeleting(false)
         return
       }
       setShowDeleteDialog(false)
       onPostDelete?.(post.id)
     } catch (error) {
       console.error("Đã xảy ra lỗi:", error)
+      setIsDeleting(false)
     }
   }
 
@@ -488,8 +493,10 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
               <h2 className="text-xl font-semibold mb-2">Xóa bài viết</h2>
               <p className="text-muted-foreground mb-6">Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác.</p>
               <div className="flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setShowDeleteDialog(false)}>Hủy</Button>
-                <Button className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={handleDeletePost}>Xóa</Button>
+                <Button variant="outline" className="flex-1" onClick={() => setShowDeleteDialog(false)} disabled={isDeleting}>Hủy</Button>
+                <Button className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={handleDeletePost} disabled={isDeleting}>
+                  {isDeleting ? "Đang xóa..." : "Xóa"}
+                </Button>
               </div>
             </div>
           </div>

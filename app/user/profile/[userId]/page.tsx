@@ -209,6 +209,22 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
     }
   }
 
+  const handlePostDelete = (postId: string) => {
+    setUserPosts((prev) => prev.filter((p) => p.id !== postId))
+    if (viewedUser && isCurrentUser) {
+      setViewedUser({
+        ...viewedUser,
+        postCount: Math.max(0, viewedUser.postCount - 1),
+      })
+    }
+  }
+
+  const handlePostUpdate = (updatedPost: Post) => {
+    setUserPosts((prev) =>
+      prev.map((p) => (p.id === updatedPost.id ? updatedPost : p))
+    )
+  }
+
   const handleReportSubmit = async (reason: string, details: string) => {
     if (!viewedUser) return
     
@@ -454,6 +470,8 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
                   key={post.id} 
                   post={post}
                   currentUser={user ? { id: user.id, name: user.fullName || "", avatar: user.avatarUrl || "" } : null}
+                  onPostDelete={handlePostDelete}
+                  onPostUpdate={handlePostUpdate}
                 />
               ))
             ) : (
