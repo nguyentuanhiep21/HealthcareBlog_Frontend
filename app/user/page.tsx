@@ -345,7 +345,7 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-6xl">
         <div className="grid grid-cols-1 gap-6 px-4 py-4 lg:grid-cols-3">
           {/* Main Feed */}
           <div className="lg:col-span-2">
