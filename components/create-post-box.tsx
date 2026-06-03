@@ -253,16 +253,11 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
         </div>
       )}
 
-      {/* Image Previews Grid */}
+      {/* Image Previews — horizontal row */}
       {imagePreviews.length > 0 && (
-        <div className={`mb-4 grid gap-2 ${
-          imagePreviews.length === 1 ? "grid-cols-1" :
-          imagePreviews.length === 2 ? "grid-cols-2" :
-          imagePreviews.length === 3 ? "grid-cols-3" :
-          "grid-cols-2"
-        }`}>
+        <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
           {imagePreviews.map((preview, index) => (
-            <div key={index} className="relative group rounded-lg overflow-hidden bg-secondary aspect-square">
+            <div key={index} className="relative flex-shrink-0 group rounded-lg overflow-hidden bg-secondary" style={{ width: 100, height: 100 }}>
               <img
                 src={preview}
                 alt={`Ảnh ${index + 1}`}
@@ -271,10 +266,10 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
               <button
                 onClick={() => handleRemoveImage(index)}
                 type="button"
-                className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full w-6 h-6 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
+                className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
                 title="Xóa ảnh"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3 h-3" />
               </button>
             </div>
           ))}

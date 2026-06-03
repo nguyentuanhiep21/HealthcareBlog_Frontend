@@ -1131,18 +1131,15 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               />
 
               {editImages.length > 0 && (
-                <div className={`mt-4 grid gap-2 ${
-                  editImages.length === 1 ? "grid-cols-1" :
-                  editImages.length === 2 ? "grid-cols-2" : "grid-cols-3"
-                }`}>
+                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
                   {editImages.map((img, idx) => (
-                    <div key={idx} className="relative group rounded-lg overflow-hidden aspect-square bg-secondary">
+                    <div key={idx} className="relative flex-shrink-0 group rounded-lg overflow-hidden bg-secondary" style={{ width: 100, height: 100 }}>
                       <img src={img} alt={`Ảnh ${idx + 1}`} className="w-full h-full object-cover" />
                       <button
                         onClick={() => setEditImages(prev => prev.filter((_, i) => i !== idx))}
-                        className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full w-6 h-6 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
+                        className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-3 h-3" />
                       </button>
                     </div>
                   ))}
