@@ -29,7 +29,7 @@ interface ViewedUserProfile {
 export default function UserProfilePage({ params }: { params: Promise<{ userId: string }> }) {
   const { userId } = use(params)
   const { isAuthenticated, user, fetchUserInfo } = useAuth()
-  
+
   const [viewedUser, setViewedUser] = useState<ViewedUserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -46,22 +46,22 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
   const [isReportSuccess, setIsReportSuccess] = useState(true)
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false)
   const [selectedImageSrc, setSelectedImageSrc] = useState<string>("")
-  
+
   // Check if viewing current user profile
-  const isCurrentUser = userId === "current" || (user && userId === user.id)
-  
+  const isCurrentUser = userId === "me" || (user && userId === user.id)
+
   // Fetch user profile from API
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
         setIsLoading(true)
         setError(null)
-        
+
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
-        
+
         // Determine actual userId to fetch
         let targetUserId = userId
-        if (userId === "current") {
+        if (userId === "me") {
           if (!user?.id) {
             setError("Vui lòng đăng nhập để xem trang cá nhân")
             setIsLoading(false)
@@ -69,14 +69,14 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
           }
           targetUserId = user.id
         }
-        
+
         const response = await fetch(
           `${backendUrl}/api/user/profile/${targetUserId}?page=1&pageSize=20`,
           {
             headers: authUtils.getAuthHeaders(),
           }
         )
-        
+
         if (!response.ok) {
           if (response.status === 404) {
             setError("Không tìm thấy người dùng")
@@ -86,16 +86,16 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
           setIsLoading(false)
           return
         }
-        
+
         const data = await response.json()
-        
+
         // Map backend DTO to frontend format
-        const fullAvatarUrl = data.avatarUrl 
-          ? (data.avatarUrl && data.avatarUrl.startsWith('http') 
-              ? data.avatarUrl 
-              : data.avatarUrl ? `${backendUrl}${data.avatarUrl}` : "/placeholder.svg")
+        const fullAvatarUrl = data.avatarUrl
+          ? (data.avatarUrl && data.avatarUrl.startsWith('http')
+            ? data.avatarUrl
+            : data.avatarUrl ? `${backendUrl}${data.avatarUrl}` : "/placeholder.svg")
           : "/placeholder.svg"
-        
+
         const profileData: ViewedUserProfile = {
           id: data.id,
           name: data.fullName,
@@ -106,12 +106,12 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
           postCount: data.postCount,
           isFollowing: data.isFollowedByCurrentUser,
         }
-        
+
         setViewedUser(profileData)
         setBio(profileData.bio)
         setAvatarUrl(fullAvatarUrl)
         setIsFollowing(profileData.isFollowing)
-        
+
         // Map posts
         if (data.posts && Array.isArray(data.posts)) {
           const mappedPosts: Post[] = data.posts.map((post: any) => ({
@@ -125,10 +125,10 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
               following: data.followingCount,
             },
             caption: post.content || "",
-            image: post.imageUrl 
-              ? (post.imageUrl.startsWith('http') 
-                  ? post.imageUrl 
-                  : `${backendUrl}${post.imageUrl}`)
+            image: post.imageUrl
+              ? (post.imageUrl.startsWith('http')
+                ? post.imageUrl
+                : `${backendUrl}${post.imageUrl}`)
               : undefined,
             likes: post.likeCount || 0,
             comments: post.commentCount || 0,
@@ -138,7 +138,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
           }))
           setUserPosts(mappedPosts)
         }
-        
+
         setIsLoading(false)
       } catch (err) {
         console.error("Error fetching user profile:", err)
@@ -146,7 +146,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         setIsLoading(false)
       }
     }
-    
+
     fetchUserProfile()
   }, [userId, user])
 
@@ -155,11 +155,11 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
       setShowLoginDialog(true)
       return
     }
-    
+
     if (!viewedUser) return
-    
+
     const newIsFollowing = !isFollowing
-    
+
     // Optimistic update
     setIsFollowing(newIsFollowing)
     setViewedUser({
@@ -167,16 +167,16 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
       followers: newIsFollowing ? viewedUser.followers + 1 : viewedUser.followers - 1,
       isFollowing: newIsFollowing,
     })
-    
+
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
       const method = newIsFollowing ? "POST" : "DELETE"
-      
+
       const response = await fetch(`${backendUrl}/api/follow/${viewedUser.id}`, {
         method,
         headers: authUtils.getAuthHeaders(),
       })
-      
+
       if (!response.ok) {
         // Revert on error
         setIsFollowing(!newIsFollowing)
@@ -227,7 +227,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
 
   const handleReportSubmit = async (reason: string, details: string) => {
     if (!viewedUser) return
-    
+
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
       const response = await fetch(`${backendUrl}/api/user/${viewedUser.id}/report`, {
@@ -273,20 +273,20 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
   const handleCroppedImage = async (croppedBlob: Blob) => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
-      
+
       // Convert Blob to File
       const file = new File([croppedBlob], 'avatar.jpg', { type: 'image/jpeg' })
-      
+
       // Step 1: Upload file to get URL
       const formData = new FormData()
       formData.append('file', file)
-      
+
       const token = authUtils.getToken()
       if (!token) {
         console.error('No authentication token found')
         return
       }
-      
+
       const uploadResponse = await fetch(`${backendUrl}/api/upload/avatar`, {
         method: 'POST',
         headers: {
@@ -319,16 +319,16 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
       }
 
       const updatedUser = await updateResponse.json()
-      
+
       // Update local state with full URL
       const fullAvatarUrl = updatedUser.avatarUrl
-        ? (updatedUser.avatarUrl.startsWith('http') 
-            ? updatedUser.avatarUrl 
-            : `${backendUrl}${updatedUser.avatarUrl}`)
+        ? (updatedUser.avatarUrl.startsWith('http')
+          ? updatedUser.avatarUrl
+          : `${backendUrl}${updatedUser.avatarUrl}`)
         : '/placeholder.svg'
-      
+
       setAvatarUrl(fullAvatarUrl)
-      
+
       // Update viewedUser state
       if (viewedUser) {
         setViewedUser({
@@ -336,7 +336,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
           avatar: fullAvatarUrl,
         })
       }
-      
+
       // Refresh auth context if viewing own profile
       if (isCurrentUser) {
         await fetchUserInfo()
@@ -438,21 +438,19 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
           <div className="flex gap-8">
             <button
               onClick={() => setActiveTab("home")}
-              className={`pb-4 font-semibold transition ${
-                activeTab === "home"
-                  ? "border-b-2 border-primary text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`pb-4 font-semibold transition ${activeTab === "home"
+                ? "border-b-2 border-primary text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               Trang chủ
             </button>
             <button
               onClick={() => setActiveTab("about")}
-              className={`pb-4 font-semibold transition ${
-                activeTab === "about"
-                  ? "border-b-2 border-primary text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`pb-4 font-semibold transition ${activeTab === "about"
+                ? "border-b-2 border-primary text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               Thông tin
             </button>
@@ -466,8 +464,8 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
 
             {userPosts.length > 0 ? (
               userPosts.map((post) => (
-                <PostCard 
-                  key={post.id} 
+                <PostCard
+                  key={post.id}
                   post={post}
                   currentUser={user ? { id: user.id, name: user.fullName || "", avatar: user.avatarUrl || "" } : null}
                   onPostDelete={handlePostDelete}

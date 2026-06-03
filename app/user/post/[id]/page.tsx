@@ -780,7 +780,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           <div className="border-b border-border p-4 flex-shrink-0">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-3 flex-1">
-                <Link href={`/user/profile/${post.author.id}`}>
+                <Link href={currentUser && post.author.id === currentUser.id ? "/user/profile/me" : `/user/profile/${post.author.id}`}>
                   <img
                     src={post.author.avatar || "/placeholder.svg"}
                     alt={post.author.name}
@@ -789,7 +789,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 </Link>
                 <div>
                   <Link
-                    href={`/user/profile/${post.author.id}`}
+                    href={currentUser && post.author.id === currentUser.id ? "/user/profile/me" : `/user/profile/${post.author.id}`}
                     className="font-semibold text-foreground hover:text-primary text-lg"
                   >
                     {post.author.name}
@@ -926,7 +926,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
             <div className="space-y-3">
               {comments.map((comment) => (
                 <div key={comment.id} className="flex gap-2">
-                  <Link href={`/user/profile/${comment.author.id}`}>
+                  <Link href={currentUser && comment.author.id === currentUser.id ? "/user/profile/me" : `/user/profile/${comment.author.id}`}>
                     <img
                       src={comment.author.avatar || "/placeholder.svg"}
                       alt={comment.author.name}
@@ -936,7 +936,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <Link href={`/user/profile/${comment.author.id}`}>
+                        <Link href={currentUser && comment.author.id === currentUser.id ? "/user/profile/me" : `/user/profile/${comment.author.id}`}>
                           <p className="text-sm font-semibold text-foreground hover:text-primary cursor-pointer">{comment.author.name}</p>
                         </Link>
                         <span className="text-sm text-muted-foreground">{formatTimeAgo(comment.createdAt)}</span>

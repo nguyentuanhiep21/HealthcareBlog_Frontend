@@ -5,6 +5,7 @@ import { Navbar } from "@/components/navbar"
 import { PostCard } from "@/components/post-card"
 import { useSearchParams, useRouter } from "next/navigation"
 import { authUtils } from "@/lib/auth-utils"
+import { useAuth } from "@/components/auth-provider"
 import type { Post } from "@/lib/types"
 import { Avatar } from "@/components/ui/avatar"
 
@@ -20,6 +21,7 @@ interface SearchUser {
 function SearchContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { user: currentUser } = useAuth()
   const query = searchParams.get("q") || ""
   const [activeTab, setActiveTab] = useState<"all" | "posts" | "users">("all")
   const [posts, setPosts] = useState<Post[]>([])
@@ -337,7 +339,7 @@ function SearchContent() {
                         <div className="flex items-center justify-between">
                           <div 
                             className="flex items-center gap-4 cursor-pointer flex-1"
-                            onClick={() => router.push(`/user/profile/${user.id}`)}
+                            onClick={() => router.push(currentUser && user.id === currentUser.id ? "/user/profile/me" : `/user/profile/${user.id}`)}
                           >
                             <img
                               src={user.avatarUrl}

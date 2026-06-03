@@ -432,7 +432,7 @@ export default function Home() {
                     return (
                       <div key={suggestedUser.id} className="flex items-center justify-between">
                         <div className="flex items-center gap-2 min-w-0">
-                          <Link href={`/user/profile/${suggestedUser.id}`} className="hover:underline">
+                          <Link href={isCurrentUser ? "/user/profile/me" : `/user/profile/${suggestedUser.id}`} className="hover:underline">
                             <SafeAvatar
                               src={suggestedUser.avatarUrl}
                               alt={suggestedUser.fullName}
@@ -440,7 +440,7 @@ export default function Home() {
                             />
                           </Link>
                           <div className="min-w-0">
-                            <Link href={`/user/profile/${suggestedUser.id}`} className="hover:underline text-sm font-semibold truncate">
+                            <Link href={isCurrentUser ? "/user/profile/me" : `/user/profile/${suggestedUser.id}`} className="hover:underline text-sm font-semibold truncate">
                               {suggestedUser.fullName}
                             </Link>
                             <p className="text-xs text-muted-foreground">

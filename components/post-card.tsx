@@ -283,7 +283,13 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
 
   const handleImageClick = () => router.push(`/user/post/${post.id}`)
   const handleCommentClick = () => router.push(`/user/post/${post.id}`)
-  const handleUserClick = () => router.push(`/user/profile/${post.author.id}`)
+  const handleUserClick = () => {
+    if (currentUser && post.author.id === currentUser.id) {
+      router.push(`/user/profile/me`)
+    } else {
+      router.push(`/user/profile/${post.author.id}`)
+    }
+  }
 
   // Add image to edit mode (from file input)
   const handleEditAddImage = (e: React.ChangeEvent<HTMLInputElement>) => {
