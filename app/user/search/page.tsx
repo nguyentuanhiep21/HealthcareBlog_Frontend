@@ -68,32 +68,37 @@ function SearchContent() {
 
       if (activeTab === "posts") {
         // Data is array of posts
-        const mappedPosts: Post[] = data.map((post: any) => ({
-          id: post.id?.toString() || "",
-          author: {
-            id: post.authorId,
-            name: post.authorName,
-            avatar: post.authorAvatarUrl 
-              ? (post.authorAvatarUrl.startsWith('http') 
-                  ? post.authorAvatarUrl 
-                  : `${backendUrl}${post.authorAvatarUrl}`)
-              : "/placeholder.svg",
-            bio: post.authorBio || "",
-            followers: post.authorFollowerCount || 0,
-            following: post.authorFollowingCount || 0,
-          },
-          caption: post.content || "",
-          image: post.imageUrl 
-            ? (post.imageUrl.startsWith('http') 
-                ? post.imageUrl 
-                : `${backendUrl}${post.imageUrl}`)
-            : undefined,
-          likes: post.likeCount || 0,
-          comments: post.commentCount || 0,
-          isLiked: post.isLikedByCurrentUser || false,
-          isSaved: post.isSavedByCurrentUser || false,
-          createdAt: post.uploadTime || new Date().toISOString(),
-        }))
+        const mappedPosts: Post[] = data.map((post: any) => {
+          const rawImages: string[] = Array.isArray(post.imageUrls) ? post.imageUrls : []
+          const fullImageUrl = post.imageUrl ? (post.imageUrl.startsWith('http') ? post.imageUrl : `${backendUrl}${post.imageUrl}`) : undefined
+          const fullImages: string[] = rawImages.length > 0
+            ? rawImages.map((u: string) => u.startsWith('http') ? u : `${backendUrl}${u}`)
+            : (fullImageUrl ? [fullImageUrl] : [])
+
+          return {
+            id: post.id?.toString() || "",
+            author: {
+              id: post.authorId,
+              name: post.authorName,
+              avatar: post.authorAvatarUrl 
+                ? (post.authorAvatarUrl.startsWith('http') 
+                    ? post.authorAvatarUrl 
+                    : `${backendUrl}${post.authorAvatarUrl}`)
+                : "/placeholder.svg",
+              bio: post.authorBio || "",
+              followers: post.authorFollowerCount || 0,
+              following: post.authorFollowingCount || 0,
+            },
+            caption: post.content || "",
+            image: fullImages[0],
+            images: fullImages.length > 0 ? fullImages : undefined,
+            likes: post.likeCount || 0,
+            comments: post.commentCount || 0,
+            isLiked: post.isLikedByCurrentUser || false,
+            isSaved: post.isSavedByCurrentUser || false,
+            createdAt: post.uploadTime || new Date().toISOString(),
+          }
+        })
         setPosts(mappedPosts)
         setTotalPosts(mappedPosts.length)
       } else if (activeTab === "users") {
@@ -114,32 +119,37 @@ function SearchContent() {
         setTotalUsers(mappedUsers.length)
       } else {
         // All results
-        const mappedPosts: Post[] = (data.posts || []).map((post: any) => ({
-          id: post.id?.toString() || "",
-          author: {
-            id: post.authorId,
-            name: post.authorName,
-            avatar: post.authorAvatarUrl 
-              ? (post.authorAvatarUrl.startsWith('http') 
-                  ? post.authorAvatarUrl 
-                  : `${backendUrl}${post.authorAvatarUrl}`)
-              : "/placeholder.svg",
-            bio: post.authorBio || "",
-            followers: post.authorFollowerCount || 0,
-            following: post.authorFollowingCount || 0,
-          },
-          caption: post.content || "",
-          image: post.imageUrl 
-            ? (post.imageUrl.startsWith('http') 
-                ? post.imageUrl 
-                : `${backendUrl}${post.imageUrl}`)
-            : undefined,
-          likes: post.likeCount || 0,
-          comments: post.commentCount || 0,
-          isLiked: post.isLikedByCurrentUser || false,
-          isSaved: post.isSavedByCurrentUser || false,
-          createdAt: post.uploadTime || new Date().toISOString(),
-        }))
+        const mappedPosts: Post[] = (data.posts || []).map((post: any) => {
+          const rawImages: string[] = Array.isArray(post.imageUrls) ? post.imageUrls : []
+          const fullImageUrl = post.imageUrl ? (post.imageUrl.startsWith('http') ? post.imageUrl : `${backendUrl}${post.imageUrl}`) : undefined
+          const fullImages: string[] = rawImages.length > 0
+            ? rawImages.map((u: string) => u.startsWith('http') ? u : `${backendUrl}${u}`)
+            : (fullImageUrl ? [fullImageUrl] : [])
+
+          return {
+            id: post.id?.toString() || "",
+            author: {
+              id: post.authorId,
+              name: post.authorName,
+              avatar: post.authorAvatarUrl 
+                ? (post.authorAvatarUrl.startsWith('http') 
+                    ? post.authorAvatarUrl 
+                    : `${backendUrl}${post.authorAvatarUrl}`)
+                : "/placeholder.svg",
+              bio: post.authorBio || "",
+              followers: post.authorFollowerCount || 0,
+              following: post.authorFollowingCount || 0,
+            },
+            caption: post.content || "",
+            image: fullImages[0],
+            images: fullImages.length > 0 ? fullImages : undefined,
+            likes: post.likeCount || 0,
+            comments: post.commentCount || 0,
+            isLiked: post.isLikedByCurrentUser || false,
+            isSaved: post.isSavedByCurrentUser || false,
+            createdAt: post.uploadTime || new Date().toISOString(),
+          }
+        })
 
         const mappedUsers: SearchUser[] = (data.users || []).map((user: any) => ({
           id: user.id,
