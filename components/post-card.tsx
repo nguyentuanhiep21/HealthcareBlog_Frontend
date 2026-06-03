@@ -37,11 +37,14 @@ function resolveImages(post: Post): string[] {
 function PostImageGrid({ images, onClick }: { images: string[]; onClick: () => void }) {
   if (images.length === 0) return null
 
-  const cls = "w-full h-full object-cover cursor-pointer hover:opacity-90 transition rounded-lg"
+  const cls = "w-full h-full object-cover cursor-pointer hover:opacity-90 transition"
+  
+  // Use a fixed 1:1 container for the image block
+  const containerCls = "mb-4 w-full aspect-square max-w-[500px] mx-auto overflow-hidden rounded-lg bg-muted"
 
   if (images.length === 1) {
     return (
-      <div className="mb-4 overflow-hidden rounded-lg">
+      <div className={containerCls}>
         <img src={images[0]} alt="Post" className={cls} onClick={onClick} />
       </div>
     )
@@ -49,11 +52,9 @@ function PostImageGrid({ images, onClick }: { images: string[]; onClick: () => v
 
   if (images.length === 2) {
     return (
-      <div className="mb-4 grid grid-cols-2 gap-1.5 rounded-lg overflow-hidden">
+      <div className={`${containerCls} grid grid-rows-2 gap-1`}>
         {images.map((src, i) => (
-          <div key={i} className="aspect-square overflow-hidden rounded-lg">
-            <img src={src} alt={`Ảnh ${i + 1}`} className={cls} onClick={onClick} />
-          </div>
+          <img key={i} src={src} alt={`Ảnh ${i + 1}`} className={cls} onClick={onClick} />
         ))}
       </div>
     )
@@ -61,16 +62,14 @@ function PostImageGrid({ images, onClick }: { images: string[]; onClick: () => v
 
   if (images.length === 3) {
     return (
-      <div className="mb-4 grid gap-1.5 rounded-lg overflow-hidden" style={{ gridTemplateColumns: "1fr 1fr" }}>
-        {/* left: first image tall */}
-        <div className="row-span-2 overflow-hidden rounded-lg" style={{ gridRow: "span 2" }}>
-          <img src={images[0]} alt="Ảnh 1" className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition rounded-lg" style={{ height: "100%" }} onClick={onClick} />
+      <div className={`${containerCls} grid grid-cols-2 grid-rows-2 gap-1`}>
+        <div className="col-span-2 w-full h-full">
+          <img src={images[0]} alt="Ảnh 1" className={cls} onClick={onClick} />
         </div>
-        {/* right: 2 stacked */}
-        <div className="aspect-square overflow-hidden rounded-lg">
+        <div className="w-full h-full">
           <img src={images[1]} alt="Ảnh 2" className={cls} onClick={onClick} />
         </div>
-        <div className="aspect-square overflow-hidden rounded-lg">
+        <div className="w-full h-full">
           <img src={images[2]} alt="Ảnh 3" className={cls} onClick={onClick} />
         </div>
       </div>
@@ -79,28 +78,42 @@ function PostImageGrid({ images, onClick }: { images: string[]; onClick: () => v
 
   if (images.length === 4) {
     return (
-      <div className="mb-4 grid grid-cols-2 gap-1.5 rounded-lg overflow-hidden">
+      <div className={`${containerCls} grid grid-cols-2 grid-rows-2 gap-1`}>
         {images.map((src, i) => (
-          <div key={i} className="aspect-square overflow-hidden rounded-lg">
-            <img src={src} alt={`Ảnh ${i + 1}`} className={cls} onClick={onClick} />
-          </div>
+          <img key={i} src={src} alt={`Ảnh ${i + 1}`} className={cls} onClick={onClick} />
         ))}
       </div>
     )
   }
 
-  // 5 images: first full width, then 2x2 grid
+  // 5 or more images
   return (
-    <div className="mb-4 space-y-1.5 rounded-lg overflow-hidden">
-      <div className="overflow-hidden rounded-lg" style={{ maxHeight: "260px" }}>
-        <img src={images[0]} alt="Ảnh 1" className="w-full object-cover cursor-pointer hover:opacity-90 transition rounded-lg" style={{ maxHeight: "260px" }} onClick={onClick} />
+    <div className={`${containerCls} grid grid-cols-2 grid-rows-6 gap-1`}>
+      {/* Left column: 2 items */}
+      <div className="col-start-1 row-start-1 row-span-3 w-full h-full">
+        <img src={images[0]} alt="Ảnh 1" className={cls} onClick={onClick} />
       </div>
-      <div className="grid grid-cols-2 gap-1.5">
-        {images.slice(1, 5).map((src, i) => (
-          <div key={i} className="aspect-square overflow-hidden rounded-lg">
-            <img src={src} alt={`Ảnh ${i + 2}`} className={cls} onClick={onClick} />
+      <div className="col-start-1 row-start-4 row-span-3 w-full h-full">
+        <img src={images[1]} alt="Ảnh 2" className={cls} onClick={onClick} />
+      </div>
+      
+      {/* Right column: 3 items */}
+      <div className="col-start-2 row-start-1 row-span-2 w-full h-full">
+        <img src={images[2]} alt="Ảnh 3" className={cls} onClick={onClick} />
+      </div>
+      <div className="col-start-2 row-start-3 row-span-2 w-full h-full">
+        <img src={images[3]} alt="Ảnh 4" className={cls} onClick={onClick} />
+      </div>
+      <div className="col-start-2 row-start-5 row-span-2 w-full h-full relative">
+        <img src={images[4]} alt="Ảnh 5" className={cls} onClick={onClick} />
+        {images.length > 5 && (
+          <div 
+            className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-2xl font-bold cursor-pointer hover:bg-black/40 transition"
+            onClick={onClick}
+          >
+            +{images.length - 5}
           </div>
-        ))}
+        )}
       </div>
     </div>
   )
