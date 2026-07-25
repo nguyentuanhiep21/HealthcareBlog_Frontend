@@ -29,3 +29,6 @@ Thumbs.db
 
 .vercel
 .env*.local
+
+# Agents Skills
+.agents/skills/ui-ux-pro-max/
