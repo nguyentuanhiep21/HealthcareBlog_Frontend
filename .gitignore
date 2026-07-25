@@ -31,4 +31,4 @@ Thumbs.db
 .env*.local
 
 # Agents Skills
-.agents/skills/ui-ux-pro-max/
+.agents/skills
