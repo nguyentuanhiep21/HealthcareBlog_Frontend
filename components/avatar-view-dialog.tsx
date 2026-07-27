@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { X } from "lucide-react"
+import { X, Camera, Check } from "lucide-react"
 
 interface AvatarViewDialogProps {
   open: boolean
@@ -52,75 +52,84 @@ export function AvatarViewDialog({
     setHasChanges(false)
   }
 
+  const handleClose = () => {
+    handleCancel()
+    onOpenChange(false)
+  }
+
   if (!open) return null
 
   // Handler cho overlay
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // Nếu click vào overlay (không phải modal content)
     if (e.target === e.currentTarget) {
-      onOpenChange(false)
+      handleClose()
     }
   }
 
   return (
-    <>
-      {/* Dark Overlay + Modal Content */}
-      <div
-        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-        onClick={handleOverlayClick}
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md transition-all animate-in fade-in duration-200"
+      onClick={handleOverlayClick}
+    >
+      {/* Nút đóng góc trên phải */}
+      <button 
+        onClick={handleClose}
+        className="absolute top-6 right-6 h-12 w-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-all"
       >
-        <div className="relative w-full flex flex-col items-center justify-center">
-          {/* Avatar Image */}
-          <div className="relative">
-            <img
-              src={previewUrl || "/placeholder.svg"}
-              alt={userName}
-              className="max-w-[1080px] max-h-[600px] object-contain rounded-lg"
-            />
+        <X className="h-6 w-6" />
+      </button>
 
-            {/* Edit/Close Button - Only show if onAvatarChange is provided */}
-            {onAvatarChange && (
-              <button
-                onClick={handleUploadClick}
-                className="absolute top-0 -right-14 hover:opacity-80 transition"
-              >
-                <img
-                  src="/edit_avatar.png"
-                  alt="Đổi avatar"
-                  className="w-10 h-10"
-                />
-              </button>
-            )}
-          </div>
-
-          {/* Save/Cancel Buttons - Show when changes are made */}
-          {hasChanges && onAvatarChange && (
-            <div className="mt-6 flex gap-3 justify-center">
-              <button
-                onClick={handleSave}
-                className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium transition"
-              >
-                Lưu
-              </button>
-              <button
-                onClick={handleCancel}
-                className="px-6 py-2 bg-white text-foreground rounded-lg hover:bg-gray-100 font-medium transition"
-              >
-                Hủy
-              </button>
-            </div>
-          )}
-
-          {/* Hidden File Input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileSelect}
-            className="hidden"
+      <div className="relative w-full max-w-lg flex flex-col items-center justify-center animate-in zoom-in-95 duration-300">
+        
+        {/* Avatar Image Wrapper */}
+        <div className="relative group">
+          <img
+            src={previewUrl || "/placeholder.svg"}
+            alt={userName}
+            className="w-[320px] h-[320px] sm:w-[400px] sm:h-[400px] object-cover rounded-full shadow-2xl ring-4 ring-white/10"
           />
+
+          {/* Edit Button - Only show if onAvatarChange is provided */}
+          {onAvatarChange && !hasChanges && (
+            <button
+              onClick={handleUploadClick}
+              className="absolute bottom-6 right-6 h-16 w-16 bg-teal-600 hover:bg-teal-500 text-white rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110"
+            >
+              <Camera className="h-7 w-7" />
+            </button>
+          )}
         </div>
+
+        {/* Save/Cancel Buttons - Show when changes are made */}
+        {hasChanges && onAvatarChange && (
+          <div className="mt-8 flex items-center gap-4 bg-white/10 backdrop-blur-md p-3 rounded-full shadow-lg animate-in slide-in-from-bottom-4">
+            <button
+              onClick={handleCancel}
+              className="h-12 px-6 bg-white/10 hover:bg-white/20 text-white rounded-full font-semibold transition-colors flex items-center gap-2"
+            >
+              <X className="h-4 w-4" />
+              Hủy
+            </button>
+            <button
+              onClick={handleSave}
+              className="h-12 px-8 bg-teal-600 hover:bg-teal-500 text-white rounded-full font-bold shadow-md transition-transform hover:scale-105 flex items-center gap-2"
+            >
+              <Check className="h-5 w-5" />
+              Lưu ảnh mới
+            </button>
+          </div>
+        )}
+
+        {/* Hidden File Input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
       </div>
-    </>
+    </div>
   )
 }

@@ -5,6 +5,8 @@ import { Heart, MessageCircle, Bookmark, MoreVertical, Flag, Edit, ImageIcon, X,
 import type { Post } from "@/lib/types"
 import { ReportDialog } from "./report-dialog"
 import { LoginRequiredDialog } from "./login-required-dialog"
+import { ConfirmDialog } from "./confirm-dialog"
+import { ActionResultDialog } from "./action-result-dialog"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -37,24 +39,29 @@ function resolveImages(post: Post): string[] {
 function PostImageGrid({ images, onClick }: { images: string[]; onClick: () => void }) {
   if (images.length === 0) return null
 
-  const cls = "w-full h-full object-cover cursor-pointer hover:opacity-90 transition"
-  
-  // Use a fixed 1:1 container for the image block
-  const containerCls = "mb-4 w-full aspect-square overflow-hidden rounded-lg bg-muted"
+  const imgCls = "w-full h-full object-cover cursor-pointer transition-transform duration-500 hover:scale-105"
+  const overflowWrapperCls = "w-full h-full overflow-hidden relative"
+  const containerCls = "mb-4 w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 ring-1 ring-border/50"
 
   if (images.length === 1) {
     return (
-      <div className={containerCls}>
-        <img src={images[0]} alt="Post" className={cls} onClick={onClick} />
+      <div className={`${containerCls} max-h-[550px]`}>
+        <div className={`w-full overflow-hidden relative max-h-[550px] bg-slate-900/5 dark:bg-white/5 flex items-center justify-center`}>
+          <img src={images[0]} alt="Post" className={`${imgCls} max-h-[550px] w-full object-cover`} onClick={onClick} />
+        </div>
       </div>
     )
   }
 
+  const multiContainerCls = `${containerCls} h-[380px] sm:h-[480px]`
+
   if (images.length === 2) {
     return (
-      <div className={`${containerCls} grid grid-rows-2 gap-1`}>
+      <div className={`${multiContainerCls} grid grid-cols-2 gap-1 bg-white dark:bg-slate-900 p-1`}>
         {images.map((src, i) => (
-          <img key={i} src={src} alt={`Ảnh ${i + 1}`} className={cls} onClick={onClick} />
+          <div key={i} className={`${overflowWrapperCls} rounded-xl`}>
+            <img src={src} alt={`Ảnh ${i + 1}`} className={imgCls} onClick={onClick} />
+          </div>
         ))}
       </div>
     )
@@ -62,15 +69,15 @@ function PostImageGrid({ images, onClick }: { images: string[]; onClick: () => v
 
   if (images.length === 3) {
     return (
-      <div className={`${containerCls} grid grid-cols-2 grid-rows-2 gap-1`}>
-        <div className="col-span-2 w-full h-full">
-          <img src={images[0]} alt="Ảnh 1" className={cls} onClick={onClick} />
+      <div className={`${multiContainerCls} grid grid-cols-2 grid-rows-2 gap-1 bg-white dark:bg-slate-900 p-1`}>
+        <div className={`row-span-2 ${overflowWrapperCls} rounded-xl`}>
+          <img src={images[0]} alt="Ảnh 1" className={imgCls} onClick={onClick} />
         </div>
-        <div className="w-full h-full">
-          <img src={images[1]} alt="Ảnh 2" className={cls} onClick={onClick} />
+        <div className={`${overflowWrapperCls} rounded-xl`}>
+          <img src={images[1]} alt="Ảnh 2" className={imgCls} onClick={onClick} />
         </div>
-        <div className="w-full h-full">
-          <img src={images[2]} alt="Ảnh 3" className={cls} onClick={onClick} />
+        <div className={`${overflowWrapperCls} rounded-xl`}>
+          <img src={images[2]} alt="Ảnh 3" className={imgCls} onClick={onClick} />
         </div>
       </div>
     )
@@ -78,9 +85,11 @@ function PostImageGrid({ images, onClick }: { images: string[]; onClick: () => v
 
   if (images.length === 4) {
     return (
-      <div className={`${containerCls} grid grid-cols-2 grid-rows-2 gap-1`}>
+      <div className={`${multiContainerCls} grid grid-cols-2 grid-rows-2 gap-1 bg-white dark:bg-slate-900 p-1`}>
         {images.map((src, i) => (
-          <img key={i} src={src} alt={`Ảnh ${i + 1}`} className={cls} onClick={onClick} />
+          <div key={i} className={`${overflowWrapperCls} rounded-xl`}>
+             <img src={src} alt={`Ảnh ${i + 1}`} className={imgCls} onClick={onClick} />
+          </div>
         ))}
       </div>
     )
@@ -88,27 +97,24 @@ function PostImageGrid({ images, onClick }: { images: string[]; onClick: () => v
 
   // 5 or more images
   return (
-    <div className={`${containerCls} grid grid-cols-2 grid-rows-6 gap-1`}>
-      {/* Left column: 2 items */}
-      <div className="col-start-1 row-start-1 row-span-3 w-full h-full">
-        <img src={images[0]} alt="Ảnh 1" className={cls} onClick={onClick} />
+    <div className={`${multiContainerCls} grid grid-cols-6 grid-rows-2 gap-1 bg-white dark:bg-slate-900 p-1`}>
+      <div className={`col-span-3 ${overflowWrapperCls} rounded-xl`}>
+        <img src={images[0]} alt="Ảnh 1" className={imgCls} onClick={onClick} />
       </div>
-      <div className="col-start-1 row-start-4 row-span-3 w-full h-full">
-        <img src={images[1]} alt="Ảnh 2" className={cls} onClick={onClick} />
+      <div className={`col-span-3 ${overflowWrapperCls} rounded-xl`}>
+        <img src={images[1]} alt="Ảnh 2" className={imgCls} onClick={onClick} />
       </div>
-      
-      {/* Right column: 3 items */}
-      <div className="col-start-2 row-start-1 row-span-2 w-full h-full">
-        <img src={images[2]} alt="Ảnh 3" className={cls} onClick={onClick} />
+      <div className={`col-span-2 ${overflowWrapperCls} rounded-xl`}>
+        <img src={images[2]} alt="Ảnh 3" className={imgCls} onClick={onClick} />
       </div>
-      <div className="col-start-2 row-start-3 row-span-2 w-full h-full">
-        <img src={images[3]} alt="Ảnh 4" className={cls} onClick={onClick} />
+      <div className={`col-span-2 ${overflowWrapperCls} rounded-xl`}>
+        <img src={images[3]} alt="Ảnh 4" className={imgCls} onClick={onClick} />
       </div>
-      <div className="col-start-2 row-start-5 row-span-2 w-full h-full relative">
-        <img src={images[4]} alt="Ảnh 5" className={cls} onClick={onClick} />
+      <div className={`col-span-2 ${overflowWrapperCls} rounded-xl`}>
+        <img src={images[4]} alt="Ảnh 5" className={imgCls} onClick={onClick} />
         {images.length > 5 && (
           <div 
-            className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-2xl font-bold cursor-pointer hover:bg-black/40 transition"
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center text-white text-3xl font-medium cursor-pointer hover:bg-slate-900/70 transition-colors"
             onClick={onClick}
           >
             +{images.length - 5}
@@ -333,88 +339,101 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
-      <article className="mb-6 rounded-lg border border-border bg-card p-4">
+      <article className="mb-6 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-sm hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.1)] transition-all duration-300">
         {/* Header */}
-        <div className="mb-3 flex items-start justify-between">
-          <div className="flex items-start gap-3 flex-1">
-            <img
-              src={post.author.avatar || "/placeholder.svg"}
-              alt={post.author.name}
-              className="h-10 w-10 rounded-full cursor-pointer hover:opacity-80 transition"
-              onClick={handleUserClick}
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="font-semibold text-foreground cursor-pointer hover:text-primary transition" onClick={handleUserClick}>
-                  {post.author.name}
-                </p>
-                <span className="text-sm text-muted-foreground">{formatTimeAgo(post.createdAt)}</span>
-              </div>
+        <div className="flex items-start justify-between px-6 pt-6 pb-2">
+          <div className="flex items-start gap-4 flex-1">
+            <div className="relative flex-shrink-0">
+              <img
+                src={post.author.avatar || "/placeholder.svg"}
+                alt={post.author.name}
+                className="h-12 w-12 rounded-full object-cover ring-2 ring-teal-500/20 cursor-pointer hover:opacity-80 transition"
+                onClick={handleUserClick}
+              />
+            </div>
+            <div className="flex-1 min-w-0 pt-0.5">
+              <p className="font-bold text-slate-900 dark:text-white text-[15px] cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors" onClick={handleUserClick}>
+                {post.author.name}
+              </p>
+              <span className="text-[13px] text-slate-500 font-medium">{formatTimeAgo(post.createdAt)}</span>
             </div>
           </div>
 
           {/* Menu */}
           <div className="relative">
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="rounded-full p-2 hover:bg-secondary transition">
-              <MoreVertical className="h-5 w-5 text-muted-foreground" />
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="rounded-full h-9 w-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer text-slate-500 hover:text-slate-900 dark:hover:text-white">
+              <MoreVertical className="h-5 w-5" />
             </button>
             {isMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-border bg-card shadow-lg z-10">
-                <div className="flex flex-col gap-1 p-2">
-                  {isAuthenticated && currentUser && post.author.id === currentUser.id ? (
-                    <>
-                      <button onClick={() => { setIsEditMode(true); setIsMenuOpen(false) }}
-                        className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left">
-                        <Edit className="h-4 w-4" /><span className="text-sm">Chỉnh sửa</span>
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setIsMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  <div className="flex flex-col p-1">
+                    {isAuthenticated && currentUser && String(post.author.id).toLowerCase() === String(currentUser.id).toLowerCase() ? (
+                      <>
+                        <button onClick={() => { setIsEditMode(true); setIsMenuOpen(false) }}
+                          className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-900 text-left cursor-pointer transition">
+                          <Edit className="h-4 w-4 text-slate-500" /><span className="text-[14px] font-medium text-slate-700 dark:text-slate-300">Chỉnh sửa</span>
+                        </button>
+                        <button onClick={() => { setShowDeleteDialog(true); setIsMenuOpen(false) }}
+                          className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-left text-rose-600 dark:text-rose-400 cursor-pointer transition">
+                          <Trash2 className="h-4 w-4" /><span className="text-[14px] font-medium">Xóa bài</span>
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={() => {
+                        if (!isAuthenticated) { setShowLoginDialog(true); setIsMenuOpen(false); return }
+                        setShowReportDialog(true); setIsMenuOpen(false)
+                      }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-left text-rose-600 dark:text-rose-400 cursor-pointer transition">
+                        <Flag className="h-4 w-4" /><span className="text-[14px] font-medium">Báo cáo vi phạm</span>
                       </button>
-                      <button onClick={() => { setShowDeleteDialog(true); setIsMenuOpen(false) }}
-                        className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive">
-                        <Trash2 className="h-4 w-4" /><span className="text-sm">Xóa</span>
-                      </button>
-                    </>
-                  ) : (
-                    <button onClick={() => {
-                      if (!isAuthenticated) { setShowLoginDialog(true); setIsMenuOpen(false); return }
-                      setShowReportDialog(true); setIsMenuOpen(false)
-                    }} className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive">
-                      <Flag className="h-4 w-4" /><span className="text-sm">Báo cáo</span>
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>
 
         {/* Caption */}
-        <p className="mb-3 text-foreground leading-relaxed">{caption}</p>
+        <p className="px-6 py-2 text-slate-800 dark:text-slate-200 leading-relaxed text-[15px] whitespace-pre-wrap">{caption}</p>
 
         {/* Images — adaptive grid */}
-        <PostImageGrid images={images} onClick={handleImageClick} />
+        {images.length > 0 && (
+          <div className="px-6 py-2">
+            <PostImageGrid images={images} onClick={handleImageClick} />
+          </div>
+        )}
 
         {/* Stats & Actions */}
-        <div className="space-y-3 border-t border-border pt-3">
-          <div className="flex gap-4 text-xs text-muted-foreground">
-            <span>{likeCount.toLocaleString("vi-VN")} yêu thích</span>
-            <span>{post.comments} bình luận</span>
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <button onClick={handleLike} className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 hover:bg-secondary transition">
-              <Heart className={`h-5 w-5 ${isLiked ? "fill-current text-primary" : "text-muted-foreground"}`} />
-              <span className={`text-sm ${isLiked ? "text-primary font-semibold" : "text-muted-foreground"}`}>Yêu thích</span>
+        <div className="px-6 pb-4">
+          {(likeCount > 0 || post.comments > 0) && (
+            <div className="flex justify-between items-center text-[13px] text-slate-500 font-medium py-3 border-b border-slate-100 dark:border-slate-800/60">
+              {likeCount > 0 && <span>{likeCount.toLocaleString("vi-VN")} lượt thích</span>}
+              {post.comments > 0 && <span className="cursor-pointer hover:text-teal-600 transition-colors" onClick={handleCommentClick}>{post.comments} bình luận</span>}
+            </div>
+          )}
+          <div className="flex items-center gap-2 pt-2">
+            <button onClick={handleLike} className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 transition-all duration-200 cursor-pointer ${
+              isLiked ? "text-rose-600 bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/40" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}>
+              <Heart className={`h-5 w-5 ${isLiked ? "fill-current" : ""}`} />
+              <span className={`text-[14px] font-semibold`}>Yêu thích</span>
             </button>
-            <button onClick={handleCommentClick} className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 hover:bg-secondary transition">
-              <MessageCircle className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Bình luận</span>
+            <button onClick={handleCommentClick} className="flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-teal-600 dark:hover:text-teal-400 transition-all duration-200 cursor-pointer">
+              <MessageCircle className="h-5 w-5" />
+              <span className="text-[14px] font-semibold">Bình luận</span>
             </button>
             <button
               onClick={handleSave}
-              disabled={!!(currentUser && post.author.id === currentUser.id)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 hover:bg-secondary transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-              title={currentUser && post.author.id === currentUser.id ? "Bạn không thể lưu bài viết của mình" : ""}
+              disabled={!!(currentUser && String(post.author.id).toLowerCase() === String(currentUser.id).toLowerCase())}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                isSaved ? "text-teal-600 bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+              title={currentUser && String(post.author.id).toLowerCase() === String(currentUser.id).toLowerCase() ? "Bạn không thể lưu bài viết của mình" : ""}
             >
-              <Bookmark className={`h-5 w-5 ${isSaved ? "fill-current text-primary" : "text-muted-foreground"}`} />
-              <span className={`text-sm ${isSaved ? "text-primary font-semibold" : "text-muted-foreground"}`}>Lưu</span>
+              <Bookmark className={`h-5 w-5 ${isSaved ? "fill-current" : ""}`} />
+              <span className={`text-[14px] font-semibold`}>Lưu bài</span>
             </button>
           </div>
         </div>
@@ -422,21 +441,25 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
 
       {/* ── Edit Post Dialog ─────────────────────────────────────────────── */}
       {isEditMode && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="border-b border-border p-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Chỉnh sửa bài viết</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" 
+            onClick={() => { setIsEditMode(false); setEditCaption(post.caption); setEditImages(resolveImages(post)) }}
+          />
+          <div className="relative z-50 w-full max-w-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)] overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+            <div className="border-b border-slate-100 dark:border-slate-800 px-6 py-5 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Chỉnh sửa bài viết</h2>
               <button onClick={() => { setIsEditMode(false); setEditCaption(post.caption); setEditImages(resolveImages(post)) }}
-                className="rounded-full p-2 hover:bg-secondary transition">
-                <X className="h-5 w-5" />
+                className="h-8 w-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
+                <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <img src={post.author.avatar || "/placeholder.svg"} alt={post.author.name} className="h-10 w-10 rounded-full" />
+            <div className="p-6 overflow-y-auto">
+              <div className="flex items-center gap-3 mb-5">
+                <img src={post.author.avatar || "/placeholder.svg"} alt={post.author.name} className="h-12 w-12 rounded-full ring-2 ring-teal-500/20 object-cover" />
                 <div>
-                  <p className="font-semibold">{post.author.name}</p>
-                  <p className="text-xs text-muted-foreground">Công khai</p>
+                  <p className="font-bold text-slate-900 dark:text-white">{post.author.name}</p>
+                  <span className="inline-flex items-center rounded-full bg-teal-50 dark:bg-teal-900/30 px-2.5 py-0.5 text-[11px] font-semibold text-teal-700 dark:text-teal-400 mt-1">Công khai</span>
                 </div>
               </div>
 
@@ -444,45 +467,45 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
                 value={editCaption}
                 onChange={e => setEditCaption(e.target.value)}
                 placeholder="Bạn đang nghĩ gì?"
-                className="w-full resize-none rounded-lg bg-gray-100 p-3 text-base outline-none focus:ring-2 focus:ring-primary min-h-[120px]"
+                className="w-full resize-none rounded-2xl bg-slate-50 dark:bg-slate-900/50 p-4 text-[15px] leading-relaxed outline-none border border-slate-200 dark:border-slate-800 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 min-h-[140px] text-slate-900 dark:text-slate-100 transition-all"
               />
 
               {/* Edit image previews — horizontal row */}
               {editImages.length > 0 && (
-                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                <div className="mt-5 flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
                   {editImages.map((img, idx) => (
-                    <div key={idx} className="relative flex-shrink-0 group rounded-lg overflow-hidden bg-secondary" style={{ width: 100, height: 100 }}>
-                      <img src={img} alt={`Ảnh ${idx + 1}`} className="w-full h-full object-cover" />
+                    <div key={idx} className="relative flex-shrink-0 group rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800" style={{ width: 120, height: 120 }}>
+                      <img src={img} alt={`Ảnh ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                       <button
                         onClick={() => setEditImages(prev => prev.filter((_, i) => i !== idx))}
-                        className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
+                        className="absolute top-2 right-2 bg-black/50 backdrop-blur-md hover:bg-rose-600 text-white rounded-full w-7 h-7 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 shadow-sm"
                       >
-                        <X className="w-3 h-3" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
                 </div>
               )}
 
-              <div className="mt-4 flex gap-2 border-t border-border pt-4">
+              <div className="mt-5 flex gap-2 border-t border-slate-100 dark:border-slate-800 pt-5">
                 {editImages.length < MAX_IMAGES && (
-                  <label className="flex items-center gap-2 cursor-pointer text-primary hover:text-primary/80 transition">
+                  <label className="flex items-center gap-2 cursor-pointer text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 px-4 py-2.5 rounded-full font-semibold transition-colors">
                     <ImageIcon className="h-5 w-5" />
-                    <span className="text-sm">{editImages.length > 0 ? `Thêm ảnh (${editImages.length}/${MAX_IMAGES})` : "Thêm ảnh"}</span>
+                    <span className="text-[14px]">{editImages.length > 0 ? `Thêm ảnh (${editImages.length}/${MAX_IMAGES})` : "Thêm ảnh"}</span>
                     <input type="file" accept="image/*" multiple onChange={handleEditAddImage} className="hidden" />
                   </label>
                 )}
                 {editImages.length >= MAX_IMAGES && (
-                  <span className="text-sm text-muted-foreground">Đã đính kèm tối đa {MAX_IMAGES} ảnh</span>
+                  <span className="text-[14px] text-slate-500 font-medium px-4 py-2.5">Đã đính kèm tối đa {MAX_IMAGES} ảnh</span>
                 )}
               </div>
 
-              <div className="flex gap-2 mt-6">
-                <Button variant="outline" className="flex-1"
+              <div className="flex gap-3 mt-6">
+                <Button variant="outline" className="flex-1 h-12 rounded-full border-2 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-900 transition-all"
                   onClick={() => { setIsEditMode(false); setEditCaption(post.caption); setEditImages(resolveImages(post)) }}>
                   Hủy
                 </Button>
-                <Button className="flex-1 bg-primary hover:bg-primary/90" onClick={handleUpdatePost} disabled={!editCaption.trim()}>
+                <Button className="flex-1 h-12 rounded-full bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-md shadow-teal-500/20 transition-all" onClick={handleUpdatePost} disabled={!editCaption.trim()}>
                   Lưu thay đổi
                 </Button>
               </div>
@@ -492,38 +515,29 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
       )}
 
       {/* ── Delete Confirmation ──────────────────────────────────────────── */}
-      {showDeleteDialog && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-card rounded-lg max-w-md w-full">
-            <div className="p-6">
-              <h2 className="text-xl font-semibold mb-2">Xóa bài viết</h2>
-              <p className="text-muted-foreground mb-6">Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác.</p>
-              <div className="flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setShowDeleteDialog(false)} disabled={isDeleting}>Hủy</Button>
-                <Button className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={handleDeletePost} disabled={isDeleting}>
-                  {isDeleting ? "Đang xóa..." : "Xóa"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog 
+        isOpen={showDeleteDialog}
+        title="Xóa bài viết"
+        description="Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác."
+        confirmText="Xóa bài"
+        cancelText="Hủy"
+        isDestructive={true}
+        isLoading={isDeleting}
+        onConfirm={handleDeletePost}
+        onCancel={() => setShowDeleteDialog(false)}
+      />
 
       {/* ── Report Dialog ────────────────────────────────────────────────── */}
       <ReportDialog isOpen={showReportDialog} onClose={() => setShowReportDialog(false)} onSubmit={handleReportSubmit} targetType="post" />
 
       {/* ── Report Success ───────────────────────────────────────────────── */}
-      {showReportSuccessDialog && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-card rounded-lg max-w-md w-full">
-            <div className="p-6 flex flex-col items-center text-center">
-              <h2 className="text-xl font-semibold mb-2">Thông báo</h2>
-              <p className="text-muted-foreground mb-6">{reportSuccessMessage}</p>
-              <Button className="w-full" onClick={() => setShowReportSuccessDialog(false)}>Đóng</Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ActionResultDialog 
+        isOpen={showReportSuccessDialog}
+        title="Thông báo"
+        message={reportSuccessMessage}
+        isSuccess={isReportSuccess}
+        onClose={() => setShowReportSuccessDialog(false)}
+      />
 
       {/* ── Login Required ───────────────────────────────────────────────── */}
       <LoginRequiredDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />

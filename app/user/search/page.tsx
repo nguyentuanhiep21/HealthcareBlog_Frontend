@@ -1,7 +1,9 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
+import { Search, AlertCircle, FileText, Users, UserPlus, SearchX } from "lucide-react"
 import { Navbar } from "@/components/navbar"
+import { BackgroundPattern } from "@/components/background-pattern"
 import { PostCard } from "@/components/post-card"
 import { useSearchParams, useRouter } from "next/navigation"
 import { authUtils } from "@/lib/auth-utils"
@@ -227,89 +229,115 @@ function SearchContent() {
   }, [activeTab])
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
+      <BackgroundPattern />
+      <div className="relative z-10">
+        <Navbar />
 
-      <div className="mx-auto max-w-3xl px-4 py-8">
+        <div className="mx-auto max-w-3xl px-4 py-8">
         {/* Search Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-2">Kết quả tìm kiếm</h1>
-          {query && (
-            <p className="text-muted-foreground">
-              Tìm kiếm cho: <span className="font-semibold">"{query}"</span>
+        <div className="mb-8 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-8 shadow-sm">
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-3 text-slate-900 dark:text-white">
+            <div className="p-2.5 bg-teal-50 dark:bg-teal-900/30 rounded-2xl text-teal-600 dark:text-teal-400">
+              <Search className="h-6 w-6" />
+            </div>
+            Kết quả tìm kiếm
+          </h1>
+          {query ? (
+            <p className="text-slate-500 font-medium ml-14">
+              Hiển thị kết quả cho từ khóa: <span className="font-bold text-teal-600 dark:text-teal-400 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 rounded-xl ml-1">"{query}"</span>
             </p>
+          ) : (
+            <p className="text-slate-500 font-medium ml-14">Nhập từ khóa trên thanh tìm kiếm để bắt đầu</p>
           )}
         </div>
 
         {/* Tabs */}
-        <div className="mb-6 border-b border-border">
-          <div className="flex gap-8">
+        {query && (
+          <div className="mb-8 flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
             <button
               onClick={() => setActiveTab("all")}
-              className={`pb-4 font-semibold transition ${
+              className={`px-6 py-3 rounded-full font-bold text-[15px] whitespace-nowrap transition-all duration-300 ${
                 activeTab === "all"
-                  ? "border-b-2 border-primary text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-teal-600 text-white shadow-lg shadow-teal-500/30 ring-2 ring-teal-600 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-950"
+                  : "bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              Tất cả
+              Tất cả kết quả
             </button>
             <button
               onClick={() => setActiveTab("posts")}
-              className={`pb-4 font-semibold transition ${
+              className={`px-6 py-3 rounded-full font-bold text-[15px] whitespace-nowrap transition-all duration-300 ${
                 activeTab === "posts"
-                  ? "border-b-2 border-primary text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-teal-600 text-white shadow-lg shadow-teal-500/30 ring-2 ring-teal-600 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-950"
+                  : "bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              Bài viết {activeTab === "all" && totalPosts > 0 && `(${totalPosts})`}
+              Bài viết {activeTab === "all" && totalPosts > 0 && <span className="ml-2 px-2.5 py-0.5 bg-white/20 text-white rounded-full text-xs font-semibold">{totalPosts}</span>}
             </button>
             <button
               onClick={() => setActiveTab("users")}
-              className={`pb-4 font-semibold transition ${
+              className={`px-6 py-3 rounded-full font-bold text-[15px] whitespace-nowrap transition-all duration-300 ${
                 activeTab === "users"
-                  ? "border-b-2 border-primary text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-teal-600 text-white shadow-lg shadow-teal-500/30 ring-2 ring-teal-600 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-950"
+                  : "bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              Người dùng {activeTab === "all" && totalUsers > 0 && `(${totalUsers})`}
+              Người dùng {activeTab === "all" && totalUsers > 0 && <span className="ml-2 px-2.5 py-0.5 bg-white/20 text-white rounded-full text-xs font-semibold">{totalUsers}</span>}
             </button>
           </div>
-        </div>
+        )}
 
         {/* Loading State */}
         {isLoading && (
-          <div className="text-center py-12">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
-            <p className="mt-4 text-muted-foreground">Đang tìm kiếm...</p>
+          <div className="space-y-6 animate-in fade-in duration-500">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-3xl p-6 border border-slate-200/50 dark:border-slate-800/50 shadow-sm animate-pulse flex flex-col gap-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800"></div>
+                  <div className="flex-1 space-y-2.5">
+                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-full w-1/4"></div>
+                    <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded-full w-1/6"></div>
+                  </div>
+                </div>
+                <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl w-full"></div>
+              </div>
+            ))}
           </div>
         )}
 
         {/* Error State */}
         {error && (
-          <div className="text-center py-12">
-            <p className="text-destructive">{error}</p>
+          <div className="text-center py-12 bg-rose-50/50 dark:bg-rose-900/10 backdrop-blur-sm border border-rose-200 dark:border-rose-800/30 rounded-3xl animate-in zoom-in-95">
+            <div className="h-16 w-16 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="h-8 w-8 text-rose-500" />
+            </div>
+            <p className="text-rose-600 dark:text-rose-400 font-bold text-lg">{error}</p>
           </div>
         )}
 
         {/* Results */}
-        {!isLoading && !error && (
+        {!isLoading && !error && query && (
           <>
             {/* Posts Results */}
             {(activeTab === "all" || activeTab === "posts") && (
-              <div className="mb-8">
-                {activeTab === "posts" && (
-                  <h2 className="text-lg font-semibold mb-4">
-                    {posts.length} bài viết được tìm thấy
+              <div className="mb-10 animate-in slide-in-from-bottom-4 duration-500">
+                {activeTab === "posts" && posts.length > 0 && (
+                  <h2 className="text-xl font-bold mb-5 text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <FileText className="h-6 w-6 text-teal-500" />
+                    {posts.length} bài viết
                   </h2>
                 )}
                 {activeTab === "all" && posts.length > 0 && (
-                  <h2 className="text-lg font-semibold mb-4">Bài viết</h2>
+                  <h2 className="text-xl font-bold mb-5 text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <FileText className="h-6 w-6 text-teal-500" />
+                    Bài viết liên quan
+                  </h2>
                 )}
                 {posts.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {posts.map((post) => (
-                      <PostCard key={post.id} post={post} />
+                      <PostCard key={post.id} post={post} currentUser={currentUser} />
                     ))}
                   </div>
                 ) : activeTab === "posts" ? (
@@ -320,55 +348,66 @@ function SearchContent() {
 
             {/* Users Results */}
             {(activeTab === "all" || activeTab === "users") && (
-              <div>
-                {activeTab === "users" && (
-                  <h2 className="text-lg font-semibold mb-4">
-                    {users.length} người dùng được tìm thấy
+              <div className="animate-in slide-in-from-bottom-8 duration-500 delay-100 fill-mode-both">
+                {activeTab === "users" && users.length > 0 && (
+                  <h2 className="text-xl font-bold mb-5 text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <Users className="h-6 w-6 text-indigo-500" />
+                    {users.length} người dùng
                   </h2>
                 )}
                 {activeTab === "all" && users.length > 0 && (
-                  <h2 className="text-lg font-semibold mb-4">Người dùng</h2>
+                  <h2 className="text-xl font-bold mb-5 text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <Users className="h-6 w-6 text-indigo-500" />
+                    Người dùng liên quan
+                  </h2>
                 )}
                 {users.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     {users.map((user) => (
                       <div
                         key={user.id}
-                        className="rounded-lg border border-border bg-card p-4 hover:shadow-md transition"
+                        className="group flex flex-col justify-between bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl rounded-3xl border border-slate-200/60 dark:border-slate-800/60 p-6 hover:border-teal-500/30 hover:shadow-xl hover:shadow-teal-500/5 transition-all duration-300"
                       >
-                        <div className="flex items-center justify-between">
-                          <div 
-                            className="flex items-center gap-4 cursor-pointer flex-1"
-                            onClick={() => router.push(currentUser && user.id === currentUser.id ? "/user/profile/me" : `/user/profile/${user.id}`)}
-                          >
-                            <img
-                              src={user.avatarUrl}
-                              alt={user.fullName}
-                              className="h-12 w-12 rounded-full object-cover"
-                            />
-                            <div className="flex-1">
-                              <h3 className="font-semibold">{user.fullName}</h3>
-                              {user.bio && (
-                                <p className="text-sm text-muted-foreground line-clamp-1">
-                                  {user.bio}
-                                </p>
-                              )}
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {user.followerCount} người theo dõi
+                        <div 
+                          className="flex items-start gap-4 cursor-pointer mb-5"
+                          onClick={() => router.push(currentUser && user.id === currentUser.id ? "/user/profile/me" : `/user/profile/${user.id}`)}
+                        >
+                          <img
+                            src={user.avatarUrl}
+                            alt={user.fullName}
+                            className="h-16 w-16 rounded-full object-cover ring-4 ring-slate-100 dark:ring-slate-900 group-hover:ring-teal-500/20 transition-all duration-300 shadow-sm"
+                          />
+                          <div className="flex-1 min-w-0 pt-1">
+                            <h3 className="font-bold text-[16px] text-slate-900 dark:text-white truncate group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">{user.fullName}</h3>
+                            <p className="text-[13px] text-slate-500 mt-1 font-medium">
+                              {user.followerCount} người theo dõi
+                            </p>
+                            {user.bio && (
+                              <p className="text-[14px] text-slate-600 dark:text-slate-300 mt-3 line-clamp-2 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl">
+                                {user.bio}
                               </p>
-                            </div>
+                            )}
                           </div>
+                        </div>
+                        {(!currentUser || String(user.id).toLowerCase() !== String(currentUser.id).toLowerCase()) && (
                           <button
                             onClick={() => handleFollowUser(user.id)}
-                            className={`px-4 py-2 rounded-lg font-medium transition ${
+                            className={`w-full h-12 rounded-full text-[14px] font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
                               user.isFollowing
-                                ? "bg-secondary text-foreground hover:bg-secondary/80"
-                                : "bg-primary text-primary-foreground hover:bg-primary/90"
+                                ? "bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/20 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-800"
+                                : "bg-teal-600 text-white hover:bg-teal-700 shadow-md shadow-teal-500/20"
                             }`}
                           >
-                            {user.isFollowing ? "Đang theo dõi" : "Theo dõi"}
+                            {user.isFollowing ? (
+                              <>Đang theo dõi</>
+                            ) : (
+                              <>
+                                <UserPlus className="h-5 w-5" />
+                                Theo dõi
+                              </>
+                            )}
                           </button>
-                        </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -385,6 +424,7 @@ function SearchContent() {
           </>
         )}
       </div>
+      </div>
     </div>
   )
 }
@@ -392,40 +432,28 @@ function SearchContent() {
 function EmptyState({ type }: { type: "posts" | "users" | "all" }) {
   const messages = {
     posts: {
-      title: "Không tìm thấy bài viết phù hợp",
-      description: "Hãy thử tìm kiếm với từ khóa khác"
+      title: "Không tìm thấy bài viết",
+      description: "Thử tìm kiếm với một từ khóa khác ngắn gọn hoặc phổ biến hơn."
     },
     users: {
-      title: "Không tìm thấy người dùng phù hợp",
-      description: "Hãy thử tìm kiếm với tên khác"
+      title: "Không tìm thấy người dùng",
+      description: "Tên người dùng này có thể không tồn tại hoặc đã bị đổi."
     },
     all: {
-      title: "Không tìm thấy kết quả phù hợp",
-      description: "Hãy thử tìm kiếm với từ khóa khác"
+      title: "Không có kết quả nào",
+      description: "Rất tiếc, chúng tôi không tìm thấy kết quả nào phù hợp với từ khóa của bạn."
     }
   }
 
   const message = messages[type]
 
   return (
-    <div className="text-center py-12">
-      <div className="mb-4">
-        <svg
-          className="mx-auto h-24 w-24 text-muted-foreground/50"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
+    <div className="flex flex-col items-center justify-center py-20 px-4 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-500">
+      <div className="h-24 w-24 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center mb-6 shadow-inner">
+        <SearchX className="h-12 w-12 text-slate-400" />
       </div>
-      <h2 className="text-xl font-semibold mb-2">{message.title}</h2>
-      <p className="text-muted-foreground">{message.description}</p>
+      <h2 className="text-2xl font-bold mb-3 text-slate-900 dark:text-white">{message.title}</h2>
+      <p className="text-slate-500 text-center max-w-sm font-medium leading-relaxed">{message.description}</p>
     </div>
   )
 }

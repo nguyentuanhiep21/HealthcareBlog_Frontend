@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff } from "lucide-react"
+import { BackgroundPattern } from "@/components/background-pattern"
 
 export default function ChangePasswordPage() {
   const router = useRouter()
@@ -100,10 +101,12 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
+      <BackgroundPattern />
+      <div className="relative z-10">
+        <Navbar />
 
-      <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="bg-card rounded-lg border border-border p-6">
           <h1 className="text-2xl font-bold mb-2">Đổi mật khẩu</h1>
           <p className="text-muted-foreground mb-6">
@@ -224,6 +227,7 @@ export default function ChangePasswordPage() {
             <li>Không sử dụng lại mật khẩu từ các tài khoản khác</li>
             <li>Thay đổi mật khẩu định kỳ để bảo mật tài khoản</li>
           </ul>
+        </div>
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@
 import type React from "react"
 import Image from "next/image"
 import { useState, use, useEffect } from "react"
-import { Heart, Bookmark, MoreVertical, Flag, X, LogIn, Bell, User, Settings, Send, LogOut, Edit, ImageIcon, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
+import { Heart, Bookmark, MoreVertical, Flag, X, LogIn, Bell, User, Settings, Send, LogOut, Edit, ImageIcon, Trash2, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import { ReportDialog } from "@/components/report-dialog"
 import { formatTimeAgo } from "@/lib/time-utils"
 import { authUtils } from "@/lib/auth-utils"
 import { getApiUrl } from "@/lib/utils"
+import { BackgroundPattern } from "@/components/background-pattern"
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -40,7 +41,7 @@ interface Post {
 }
 
 export default function PostDetailPage({ params }: PostDetailPageProps) {
-  const { isAuthenticated, logout } = useAuth()
+  const { isAuthenticated, user, logout } = useAuth()
   const router = useRouter()
   const { id } = use(params)
   const [post, setPost] = useState<Post | null>(null)
@@ -54,7 +55,9 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const [comments, setComments] = useState<any[]>([])
   const [commentText, setCommentText] = useState("")
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  const [currentUser, setCurrentUser] = useState<{id: string, name: string, avatar: string} | null>(null)
+  
+  const currentUser = user ? { id: user.id, name: user.fullName || "", avatar: user.avatarUrl || "" } : null
+
   const [showReportDialog, setShowReportDialog] = useState(false)
   const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null)
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(null)
@@ -76,39 +79,6 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [commentError, setCommentError] = useState<string | null>(null)
 
-  // Fetch current user if authenticated
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      const token = authUtils.getToken()
-      if (!token) return
-
-      try {
-        const backendUrl = getApiUrl()
-        const response = await fetch(`${backendUrl}/api/user/account`, {
-          headers: authUtils.getAuthHeaders(),
-        })
-
-        if (response.ok) {
-          const userData = await response.json()
-          setCurrentUser({
-            id: userData.id,
-            name: userData.fullName,
-            avatar: userData.avatarUrl
-              ? (userData.avatarUrl.startsWith('http') 
-                  ? userData.avatarUrl 
-                  : `${backendUrl}${userData.avatarUrl}`)
-              : '/placeholder.svg',
-          })
-        }
-      } catch (error) {
-        console.error("Error fetching current user:", error)
-      }
-    }
-
-    if (isAuthenticated) {
-      fetchCurrentUser()
-    }
-  }, [isAuthenticated])
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -642,8 +612,10 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   }
 
   return (
-    <main className="fixed inset-0 z-50 bg-background overflow-hidden" style={{ fontSize: '100%' }}>
-      <div className="border-b border-border bg-background/95 backdrop-blur h-16 flex items-center justify-between px-6">
+    <main className="fixed inset-0 z-50 bg-slate-50 dark:bg-slate-950 overflow-hidden" style={{ fontSize: '100%' }}>
+      <BackgroundPattern />
+      <div className="relative z-10 h-full flex flex-col">
+        <div className="border-b border-border bg-background/95 backdrop-blur h-16 flex items-center justify-between px-6 flex-shrink-0">
         {/* Left - Close and Logo */}
         <div className="flex items-center gap-4">
           <button
@@ -723,378 +695,338 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         </div>
       </div>
 
-      {/* Content - Facebook style 60% image, 40% comments */}
-      <div className="flex h-[calc(100vh-4rem)]">
-        {/* Left - Image Carousel (~60%) */}
-        <div className="flex-1 bg-black flex flex-col items-center justify-center overflow-hidden relative">
-          {images.length > 0 ? (
-            <>
-              <img
-                src={images[currentImageIndex] || "/placeholder.svg"}
-                alt={`Ảnh ${currentImageIndex + 1}`}
-                className="w-full h-full object-contain transition-opacity duration-200"
-              />
-              {/* Navigation arrows — only shown when multiple images */}
-              {images.length > 1 && (
-                <>
-                  <button
-                    onClick={() => setCurrentImageIndex(i => Math.max(0, i - 1))}
-                    disabled={currentImageIndex === 0}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition disabled:opacity-30 disabled:cursor-not-allowed"
-                    aria-label="Ảnh trước"
-                  >
-                    <ChevronLeft className="h-6 w-6" />
-                  </button>
-                  <button
-                    onClick={() => setCurrentImageIndex(i => Math.min(images.length - 1, i + 1))}
-                    disabled={currentImageIndex === images.length - 1}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition disabled:opacity-30 disabled:cursor-not-allowed"
-                    aria-label="Ảnh tiếp theo"
-                  >
-                    <ChevronRight className="h-6 w-6" />
-                  </button>
-                  {/* Dots indicator */}
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-                    {images.map((_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setCurrentImageIndex(idx)}
-                        className={`w-2 h-2 rounded-full transition ${
-                          idx === currentImageIndex ? "bg-white" : "bg-white/40 hover:bg-white/70"
-                        }`}
-                        aria-label={`Xem ảnh ${idx + 1}`}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
-          ) : (
-            <div className="flex items-center justify-center text-muted-foreground text-lg">Không có hình ảnh</div>
-          )}
-        </div>
+      {/* Content - Responsive & Conditional Layout */}
+      <div className={`flex flex-col md:flex-row ${images.length > 0 ? 'h-[calc(100vh-4rem)]' : 'min-h-[calc(100vh-4rem)] justify-center bg-slate-50 dark:bg-slate-950 p-4 md:p-8'}`}>
+        
+        {/* Left - Image Carousel (only show if there are images) */}
+        {images.length > 0 && (
+          <div className="w-full md:flex-1 bg-black flex flex-col items-center justify-center overflow-hidden relative h-[40vh] md:h-full flex-shrink-0">
+            <img
+              src={images[currentImageIndex] || "/placeholder.svg"}
+              alt={`Ảnh ${currentImageIndex + 1}`}
+              className="w-full h-full object-contain transition-opacity duration-300"
+            />
+            {/* Navigation arrows */}
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={() => setCurrentImageIndex(i => Math.max(0, i - 1))}
+                  disabled={currentImageIndex === 0}
+                  className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 bg-black/40 backdrop-blur-md hover:bg-black/60 text-white rounded-full p-2.5 sm:p-3 transition-all disabled:opacity-0"
+                  aria-label="Ảnh trước"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button
+                  onClick={() => setCurrentImageIndex(i => Math.min(images.length - 1, i + 1))}
+                  disabled={currentImageIndex === images.length - 1}
+                  className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 bg-black/40 backdrop-blur-md hover:bg-black/60 text-white rounded-full p-2.5 sm:p-3 transition-all disabled:opacity-0"
+                  aria-label="Ảnh tiếp theo"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+                {/* Dots indicator */}
+                <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-2 bg-black/20 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                  {images.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={`h-1.5 rounded-full transition-all ${
+                        idx === currentImageIndex ? "w-4 bg-white" : "w-1.5 bg-white/50 hover:bg-white/80"
+                      }`}
+                      aria-label={`Xem ảnh ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
-        {/* Right - Post Details & Comments (~40%) */}
-        <div className="w-[40%] bg-card border-l border-border flex flex-col overflow-hidden">
-          {/* Post Info */}
-          <div className="border-b border-border p-4 flex-shrink-0">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-3 flex-1">
-                <Link href={currentUser && post.author.id === currentUser.id ? "/user/profile/me" : `/user/profile/${post.author.id}`}>
+        {/* Right - Post Details & Comments */}
+        <div className={`w-full ${images.length > 0 ? 'md:w-[45%] lg:w-[40%] xl:w-[35%] bg-card border-l border-border h-auto md:h-full' : 'max-w-2xl bg-card border border-border/50 rounded-2xl shadow-xl h-fit max-h-[85vh]'} flex flex-col flex-shrink-0 relative`}>
+          
+          {/* Post Info Header */}
+          <div className="border-b border-border/50 p-4 sm:p-5 flex-shrink-0 bg-card z-10 sticky top-0">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3.5 flex-1">
+                <Link href={currentUser && String(post.author.id).toLowerCase() === String(currentUser.id).toLowerCase() ? "/user/profile/me" : `/user/profile/${post.author.id}`}>
                   <img
                     src={post.author.avatar || "/placeholder.svg"}
                     alt={post.author.name}
-                    className="h-10 w-10 rounded-full cursor-pointer hover:opacity-80"
+                    className="h-11 w-11 rounded-full cursor-pointer hover:opacity-80 object-cover ring-2 ring-primary/5"
                   />
                 </Link>
                 <div>
                   <Link
-                    href={currentUser && post.author.id === currentUser.id ? "/user/profile/me" : `/user/profile/${post.author.id}`}
-                    className="font-semibold text-foreground hover:text-primary text-lg"
+                    href={currentUser && String(post.author.id).toLowerCase() === String(currentUser.id).toLowerCase() ? "/user/profile/me" : `/user/profile/${post.author.id}`}
+                    className="font-semibold text-[15px] text-foreground hover:text-primary transition-colors"
                   >
                     {post.author.name}
                   </Link>
-                  <p className="text-sm text-muted-foreground">{formatTimeAgo(post.createdAt)}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{formatTimeAgo(post.createdAt)}</p>
                 </div>
               </div>
 
               <div className="relative">
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="rounded-full p-2 hover:bg-secondary transition"
+                  className="rounded-full p-2 hover:bg-secondary transition-colors"
                 >
                   <MoreVertical className="h-5 w-5 text-muted-foreground" />
                 </button>
 
                 {isMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-40 rounded-lg border border-border bg-card shadow-lg z-10">
-                    {isAuthenticated && currentUser && post.author.id === currentUser.id ? (
-                      <>
+                  <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-border/50 bg-card shadow-lg shadow-black/5 z-20 overflow-hidden">
+                    {isAuthenticated && currentUser && String(post.author.id).toLowerCase() === String(currentUser.id).toLowerCase() ? (
+                      <div className="p-1">
                         <button
-                          onClick={() => {
-                            setIsEditMode(true)
-                            setIsMenuOpen(false)
-                          }}
-                          className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-base"
+                          onClick={() => { setIsEditMode(true); setIsMenuOpen(false) }}
+                          className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-secondary text-left text-sm font-medium transition-colors"
                         >
-                          <Edit className="h-4 w-4" />
-                          <span>Chỉnh sửa</span>
+                          <Edit className="h-4 w-4 text-muted-foreground" />
+                          <span>Chỉnh sửa bài viết</span>
                         </button>
                         <button
-                          onClick={() => {
-                            setShowDeletePostDialog(true)
-                            setIsMenuOpen(false)
-                          }}
-                          className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive text-base"
+                          onClick={() => { setShowDeletePostDialog(true); setIsMenuOpen(false) }}
+                          className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-destructive/10 text-left text-destructive text-sm font-medium transition-colors mt-1"
                         >
                           <Trash2 className="h-4 w-4" />
-                          <span>Xóa</span>
+                          <span>Xóa bài viết</span>
                         </button>
-                      </>
+                      </div>
                     ) : (
-                      <button
-                        onClick={() => {
-                          if (!isAuthenticated) {
-                            setShowLoginDialog(true)
-                            setIsMenuOpen(false)
-                            return
-                          }
-                          setShowReportDialog(true)
-                          setIsMenuOpen(false)
-                        }}
-                        className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive text-base"
-                      >
-                        <Flag className="h-4 w-4" />
-                        <span>Báo cáo</span>
-                      </button>
+                      <div className="p-1">
+                        <button
+                          onClick={() => {
+                            if (!isAuthenticated) { setShowLoginDialog(true); setIsMenuOpen(false); return }
+                            setShowReportDialog(true); setIsMenuOpen(false)
+                          }}
+                          className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-destructive/10 text-left text-destructive text-sm font-medium transition-colors"
+                        >
+                          <Flag className="h-4 w-4" />
+                          <span>Báo cáo bài viết</span>
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}
               </div>
             </div>
+          </div>
 
-            {/* Caption - increased from text-sm to text-base */}
-            <p className="text-foreground leading-relaxed text-base">{caption}</p>
-
-            {/* Stats - increased from text-xs to text-sm */}
-            <div className="flex gap-4 text-sm text-muted-foreground mt-3">
-              <span>{likeCount.toLocaleString("vi-VN")} yêu thích</span>
-              <span>{post.comments} bình luận</span>
+          {/* Scrollable Content Area: Caption + Comments */}
+          <div className="flex-1 overflow-y-auto bg-slate-50/30 dark:bg-slate-950/30 custom-scrollbar">
+            {/* Caption */}
+            <div className="p-4 sm:p-5 bg-card">
+              <p className="text-foreground leading-relaxed text-[15px] whitespace-pre-wrap">{caption}</p>
+              
+              {/* Stats */}
+              <div className="flex gap-4 text-[13px] text-muted-foreground mt-4 pt-4 border-t border-border/30">
+                <span className="font-medium text-foreground">{likeCount.toLocaleString("vi-VN")} <span className="font-normal text-muted-foreground">yêu thích</span></span>
+                <span className="font-medium text-foreground">{post.comments} <span className="font-normal text-muted-foreground">bình luận</span></span>
+              </div>
             </div>
 
-            {/* Action Buttons - increased from text-sm to text-base */}
-            <div className="flex gap-2 mt-3 pt-3 border-t border-border">
+            {/* Action Buttons */}
+            <div className="flex gap-1 px-4 py-2 border-y border-border/50 bg-card sticky top-0 z-10 shadow-sm shadow-black/5">
               <button
                 onClick={handleLike}
-                className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2 hover:bg-secondary transition text-base"
+                className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 transition-all duration-200 ${
+                  isLiked ? "bg-rose-50 dark:bg-rose-950/30 text-rose-500" : "hover:bg-secondary text-muted-foreground hover:text-foreground"
+                }`}
               >
-                <Heart className={`h-4 w-4 ${isLiked ? "fill-current text-primary" : "text-muted-foreground"}`} />
-                <span className={isLiked ? "text-primary font-semibold" : "text-muted-foreground"}>Thích</span>
+                <Heart className={`h-5 w-5 ${isLiked ? "fill-current" : ""}`} />
+                <span className="font-semibold text-sm">Thích</span>
               </button>
 
               <button
                 onClick={async () => {
-                  if (!isAuthenticated) {
-                    setShowLoginDialog(true)
-                    return
-                  }
-
+                  if (!isAuthenticated) { setShowLoginDialog(true); return }
                   const newIsSaved = !isSaved
-
-                  // Optimistic update
                   setIsSaved(newIsSaved)
-
                   try {
-                    const backendUrl = getApiUrl()
-                    const method = newIsSaved ? "POST" : "DELETE"
-
-                    const response = await fetch(`${backendUrl}/api/savedpost/${id}`, {
-                      method,
+                    const response = await fetch(`${getApiUrl()}/api/savedpost/${id}`, {
+                      method: newIsSaved ? "POST" : "DELETE",
                       headers: authUtils.getAuthHeaders(),
                     })
-
-                    if (!response.ok) {
-                      // Revert on error
-                      setIsSaved(!newIsSaved)
-                      console.error("Lỗi khi lưu/bỏ lưu bài viết")
-                      return
-                    }
-
-                    // Update post object
-                    if (post) {
-                      setPost({
-                        ...post,
-                        isSaved: newIsSaved
-                      })
-                    }
-                  } catch (error) {
-                    console.error("Lỗi khi lưu/bỏ lưu bài viết:", error)
-                    // Revert on error
-                    setIsSaved(!newIsSaved)
-                  }
+                    if (!response.ok) setIsSaved(!newIsSaved)
+                    else if (post) setPost({ ...post, isSaved: newIsSaved })
+                  } catch { setIsSaved(!newIsSaved) }
                 }}
-                className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2 hover:bg-secondary transition text-base"
+                disabled={!!(currentUser && String(post.author.id).toLowerCase() === String(currentUser.id).toLowerCase())}
+                className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${
+                  isSaved ? "bg-primary/10 text-primary" : "hover:bg-secondary text-muted-foreground hover:text-foreground"
+                }`}
+                title={currentUser && String(post.author.id).toLowerCase() === String(currentUser.id).toLowerCase() ? "Bạn không thể lưu bài viết của chính mình" : ""}
               >
-                <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current text-primary" : "text-muted-foreground"}`} />
-                <span className={isSaved ? "text-primary font-semibold" : "text-muted-foreground"}>Lưu</span>
+                <Bookmark className={`h-5 w-5 ${isSaved ? "fill-current" : ""}`} />
+                <span className="font-semibold text-sm">Lưu</span>
               </button>
             </div>
-          </div>
 
-          {/* Comments Section */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="space-y-3">
-              {comments.map((comment) => (
-                <div key={comment.id} className="flex gap-2">
-                  <Link href={currentUser && comment.author.id === currentUser.id ? "/user/profile/me" : `/user/profile/${comment.author.id}`}>
-                    <img
-                      src={comment.author.avatar || "/placeholder.svg"}
-                      alt={comment.author.name}
-                      className="h-7 w-7 rounded-full flex-shrink-0 cursor-pointer hover:opacity-80"
-                    />
-                  </Link>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <Link href={currentUser && comment.author.id === currentUser.id ? "/user/profile/me" : `/user/profile/${comment.author.id}`}>
-                          <p className="text-sm font-semibold text-foreground hover:text-primary cursor-pointer">{comment.author.name}</p>
-                        </Link>
-                        <span className="text-sm text-muted-foreground">{formatTimeAgo(comment.createdAt)}</span>
-                      </div>
-                      
-                      {/* Comment Menu */}
-                      <div className="relative">
-                        <button
-                          onClick={() => setOpenCommentMenuId(openCommentMenuId === comment.id ? null : comment.id)}
-                          className="rounded-full p-1 hover:bg-secondary transition"
-                        >
-                          <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                        </button>
-                        
-                        {openCommentMenuId === comment.id && (
-                          <div className="absolute right-0 top-full mt-1 w-40 rounded-lg border border-border bg-card shadow-lg z-10">
-                            {isAuthenticated && currentUser && comment.author.id === currentUser.id ? (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setEditingCommentId(comment.id)
-                                    setEditCommentText(comment.text)
-                                    setOpenCommentMenuId(null)
-                                  }}
-                                  className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-sm"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                  <span>Chỉnh sửa</span>
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setDeletingCommentId(comment.id)
-                                    setShowDeleteDialog(true)
-                                    setOpenCommentMenuId(null)
-                                  }}
-                                  className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive text-sm"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  <span>Xóa</span>
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  if (!isAuthenticated) {
-                                    setShowLoginDialog(true)
-                                    setOpenCommentMenuId(null)
-                                    return
-                                  }
-                                  setReportingCommentId(comment.id)
-                                  setShowReportDialog(true)
-                                  setOpenCommentMenuId(null)
-                                }}
-                                className="w-full flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-left text-destructive text-sm"
-                              >
-                                <Flag className="h-4 w-4" />
-                                <span>Báo cáo</span>
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {editingCommentId === comment.id ? (
-                      <div className="mt-1">
-                        <textarea
-                          value={editCommentText}
-                          onChange={(e) => setEditCommentText(e.target.value)}
-                          className="w-full resize-none rounded-lg bg-gray-100 px-2 py-1 text-base outline-none focus:ring-2 focus:ring-primary"
-                          rows={2}
-                        />
-                        <div className="flex gap-2 mt-2">
-                          <button
-                            onClick={() => {
-                              setEditingCommentId(null)
-                              setEditCommentText("")
-                            }}
-                            className="text-sm text-muted-foreground hover:text-foreground"
-                          >
-                            Hủy
-                          </button>
-                          <button
-                            onClick={async () => {
-                              if (editCommentText.trim()) {
-                                const success = await handleUpdateComment(comment.id, editCommentText)
-                                if (success) {
-                                  setEditingCommentId(null)
-                                  setEditCommentText("")
+            {/* Comments List */}
+            <div className="p-4 sm:p-5 space-y-5">
+              {comments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <MessageCircle className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                  <p className="text-sm">Chưa có bình luận nào.<br/>Hãy là người đầu tiên bình luận!</p>
+                </div>
+              ) : (
+                comments.map((comment) => (
+                  <div key={comment.id} className="flex gap-3 group">
+                    <Link href={currentUser && String(comment.author.id).toLowerCase() === String(currentUser.id).toLowerCase() ? "/user/profile/me" : `/user/profile/${comment.author.id}`} className="flex-shrink-0 pt-1">
+                      <img
+                        src={comment.author.avatar || "/placeholder.svg"}
+                        alt={comment.author.name}
+                        className="h-8 w-8 rounded-full cursor-pointer hover:opacity-80 object-cover ring-1 ring-border"
+                      />
+                    </Link>
+                    
+                    <div className="flex-1 min-w-0">
+                      {editingCommentId === comment.id ? (
+                        <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
+                          <textarea
+                            value={editCommentText}
+                            onChange={(e) => setEditCommentText(e.target.value)}
+                            className="w-full resize-none bg-transparent text-[14px] outline-none placeholder:text-muted-foreground/50"
+                            rows={2}
+                            autoFocus
+                          />
+                          <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-border/50">
+                            <button
+                              onClick={() => { setEditingCommentId(null); setEditCommentText("") }}
+                              className="text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-secondary transition-colors"
+                            >
+                              Hủy
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (editCommentText.trim()) {
+                                  const success = await handleUpdateComment(comment.id, editCommentText)
+                                  if (success) { setEditingCommentId(null); setEditCommentText("") }
                                 }
-                              }
-                            }}
-                            disabled={!editCommentText.trim()}
-                            className="text-sm text-primary hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Lưu
-                          </button>
+                              }}
+                              disabled={!editCommentText.trim()}
+                              className="text-xs font-semibold bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                            >
+                              Cập nhật
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <p className="text-base text-foreground bg-white rounded-lg px-2 py-1 mt-1 break-words">
-                        {comment.text}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-2 mt-2">
-                      <button
-                        onClick={() => handleCommentLike(comment.id)}
-                        className="flex items-center gap-1 hover:opacity-70 transition"
-                      >
-                        <Heart
-                          className={`h-4 w-4 ${
-                            comment.isLiked ? "fill-current text-primary" : "text-muted-foreground"
-                          }`}
-                        />
-                        <span className="text-sm text-muted-foreground">{comment.likes}</span>
-                      </button>
+                      ) : (
+                        <div className="flex flex-col items-start max-w-[95%]">
+                          <div className="bg-card border border-border/60 rounded-2xl rounded-tl-sm px-3.5 py-2.5 shadow-sm">
+                            <Link href={currentUser && String(comment.author.id).toLowerCase() === String(currentUser.id).toLowerCase() ? "/user/profile/me" : `/user/profile/${comment.author.id}`}>
+                              <span className="text-[13px] font-semibold text-foreground hover:text-primary cursor-pointer mb-1 block">
+                                {comment.author.name}
+                              </span>
+                            </Link>
+                            <p className="text-[14px] text-foreground leading-snug break-words whitespace-pre-wrap">
+                              {comment.text}
+                            </p>
+                          </div>
+                          
+                          <div className="flex items-center gap-4 mt-1.5 px-2">
+                            <span className="text-[11px] text-muted-foreground font-medium">{formatTimeAgo(comment.createdAt)}</span>
+                            
+                            <button
+                              onClick={() => handleCommentLike(comment.id)}
+                              className={`text-[12px] font-bold hover:underline ${comment.isLiked ? "text-rose-500" : "text-muted-foreground hover:text-foreground"}`}
+                            >
+                              Thích {comment.likes > 0 && `(${comment.likes})`}
+                            </button>
+                            
+                            {/* Comment Menu Trigger - Shows on hover of the comment block */}
+                            <div className="relative opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => setOpenCommentMenuId(openCommentMenuId === comment.id ? null : comment.id)}
+                                className="p-1 rounded-full hover:bg-secondary text-muted-foreground"
+                              >
+                                <MoreVertical className="h-3.5 w-3.5" />
+                              </button>
+                              
+                              {openCommentMenuId === comment.id && (
+                                <div className="absolute left-0 top-full mt-1 w-36 rounded-xl border border-border bg-card shadow-lg z-20 py-1">
+                                  {isAuthenticated && currentUser && String(comment.author.id).toLowerCase() === String(currentUser.id).toLowerCase() ? (
+                                    <>
+                                      <button
+                                        onClick={() => { setEditingCommentId(comment.id); setEditCommentText(comment.text); setOpenCommentMenuId(null) }}
+                                        className="w-full text-left px-3 py-2 hover:bg-secondary text-xs font-medium"
+                                      >
+                                        Chỉnh sửa
+                                      </button>
+                                      <button
+                                        onClick={() => { setDeletingCommentId(comment.id); setShowDeleteDialog(true); setOpenCommentMenuId(null) }}
+                                        className="w-full text-left px-3 py-2 hover:bg-destructive/10 text-destructive text-xs font-medium"
+                                      >
+                                        Xóa
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        if (!isAuthenticated) { setShowLoginDialog(true); setOpenCommentMenuId(null); return }
+                                        setReportingCommentId(comment.id); setShowReportDialog(true); setOpenCommentMenuId(null)
+                                      }}
+                                      className="w-full text-left px-3 py-2 hover:bg-destructive/10 text-destructive text-xs font-medium"
+                                    >
+                                      Báo cáo
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
-          <div className="border-t border-border p-4 flex-shrink-0">
+          {/* Comment Input Footer */}
+          <div className="border-t border-border/50 bg-card p-3 sm:p-4 flex-shrink-0 z-10">
             {commentError && (
-              <div className="mb-2 p-2 bg-destructive/10 border border-destructive/30 rounded text-sm text-destructive">
+              <div className="mb-2 p-2 bg-destructive/10 border border-destructive/20 rounded-lg text-[13px] font-medium text-destructive">
                 {commentError}
               </div>
             )}
-            <form onSubmit={handleSubmitComment} className="flex gap-2 items-center">
+            <form onSubmit={handleSubmitComment} className="flex gap-3 items-end relative">
               {isAuthenticated && currentUser && (
                 <img
                   src={currentUser.avatar || "/placeholder.svg"}
                   alt={currentUser.name}
-                  className="h-7 w-7 rounded-full flex-shrink-0"
+                  className="h-9 w-9 rounded-full object-cover ring-1 ring-border mb-0.5 hidden sm:block"
                 />
               )}
-              <input
-                type="text"
-                placeholder={isAuthenticated ? "Viết bình luận..." : "Đăng nhập để bình luận"}
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onClick={() => {
-                  if (!isAuthenticated) {
-                    setShowLoginDialog(true)
-                  }
-                }}
-                disabled={!isAuthenticated || isSubmittingComment}
-                className="flex-1 rounded-full bg-gray-100 px-3 py-1.5 text-sm outline-none focus:border-2 focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-              {isAuthenticated && (
-                <button
-                  type="submit"
-                  disabled={!commentText.trim() || isSubmittingComment}
-                  className="rounded-full p-2 hover:bg-primary/10 transition text-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                >
-                  <Send className={`h-5 w-5 ${isSubmittingComment ? 'animate-pulse' : ''}`} />
-                </button>
-              )}
+              <div className="flex-1 bg-secondary/50 border border-border/50 rounded-2xl focus-within:border-primary/50 focus-within:bg-card focus-within:shadow-sm transition-all flex items-end">
+                <textarea
+                  placeholder={isAuthenticated ? "Viết bình luận..." : "Đăng nhập để bình luận"}
+                  value={commentText}
+                  onChange={(e) => {
+                    setCommentText(e.target.value)
+                    // Auto-resize textarea logic can be added here if needed
+                    e.target.style.height = 'auto'
+                    e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px'
+                  }}
+                  onClick={() => { if (!isAuthenticated) setShowLoginDialog(true) }}
+                  disabled={!isAuthenticated || isSubmittingComment}
+                  className="w-full bg-transparent px-4 py-3 text-[14px] outline-none resize-none placeholder:text-muted-foreground/60 min-h-[44px] max-h-[100px] custom-scrollbar"
+                  rows={1}
+                />
+                {isAuthenticated && (
+                  <button
+                    type="submit"
+                    disabled={!commentText.trim() || isSubmittingComment}
+                    className="p-3 text-primary hover:text-primary/80 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Send className={`h-5 w-5 ${isSubmittingComment ? 'animate-pulse' : ''}`} />
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         </div>
@@ -1290,6 +1222,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
       {/* Login Required Dialog */}
       <LoginRequiredDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />
+      </div>
     </main>
   )
 }

@@ -34,6 +34,7 @@ import {
   type Meal
 } from '@/lib/health-assessment-api'
 import { X, Utensils, RefreshCw } from 'lucide-react'
+import { BackgroundPattern } from '@/components/background-pattern'
 
 export default function HealthAssessmentPage() {
   const [gender, setGender] = useState('')
@@ -164,10 +165,12 @@ export default function HealthAssessmentPage() {
   const bmiDisplay = calculateBMI(height, weight)
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
+      <BackgroundPattern />
+      <div className="relative z-10">
+        <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Page header */}
         <div className="mb-8 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10">
@@ -579,6 +582,7 @@ export default function HealthAssessmentPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

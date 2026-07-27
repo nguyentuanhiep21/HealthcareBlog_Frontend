@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ImageIcon, X } from "lucide-react"
+import { ImageIcon, X, Send, AlertCircle, ImagePlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth-provider"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
@@ -194,129 +194,145 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
     }
   }
 
+  const canAddMore = selectedFiles.length < MAX_IMAGES
+
   if (!isOpen) {
     return (
-      <div className="mb-6 rounded-lg border border-border bg-card p-4">
-        <div className="flex gap-3">
-          {isAuthenticated && user && (
-            <img
+      <div className="mb-6 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl p-5 shadow-sm transition-all hover:shadow-md">
+        <div className="flex gap-4 items-center">
+          {isAuthenticated && user ? (
+            <SafeAvatar
               src={user.avatarUrl}
               alt={user.fullName}
-              className="h-10 w-10 rounded-full object-cover"
+              className="h-12 w-12 rounded-full ring-2 ring-teal-500/20 object-cover flex-shrink-0"
             />
+          ) : (
+            <div className="h-12 w-12 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
+              <span className="text-teal-600 dark:text-teal-400 font-bold text-lg">?</span>
+            </div>
           )}
           <button
             onClick={handleOpenCreate}
-            className="flex-1 rounded-full border border-border bg-gray-100 px-4 py-2 text-left text-sm text-muted-foreground transition hover:bg-gray-200"
+            className="flex-1 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 px-5 py-3.5 text-left text-[15px] text-slate-500 dark:text-slate-400 transition-all hover:bg-white dark:hover:bg-slate-900 hover:border-teal-500/30 hover:shadow-[0_2px_10px_-3px_rgba(13,148,136,0.1)]"
           >
-            {isAuthenticated && user ? `${user.fullName}, bạn đang nghĩ gì?` : "Bạn đang nghĩ gì?"}
+            {isAuthenticated && user ? `${user.fullName}, bạn đang nghĩ gì thế?` : "Bạn đang nghĩ gì? Hãy chia sẻ cùng mọi người..."}
           </button>
+          <div className="hidden sm:flex gap-2">
+             <button onClick={handleOpenCreate} className="p-3 rounded-full text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors" title="Thêm ảnh">
+                <ImagePlus className="h-[22px] w-[22px]" />
+             </button>
+          </div>
         </div>
         <LoginRequiredDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />
       </div>
     )
   }
 
-  const canAddMore = selectedFiles.length < MAX_IMAGES
-
   return (
-    <div className="mb-6 rounded-lg border border-border bg-card p-6">
-      <div className="mb-4 flex items-start gap-3">
-        {user && (
-          <>
-            <SafeAvatar src={user.avatarUrl} alt={user.fullName} className="h-10 w-10 rounded-full object-cover" />
-            <div className="flex-1">
-              <h3 className="font-semibold">{user.fullName}</h3>
-            </div>
-          </>
-        )}
+    <div className="mb-6 rounded-3xl border border-teal-500/20 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-[0_8px_30px_-4px_rgba(13,148,136,0.1)] p-5 md:p-6 animate-in fade-in slide-in-from-top-4 duration-300">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {user && (
+            <>
+              <SafeAvatar src={user.avatarUrl} alt={user.fullName} className="h-12 w-12 rounded-full ring-2 ring-teal-500/20 object-cover" />
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white">{user.fullName}</h3>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="inline-flex items-center rounded-full bg-teal-50 dark:bg-teal-900/30 px-2.5 py-0.5 text-[11px] font-semibold text-teal-700 dark:text-teal-400">
+                    Công khai
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
         <button
           onClick={() => { setIsOpen(false); resetForm() }}
-          className="text-2xl text-muted-foreground transition hover:text-foreground"
+          className="rounded-full p-2 h-9 w-9 flex items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
         >
-          ×
+          <X className="h-4 w-4" />
         </button>
       </div>
 
       <textarea
         value={caption}
         onChange={e => setCaption(e.target.value)}
-        placeholder="Chia sẻ suy nghĩ của bạn"
-        className="mb-4 w-full resize-none rounded-lg bg-gray-100 p-3 text-base outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary"
+        placeholder={isAuthenticated && user ? `${user.fullName}, bạn đang nghĩ gì thế?` : "Bạn đang nghĩ gì?"}
+        className="mb-4 w-full resize-none bg-transparent px-2 py-3 text-[16px] leading-relaxed outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 min-h-[120px] border-none focus:ring-0 text-slate-900 dark:text-slate-100"
         rows={4}
         disabled={isLoading}
       />
 
       {error && (
-        <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm">
+        <div className="mb-4 p-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50 rounded-2xl text-rose-600 dark:text-rose-400 text-[14px] font-medium flex items-center gap-2 animate-in zoom-in-95">
+           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           {error}
         </div>
       )}
 
-      {/* Image Previews — horizontal row */}
+      {/* Image Previews */}
       {imagePreviews.length > 0 && (
-        <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+        <div className="mb-5 flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
           {imagePreviews.map((preview, index) => (
-            <div key={index} className="relative flex-shrink-0 group rounded-lg overflow-hidden bg-secondary" style={{ width: 100, height: 100 }}>
+            <div key={index} className="relative flex-shrink-0 group rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800" style={{ width: 140, height: 140 }}>
               <img
                 src={preview}
                 alt={`Ảnh ${index + 1}`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               />
               <button
                 onClick={() => handleRemoveImage(index)}
                 type="button"
-                className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
+                className="absolute top-2 right-2 bg-black/50 backdrop-blur-md hover:bg-rose-600 text-white rounded-full h-7 w-7 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 shadow-sm"
                 title="Xóa ảnh"
               >
-                <X className="w-3 h-3" />
+                <X className="h-3.5 w-3.5" />
               </button>
             </div>
           ))}
         </div>
       )}
 
-      <div className="mb-4 flex items-center gap-3 border-t border-border pt-4">
-        {/* Add image button — hidden when max reached */}
-        {canAddMore && (
-          <label className="flex items-center gap-2 cursor-pointer text-primary hover:text-primary/80 transition">
-            <ImageIcon className="h-5 w-5" />
-            <span className="text-sm">
-              Thêm ảnh {selectedFiles.length > 0 ? `(${selectedFiles.length}/${MAX_IMAGES})` : ""}
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileSelect}
-              className="hidden"
-              disabled={isLoading || isUploading}
-            />
-          </label>
-        )}
-        {!canAddMore && (
-          <span className="text-sm text-muted-foreground">
-            Đã đính kèm tối đa {MAX_IMAGES} ảnh
-          </span>
-        )}
-      </div>
+      <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
+        {/* Add image button */}
+        <div className="flex items-center gap-2">
+            <label className={`flex items-center gap-2 px-4 py-2.5 rounded-full cursor-pointer transition-colors ${canAddMore ? 'text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 font-semibold' : 'text-slate-400 opacity-50 cursor-not-allowed font-medium'}`}>
+              <ImageIcon className="h-5 w-5" />
+              <span className="text-[14px] hidden sm:inline-block">
+                Ảnh/Video {selectedFiles.length > 0 ? `(${selectedFiles.length}/${MAX_IMAGES})` : ""}
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                disabled={!canAddMore || isLoading || isUploading}
+              />
+            </label>
+        </div>
 
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          className="flex-1 bg-transparent"
-          onClick={() => { setIsOpen(false); resetForm() }}
-          disabled={isLoading || isUploading}
-        >
-          Hủy
-        </Button>
-        <Button
-          className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
-          onClick={handleSubmit}
-          disabled={!caption.trim() || isLoading || isUploading}
-        >
-          {isUploading ? "Đang tải ảnh..." : isLoading ? "Đang đăng..." : "Đăng"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            className="rounded-full h-11 px-6 font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+            onClick={() => { setIsOpen(false); resetForm() }}
+            disabled={isLoading || isUploading}
+          >
+            Hủy
+          </Button>
+          <Button
+            className="rounded-full h-11 px-8 font-bold bg-teal-600 hover:bg-teal-700 text-white shadow-md shadow-teal-500/20 hover:shadow-lg hover:shadow-teal-500/40 transition-all active:scale-[0.98] disabled:opacity-70 disabled:hover:shadow-none"
+            onClick={handleSubmit}
+            disabled={!caption.trim() || isLoading || isUploading}
+          >
+            {isUploading ? "Đang tải ảnh..." : isLoading ? "Đang đăng..." : (
+               <span className="flex items-center gap-2">
+                 Đăng bài <Send className="h-4 w-4" />
+               </span>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   )

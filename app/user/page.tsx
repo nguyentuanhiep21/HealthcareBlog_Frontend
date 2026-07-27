@@ -12,6 +12,29 @@ import { authUtils } from "@/lib/auth-utils"
 import { getApiUrl } from "@/lib/utils"
 import Link from "next/link"
 import type { Post } from "@/lib/types"
+import { MessageSquare, Hash, Lightbulb } from "lucide-react"
+import { BackgroundPattern } from "@/components/background-pattern"
+
+const HEALTH_TIPS = [
+  { icon: "💧", tip: "Uống đủ 2 lít nước mỗi ngày giúp cơ thể thải độc và tăng cường." },
+  { icon: "🥗", tip: "Ăn nhiều rau xanh và trái cây để cung cấp vitamin thiết yếu." },
+  { icon: "🚶", tip: "Đi bộ 30 phút mỗi ngày giảm nguy cơ mắc bệnh tim mạch." },
+  { icon: "😴", tip: "Ngủ đủ 7-8 tiếng mỗi đêm giúp tăng cường hệ miễn dịch." },
+  { icon: "🧘", tip: "Thiền định 10 phút mỗi ngày giúp giảm căng thẳng." },
+  { icon: "🌞", tip: "Tắm nắng 15 phút buổi sáng cung cấp vitamin D tự nhiên." },
+  { icon: "🍎", tip: "Ăn bữa sáng đầy đủ giúp duy trì năng lượng cả ngày." },
+]
+
+const POPULAR_TOPICS = [
+  { label: "Dinh dưỡng", href: "/user/search?q=dinh+dưỡng" },
+  { label: "Tập luyện", href: "/user/search?q=tập+luyện" },
+  { label: "Tâm lý", href: "/user/search?q=tâm+lý" },
+  { label: "Tim mạch", href: "/user/search?q=tim+mạch" },
+  { label: "Giảm cân", href: "/user/search?q=giảm+cân" },
+  { label: "Đường huyết", href: "/user/search?q=đường+huyết" },
+  { label: "Ung thư", href: "/user/search?q=ung+thư" },
+  { label: "Huyết áp", href: "/user/search?q=huyết+áp" },
+]
 
 export default function Home() {
   const { isAuthenticated, user } = useAuth()
@@ -342,32 +365,113 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
+      <BackgroundPattern />
 
-      <div className="mx-auto max-w-6xl">
-        <div className="grid grid-cols-1 gap-6 px-4 py-4 lg:grid-cols-3">
-          {/* Main Feed */}
-          <div className="lg:col-span-2">
+      <div className="relative z-10">
+        <Navbar />
+
+        <div className="mx-auto max-w-[1400px]">
+          <div className="grid grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-4">
+            
+          {/* LEFT SIDEBAR */}
+          <div className="hidden lg:block space-y-4 lg:col-span-1 sticky top-20 h-fit">
+            {/* Quick Profile */}
+            {isAuthenticated && currentUser && (
+              <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-5 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <img src={currentUser.avatar} alt="Avatar" className="w-12 h-12 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800" />
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-900 dark:text-white truncate">{currentUser.name}</p>
+                    <Link href="/user/profile/me" className="text-xs font-medium text-teal-600 dark:text-teal-400 hover:underline">
+                      Trang cá nhân của bạn
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Health Tip */}
+            {(() => {
+              const tip = HEALTH_TIPS[new Date().getDay() % HEALTH_TIPS.length]
+              return (
+                <div className="rounded-2xl overflow-hidden shadow-sm">
+                  <div className="px-5 pt-4 pb-3" style={{ background: "linear-gradient(135deg, #0891b2 0%, #0e7490 100%)" }}>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Lightbulb className="h-4 w-4 text-cyan-200" />
+                      <span className="text-[11px] font-semibold text-cyan-100 uppercase tracking-wider">Mẹo sức khỏe</span>
+                    </div>
+                    <p className="text-white text-[13px] leading-relaxed font-medium">
+                      <span className="mr-1.5 text-base">{tip.icon}</span>
+                      {tip.tip}
+                    </p>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Popular Topics */}
+            <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-5 shadow-sm">
+              <h2 className="mb-3 text-[14px] font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span className="w-1.5 h-4 rounded-full bg-rose-400 inline-block"></span>
+                Chủ đề nổi bật
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {POPULAR_TOPICS.map(({ label, href }) => (
+                  <Link
+                    key={label}
+                    href={href}
+                    className="inline-flex items-center gap-1.5 text-[13px] font-medium px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-300 border border-slate-100 dark:border-slate-700 transition-all duration-200"
+                  >
+                    <Hash className="h-3.5 w-3.5 opacity-70" />{label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* MAIN FEED */}
+          <div className="lg:col-span-2 space-y-6">
             <CreatePostBox onPostCreate={handlePostCreate} />
 
             {/* Error Message */}
             {error && (
-              <div className="mb-4 p-4 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive">
+              <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl text-red-600 dark:text-red-400 text-sm flex items-center gap-3">
+                <span className="text-lg">⚠️</span>
                 {error}
               </div>
             )}
 
-            {/* Loading State */}
+            {/* Loading Skeleton */}
             {isLoading && (
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm animate-pulse">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="h-11 w-11 rounded-full bg-slate-200 dark:bg-slate-700" />
+                      <div className="space-y-2 flex-1">
+                        <div className="h-3.5 bg-slate-200 dark:bg-slate-700 rounded-full w-32" />
+                        <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full w-20" />
+                      </div>
+                    </div>
+                    <div className="space-y-2 mb-4">
+                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded-full w-full" />
+                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded-full w-4/5" />
+                    </div>
+                    <div className="h-48 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4" />
+                    <div className="flex gap-3">
+                      <div className="h-8 bg-slate-100 dark:bg-slate-800 rounded-xl flex-1" />
+                      <div className="h-8 bg-slate-100 dark:bg-slate-800 rounded-xl flex-1" />
+                      <div className="h-8 bg-slate-100 dark:bg-slate-800 rounded-xl flex-1" />
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
             {/* Posts */}
             {!isLoading && !error && (
-              <div className="space-y-4">
+              <div className="space-y-0">
                 {posts.length > 0 ? (
                   posts.map((post) => (
                     <PostCard 
@@ -379,125 +483,154 @@ export default function Home() {
                     />
                   ))
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    Chưa có bài viết nào
+                  <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center shadow-sm">
+                    <div className="text-5xl mb-4">📋</div>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">Chưa có bài viết nào</p>
+                    <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">Hãy là người đầu tiên chia sẻ!</p>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="hidden lg:block space-y-3 sticky top-20 h-fit">
+          {/* RIGHT SIDEBAR */}
+          <div className="hidden lg:block space-y-4 lg:col-span-1 sticky top-20 h-fit">
+
+
             {/* Featured Posts */}
-            <div className="rounded-lg border border-border bg-card p-4">
-              <h2 className="mb-4 text-lg font-bold">Bài viết nổi bật</h2>
+            <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+              <h2 className="mb-4 text-[15px] font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span className="w-1 h-4 rounded-full bg-teal-500 inline-block"></span>
+                Bài viết nổi bật
+              </h2>
               <div className="space-y-3">
                 {trendingPosts.length > 0 ? (
                   trendingPosts.map((post) => (
                     <Link
                       key={post.id}
                       href={`/user/post/${post.id}`}
-                      className="group block rounded-lg overflow-hidden hover:opacity-80 transition"
+                      className="group flex gap-3 rounded-xl p-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150"
                     >
-                      <div className="flex gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold line-clamp-2 group-hover:underline">{post.caption}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{post.author.name}</p>
-                        </div>
-                        {(post.images && post.images.length > 0 ? post.images[0] : post.image) && (
-                          <img
-                            src={post.images?.[0] || post.image}
-                            alt={post.caption}
-                            className="h-20 w-20 rounded object-cover flex-shrink-0"
-                          />
-                        )}
+                      {(post.images && post.images.length > 0 ? post.images[0] : post.image) && (
+                        <img
+                          src={post.images?.[0] || post.image}
+                          alt={post.caption}
+                          className="h-14 w-14 rounded-lg object-cover flex-shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 line-clamp-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors leading-snug">{post.caption}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{post.author.name}</p>
                       </div>
                     </Link>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">Chưa có bài viết nổi bật hôm nay</p>
+                  <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">Chưa có bài viết nổi bật hôm nay</p>
                 )}
               </div>
             </div>
 
-            {/* Suggested Users - TODO: Replace with API */}
-            <div className="rounded-lg border border-border bg-card p-4">
-              <h2 className="mb-4 text-lg font-bold">Thành viên nổi bật</h2>
+            {/* Suggested Users */}
+            <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+              <h2 className="mb-4 text-[15px] font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span className="w-1 h-4 rounded-full bg-indigo-500 inline-block"></span>
+                Thành viên nổi bật
+              </h2>
               <div className="space-y-3">
                 {suggestedUsers.length > 0 ? (
                   suggestedUsers.map((suggestedUser) => {
                     const isCurrentUser = user && suggestedUser.id === user.id;
                     
                     return (
-                      <div key={suggestedUser.id} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Link href={isCurrentUser ? "/user/profile/me" : `/user/profile/${suggestedUser.id}`} className="hover:underline">
+                      <div key={suggestedUser.id} className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Link href={isCurrentUser ? "/user/profile/me" : `/user/profile/${suggestedUser.id}`}>
                             <SafeAvatar
                               src={suggestedUser.avatarUrl}
                               alt={suggestedUser.fullName}
-                              className="h-10 w-10 rounded-full object-cover"
+                              className="h-9 w-9 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-700 flex-shrink-0"
                             />
                           </Link>
                           <div className="min-w-0">
-                            <Link href={isCurrentUser ? "/user/profile/me" : `/user/profile/${suggestedUser.id}`} className="hover:underline text-sm font-semibold truncate">
+                            <Link href={isCurrentUser ? "/user/profile/me" : `/user/profile/${suggestedUser.id}`} className="text-sm font-semibold text-slate-800 dark:text-slate-200 hover:text-teal-600 dark:hover:text-teal-400 transition-colors truncate block">
                               {suggestedUser.fullName}
                             </Link>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-slate-400 dark:text-slate-500">
                               {suggestedUser.followerCount.toLocaleString("vi-VN")} người theo dõi
                             </p>
                           </div>
                         </div>
                         {!isCurrentUser && (
-                          <Button
-                            size="sm"
-                            variant={followedUsers.has(suggestedUser.id) ? "outline" : "default"}
-                            className={followedUsers.has(suggestedUser.id) ? "" : "bg-primary text-primary-foreground hover:bg-primary/90"}
+                          <button
                             onClick={() => handleFollowClick(suggestedUser.id)}
+                            className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer ${
+                              followedUsers.has(suggestedUser.id)
+                                ? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                                : "bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 border border-teal-200 dark:border-teal-800"
+                            }`}
                           >
                             {followedUsers.has(suggestedUser.id) ? "Đang theo dõi" : "Theo dõi"}
-                          </Button>
+                          </button>
                         )}
                       </div>
                     );
                   })
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">Chưa có thành viên nổi bật</p>
+                  <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">Chưa có thành viên nổi bật</p>
                 )}
               </div>
             </div>
 
             {/* Saved Posts - Only show if authenticated */}
             {isAuthenticated && (
-              <div className="rounded-lg border border-border bg-card p-4">
-                <h2 className="mb-4 text-lg font-bold">Bài viết đã lưu</h2>
-                <div className="space-y-3">
+              <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                <h2 className="mb-4 text-[15px] font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="w-1 h-4 rounded-full bg-emerald-500 inline-block"></span>
+                  Bài viết đã lưu
+                </h2>
+                <div className="space-y-2">
                   {posts.filter(p => p.isSaved).slice(0, 3).map((post) => (
                     <Link
                       key={post.id}
                       href={`/user/post/${post.id}`}
-                      className="group block rounded-lg overflow-hidden hover:opacity-80 transition p-2"
+                      className="group block rounded-xl p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                     >
-                      <div className="flex flex-col gap-1">
-                        <p className="text-sm font-semibold group-hover:underline">{post.author.name}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{post.caption}</p>
-                      </div>
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">{post.author.name}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 line-clamp-1 mt-0.5">{post.caption}</p>
                     </Link>
                   ))}
                   {posts.filter(p => p.isSaved).length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">Chưa có bài viết đã lưu</p>
+                    <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">Chưa có bài viết đã lưu</p>
                   )}
                 </div>
                 <Link href="/user/saved">
-                  <Button variant="outline" className="w-full mt-4 bg-transparent">
+                  <button className="w-full mt-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 py-2 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-teal-200 dark:hover:border-teal-800 transition-all duration-150 cursor-pointer">
                     Xem tất cả
-                  </Button>
+                  </button>
                 </Link>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* ── Floating Chat Button ─────────────────────────────────────────── */}
+      <Link href="/user/chat">
+        <div
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-5 py-3.5 rounded-2xl text-white font-semibold text-sm shadow-2xl cursor-pointer group transition-all duration-200 hover:scale-105 hover:shadow-[0_8px_32px_rgba(8,145,178,0.45)]"
+          style={{ background: "linear-gradient(135deg, #0891b2 0%, #0e7490 100%)" }}
+        >
+          <MessageSquare className="h-5 w-5" />
+          <span>Chat</span>
+          {/* Pulse indicator — coming soon badge */}
+          <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-300 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-4 w-4 bg-teal-400 items-center justify-center">
+              <span className="text-[8px] text-white font-bold">!</span>
+            </span>
+          </span>
+        </div>
+      </Link>
 
       {/* Login Required Dialog */}
       <LoginRequiredDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />
@@ -521,6 +654,7 @@ export default function Home() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

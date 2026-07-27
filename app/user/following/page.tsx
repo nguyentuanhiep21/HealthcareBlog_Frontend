@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
 import { authUtils } from '@/lib/auth-utils'
+import { BackgroundPattern } from '@/components/background-pattern'
 
 interface FollowingUser {
   id: string
@@ -122,11 +123,13 @@ export default function FollowingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-2">Đang theo dõi</h1>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
+      <BackgroundPattern />
+      <div className="relative z-10">
+        <Navbar />
+        
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <h1 className="text-3xl font-bold mb-2">Đang theo dõi</h1>
         
         {authLoading || isLoading ? (
           <div className="text-center py-12">
@@ -217,6 +220,7 @@ export default function FollowingPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

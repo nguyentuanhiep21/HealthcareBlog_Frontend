@@ -4,6 +4,7 @@ import { use, useState, useEffect } from "react"
 import { Navbar } from "@/components/navbar"
 import { PostCard } from "@/components/post-card"
 import { ReportDialog } from "@/components/report-dialog"
+import { BackgroundPattern } from "@/components/background-pattern"
 import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { CreatePostBox } from "@/components/create-post-box"
 import { AvatarViewDialog } from "@/components/avatar-view-dialog"
@@ -359,20 +360,25 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
 
   if (error || !viewedUser) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="mx-auto max-w-7xl px-4 py-8">
-          <p className="text-center text-muted-foreground">{error || "Không tìm thấy người dùng"}</p>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
+        <BackgroundPattern />
+        <div className="relative z-10">
+          <Navbar />
+          <div className="mx-auto max-w-7xl px-4 py-8">
+            <p className="text-center text-muted-foreground">{error || "Không tìm thấy người dùng"}</p>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
+      <BackgroundPattern />
+      <div className="relative z-10">
+        <Navbar />
 
-      <div className="mx-auto max-w-3xl px-4 py-8">
+        <div className="mx-auto max-w-3xl px-4 py-8">
         {/* Profile Header */}
         <div className="mb-8 rounded-lg border border-border bg-card p-8">
           <div className="flex gap-6 items-start">
@@ -540,6 +546,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         imageSrc={selectedImageSrc}
         onCropComplete={handleCroppedImage}
       />
+      </div>
     </div>
   )
 }

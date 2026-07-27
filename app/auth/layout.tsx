@@ -9,7 +9,7 @@ export default function AuthLayout({
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <AuthProvider>
-        <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+        <div className="min-h-screen bg-[#f0fafb]">
           {children}
         </div>
       </AuthProvider>

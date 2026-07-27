@@ -9,6 +9,7 @@ import { Heart, MessageCircle, UserPlus, Bell } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
 import { authUtils } from '@/lib/auth-utils';
 import { formatTimeAgo } from '@/lib/time-utils';
+import { BackgroundPattern } from '@/components/background-pattern';
 
 interface Notification {
   id: number
@@ -159,61 +160,82 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
+      <BackgroundPattern />
+      <div className="relative z-10">
+        <Navbar />
 
-      <div className="mx-auto max-w-2xl px-4 py-8">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Thông báo</h1>
-          {notifications.some(n => !n.isRead) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleMarkAllAsRead}
-              className="text-primary border-primary hover:bg-primary/10"
-            >
-              Đánh dấu tất cả là đã đọc
-            </Button>
-          )}
-        </div>
+        <div className="mx-auto max-w-3xl px-4 py-8">
+          {/* Header */}
+          <div className="mb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 sm:p-8 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="p-4 rounded-2xl bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 shadow-inner">
+                <Bell className="h-8 w-8" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Thông báo</h1>
+                <p className="text-slate-500 font-medium mt-1">
+                  Cập nhật các tương tác mới nhất với bạn
+                </p>
+              </div>
+            </div>
+            {notifications.some(n => !n.isRead) && (
+              <Button
+                variant="default"
+                onClick={handleMarkAllAsRead}
+                className="bg-teal-600 hover:bg-teal-700 text-white shadow-md shadow-teal-500/20 font-bold rounded-xl h-11 px-5"
+              >
+                Đánh dấu tất cả đã đọc
+              </Button>
+            )}
+          </div>
 
         {/* Filter Tabs */}
-        <div className="mb-6 border-b border-border">
-          <div className="flex gap-8">
-            <button
-              onClick={() => setFilter('all')}
-              className={`pb-4 font-semibold transition ${
-                filter === 'all'
-                  ? 'border-b-2 border-primary text-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Tất cả
-            </button>
-            <button
-              onClick={() => setFilter('unread')}
-              className={`pb-4 font-semibold transition ${
-                filter === 'unread'
-                  ? 'border-b-2 border-primary text-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Chưa đọc
-              {notifications.filter(n => !n.isRead).length > 0 && (
-                <span className="ml-2 inline-flex items-center justify-center rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
-                  {notifications.filter(n => !n.isRead).length}
-                </span>
-              )}
-            </button>
-          </div>
+        <div className="mb-8 bg-white/60 dark:bg-slate-950/60 backdrop-blur-md p-2 rounded-2xl inline-flex gap-2 border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${
+              filter === 'all'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-800/50'
+            }`}
+          >
+            Tất cả
+          </button>
+          <button
+            onClick={() => setFilter('unread')}
+            className={`px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all duration-300 ${
+              filter === 'unread'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-800/50'
+            }`}
+          >
+            Chưa đọc
+            {notifications.filter(n => !n.isRead).length > 0 && (
+              <span className={`inline-flex items-center justify-center rounded-lg px-2 py-0.5 text-xs font-bold ${
+                filter === 'unread' 
+                  ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300' 
+                  : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+              }`}>
+                {notifications.filter(n => !n.isRead).length}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Loading State */}
         {(authLoading || isLoading) && (
-          <div className="text-center py-12">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
-            <p className="mt-4 text-muted-foreground">Đang tải...</p>
+          <div className="space-y-4 animate-in fade-in duration-500">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex gap-5 p-5 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm shadow-sm animate-pulse">
+                <div className="w-14 h-14 rounded-full bg-slate-200 dark:bg-slate-800 flex-shrink-0" />
+                <div className="flex-1 space-y-3 py-1">
+                  <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                  <div className="h-4 w-1/2 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                  <div className="h-3 w-20 bg-slate-100 dark:bg-slate-800/70 rounded-full mt-2" />
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -227,77 +249,94 @@ export default function NotificationsPage() {
 
         {/* Notifications List */}
         {!authLoading && !isLoading && !error && (
-          <div className="space-y-2">
+          <div className="space-y-4 animate-in slide-in-from-bottom-8 duration-700">
             {filteredNotifications.length > 0 ? (
               filteredNotifications.map((notification) => (
                 <Link
                   key={notification.id}
                   href={getNotificationLink(notification)}
                   onClick={() => handleMarkAsRead(notification.id)}
-                  className={`block rounded-lg border border-border p-4 hover:bg-accent/50 transition ${
-                    !notification.isRead ? 'bg-accent/20' : 'bg-card'
+                  className={`block rounded-3xl border transition-all duration-300 relative overflow-hidden group ${
+                    !notification.isRead 
+                      ? 'bg-teal-50/50 dark:bg-teal-900/10 border-teal-100 dark:border-teal-900/30 hover:shadow-md' 
+                      : 'bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-slate-200/60 dark:border-slate-800/60 hover:shadow-md hover:border-teal-500/30'
                   }`}
                 >
-                  <div className="flex gap-4 items-start">
+                  {/* Unread Indicator Bar */}
+                  {!notification.isRead && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-teal-500" />
+                  )}
+                  
+                  <div className="flex gap-5 p-5 sm:p-6 items-start">
                     {/* Icon and Avatar */}
-                    <div className="relative flex-shrink-0">
+                    <div className="relative flex-shrink-0 mt-1">
                       {notification.actor ? (
                         <>
                           <img
                             src={notification.actor.avatarUrl}
                             alt={notification.actor.fullName}
-                            className="w-12 h-12 rounded-full object-cover"
+                            className="w-14 h-14 rounded-full object-cover ring-4 ring-slate-50 dark:ring-slate-900 group-hover:scale-105 transition-transform duration-300"
                           />
-                          <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-1">
-                            {getNotificationIcon(notification.type)}
+                          <div className={`absolute -bottom-1 -right-1 rounded-full p-1.5 shadow-lg ring-2 ring-white dark:ring-slate-950 flex items-center justify-center ${
+                            notification.type === 'like' ? 'bg-rose-500 text-white' :
+                            notification.type === 'comment' ? 'bg-indigo-500 text-white' :
+                            notification.type === 'follow' ? 'bg-emerald-500 text-white' : 'bg-slate-500 text-white'
+                          }`}>
+                            {notification.type === 'like' && <Heart className="w-3.5 h-3.5 fill-white" />}
+                            {notification.type === 'comment' && <MessageCircle className="w-3.5 h-3.5 fill-white" />}
+                            {notification.type === 'follow' && <UserPlus className="w-3.5 h-3.5 fill-white" />}
+                            {notification.type !== 'like' && notification.type !== 'comment' && notification.type !== 'follow' && <Bell className="w-3.5 h-3.5" />}
                           </div>
                         </>
                       ) : (
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <div className="w-14 h-14 rounded-full bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 flex items-center justify-center shadow-inner">
                           {getNotificationIcon(notification.type)}
                         </div>
                       )}
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm leading-relaxed">
+                    <div className="flex-1 min-w-0 pr-4">
+                      <p className="text-[15px] leading-relaxed text-slate-600 dark:text-slate-300">
                         {notification.actor && (
-                          <span className="font-semibold">
-                            {notification.actor.fullName}{' '}
+                          <span className="font-bold text-slate-900 dark:text-white mr-1.5 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
+                            {notification.actor.fullName}
                           </span>
                         )}
-                        <span className="text-muted-foreground">
+                        <span>
                           {notification.content}
                         </span>
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-[12px] font-semibold text-slate-400 dark:text-slate-500 mt-2 uppercase tracking-wider">
                         {formatTimeAgo(notification.createdAt)}
                       </p>
                     </div>
 
-                    {/* Unread indicator */}
+                    {/* Unread indicator dot (optional, redundant with bar but looks nice) */}
                     {!notification.isRead && (
-                      <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-2" />
+                      <div className="w-3 h-3 rounded-full bg-teal-500 flex-shrink-0 mt-2 shadow-[0_0_10px_rgba(20,184,166,0.5)]" />
                     )}
                   </div>
                 </Link>
               ))
             ) : (
-              <div className="text-center py-12">
-                <Bell className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
+              <div className="flex flex-col items-center justify-center py-24 px-4 text-center bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-3xl border-2 border-slate-200 dark:border-slate-800 border-dashed animate-in zoom-in-95 duration-500">
+                <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-full mb-6 shadow-inner">
+                  <Bell className="w-14 h-14 text-slate-400 dark:text-slate-500" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
                   {filter === 'unread' ? 'Không có thông báo chưa đọc' : 'Chưa có thông báo nào'}
                 </h3>
-                <p className="text-muted-foreground">
+                <p className="text-slate-500 font-medium max-w-md mx-auto leading-relaxed">
                   {filter === 'unread' 
-                    ? 'Bạn đã đọc tất cả thông báo' 
-                    : 'Khi có người tương tác với bạn, thông báo sẽ hiển thị ở đây'}
+                    ? 'Bạn đã xem hết tất cả thông báo.' 
+                    : 'Khi có người tương tác với bạn, thông báo sẽ hiển thị ở đây.'}
                 </p>
               </div>
             )}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

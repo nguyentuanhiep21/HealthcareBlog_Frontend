@@ -103,29 +103,29 @@ export function AvatarCropDialog({ isOpen, onClose, imageSrc, onCropComplete }: 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={onClose}
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
+        onClick={!isProcessing ? onClose : undefined}
       />
       
       {/* Dialog */}
-      <div className="relative z-[10000] w-full max-w-2xl mx-4 bg-card rounded-lg shadow-2xl border border-border overflow-hidden">
+      <div className="relative z-[10000] w-full max-w-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)] overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="text-xl font-semibold">Chỉnh sửa ảnh đại diện</h2>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Chỉnh sửa ảnh đại diện</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-accent rounded-full transition-colors"
+            className="h-8 w-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors disabled:opacity-50"
             disabled={isProcessing}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Cropper Area */}
-        <div className="relative h-[400px] w-full bg-black">
+        <div className="relative h-[400px] w-full bg-slate-900 overflow-hidden">
           <Cropper
             image={imageSrc}
             crop={crop}
@@ -140,9 +140,9 @@ export function AvatarCropDialog({ isOpen, onClose, imageSrc, onCropComplete }: 
         </div>
 
         {/* Zoom Control */}
-        <div className="px-6 py-4 border-t border-border bg-muted/30">
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium min-w-20">Phóng to</span>
+        <div className="px-6 py-5 bg-slate-50/50 dark:bg-slate-900/50 border-t border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-4 max-w-sm mx-auto">
+            <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 min-w-[60px]">Thu nhỏ</span>
             <input
               type="range"
               value={zoom}
@@ -150,29 +150,27 @@ export function AvatarCropDialog({ isOpen, onClose, imageSrc, onCropComplete }: 
               min={1}
               max={3}
               step={0.1}
-              className="flex-1 h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+              className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-teal-600"
             />
-            <span className="text-sm text-muted-foreground min-w-12 text-right">
-              {zoom.toFixed(1)}x
-            </span>
+            <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 min-w-[60px] text-right">Phóng to</span>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
+        <div className="flex items-center gap-3 px-6 py-5 bg-white dark:bg-slate-950">
           <button
             onClick={onClose}
             disabled={isProcessing}
-            className="px-4 py-2 border border-border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
+            className="flex-1 h-12 rounded-full border-2 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-900 transition-all disabled:opacity-50"
           >
             Hủy
           </button>
           <button
             onClick={handleSave}
             disabled={isProcessing}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 font-medium"
+            className="flex-1 h-12 rounded-full bg-teal-600 hover:bg-teal-700 text-white font-semibold transition-all shadow-sm hover:shadow-md disabled:opacity-50"
           >
-            {isProcessing ? 'Đang xử lý...' : 'Lưu'}
+            {isProcessing ? 'Đang xử lý...' : 'Lưu ảnh'}
           </button>
         </div>
       </div>
