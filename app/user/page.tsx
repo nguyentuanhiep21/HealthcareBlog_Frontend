@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Navbar } from "@/components/navbar"
 import { CreatePostBox } from "@/components/create-post-box"
 import { PostCard } from "@/components/post-card"
@@ -57,11 +57,33 @@ export default function Home() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatar: string } | null>(null)
 
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  
+  const observer = useRef<IntersectionObserver | null>(null)
+  const lastPostElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (isLoading || isLoadingMore) return
+    if (observer.current) observer.current.disconnect()
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1)
+      }
+    })
+    if (node) observer.current.observe(node)
+  }, [isLoading, isLoadingMore, hasMore])
+
   useEffect(() => {
-    fetchPosts()
+    fetchPosts(1)
     fetchTrendingPosts()
     fetchSuggestedUsers()
   }, [])
+
+  useEffect(() => {
+    if (page > 1) {
+      fetchPosts(page)
+    }
+  }, [page])
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -96,13 +118,17 @@ export default function Home() {
     fetchCurrentUser()
   }, [isAuthenticated])
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (pageNumber = 1) => {
     try {
-      setIsLoading(true)
+      if (pageNumber === 1) {
+        setIsLoading(true)
+      } else {
+        setIsLoadingMore(true)
+      }
       setError("")
       
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/post?page=1&pageSize=20`,
+        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/post?page=${pageNumber}&pageSize=20`,
         {
           method: "GET",
           headers: authUtils.getAuthHeaders(),
@@ -162,12 +188,21 @@ export default function Home() {
         }
       })
 
-      setPosts(mappedPosts)
+      if (pageNumber === 1) {
+        setPosts(mappedPosts)
+      } else {
+        setPosts(prev => [...prev, ...mappedPosts])
+      }
+      
+      if (mappedPosts.length < 20) {
+        setHasMore(false)
+      }
     } catch (error) {
       console.error("Fetch posts error:", error)
-      setError("Đã xảy ra lỗi khi tải bài viết")
+      if (pageNumber === 1) setError("Đã xảy ra lỗi khi tải bài viết")
     } finally {
       setIsLoading(false)
+      setIsLoadingMore(false)
     }
   }
 
@@ -473,15 +508,37 @@ export default function Home() {
             {!isLoading && !error && (
               <div className="space-y-0">
                 {posts.length > 0 ? (
-                  posts.map((post) => (
-                    <PostCard 
-                      key={post.id} 
-                      post={post} 
-                      onPostUpdate={handlePostUpdate} 
-                      onPostDelete={handlePostDelete}
-                      currentUser={currentUser} 
-                    />
-                  ))
+                  <>
+                    {posts.map((post, index) => {
+                      if (posts.length === index + 1) {
+                        return (
+                          <div ref={lastPostElementRef} key={post.id}>
+                            <PostCard 
+                              post={post} 
+                              onPostUpdate={handlePostUpdate} 
+                              onPostDelete={handlePostDelete}
+                              currentUser={currentUser} 
+                            />
+                          </div>
+                        )
+                      } else {
+                        return (
+                          <PostCard 
+                            key={post.id} 
+                            post={post} 
+                            onPostUpdate={handlePostUpdate} 
+                            onPostDelete={handlePostDelete}
+                            currentUser={currentUser} 
+                          />
+                        )
+                      }
+                    })}
+                    {isLoadingMore && (
+                      <div className="py-4 text-center flex items-center justify-center">
+                        <div className="h-6 w-6 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center shadow-sm">
                     <div className="text-5xl mb-4">📋</div>
