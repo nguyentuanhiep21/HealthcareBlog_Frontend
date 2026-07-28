@@ -13,7 +13,9 @@ import { BannerCropDialog } from "@/components/banner-crop-dialog"
 import { SafeAvatar } from "@/components/safe-avatar"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
-import { Flag, Edit, Users, Image as ImageIcon, Calendar, Info, Camera, Loader2 } from "lucide-react"
+import { Flag, Edit, Users, Image as ImageIcon, Calendar, Info, Camera, Loader2, MessageSquare } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { chatService } from "@/lib/chat-service"
 import Link from "next/link"
 import type { Post } from "@/lib/types"
 import { authUtils } from "@/lib/auth-utils"
@@ -32,6 +34,7 @@ interface ViewedUserProfile {
 export default function UserProfilePage({ params }: { params: Promise<{ userId: string }> }) {
   const { userId } = use(params)
   const { isAuthenticated, user, fetchUserInfo } = useAuth()
+  const router = useRouter()
 
   const [viewedUser, setViewedUser] = useState<ViewedUserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -52,6 +55,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false)
   const [selectedImageSrc, setSelectedImageSrc] = useState<string>("")
   const [isBannerUploading, setIsBannerUploading] = useState(false)
+  const [isOpeningChat, setIsOpeningChat] = useState(false)
 
   const [isBannerCropDialogOpen, setIsBannerCropDialogOpen] = useState(false)
   const [selectedBannerSrc, setSelectedBannerSrc] = useState<string>("")
@@ -212,6 +216,23 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         followers: newIsFollowing ? viewedUser.followers - 1 : viewedUser.followers + 1,
         isFollowing: !newIsFollowing,
       })
+    }
+  }
+
+  const handleOpenChat = async () => {
+    if (!isAuthenticated) {
+      setShowLoginDialog(true)
+      return
+    }
+    if (!viewedUser) return
+    setIsOpeningChat(true)
+    try {
+      await chatService.openOrCreateConversation(viewedUser.id)
+      router.push(`/user/chat?userId=${viewedUser.id}`)
+    } catch (err) {
+      console.error("Failed to open chat:", err)
+    } finally {
+      setIsOpeningChat(false)
     }
   }
 
@@ -543,6 +564,22 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
                     >
                       {isFollowing ? "Đang theo dõi" : "Theo dõi"}
                     </Button>
+
+                    {/* ── Nhắn tin button ── */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isOpeningChat}
+                      className="gap-1.5 border-teal-200 text-teal-700 hover:bg-teal-50 hover:text-teal-800 dark:border-teal-700 dark:text-teal-400 dark:hover:bg-teal-900/30 transition-colors"
+                      onClick={handleOpenChat}
+                    >
+                      {isOpeningChat
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : <MessageSquare className="h-4 w-4" />
+                      }
+                      Nhắn tin
+                    </Button>
+
                     <button
                       onClick={() => {
                         if (!isAuthenticated) {
