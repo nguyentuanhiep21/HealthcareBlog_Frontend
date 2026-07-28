@@ -200,22 +200,12 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
     return (
       <div className="mb-6 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl p-5 shadow-sm transition-all hover:shadow-md">
         <div className="flex gap-4 items-center">
-          {isAuthenticated && user ? (
-            <SafeAvatar
-              src={user.avatarUrl}
-              alt={user.fullName}
-              className="h-12 w-12 rounded-full ring-2 ring-teal-500/20 object-cover flex-shrink-0"
-            />
-          ) : (
-            <div className="h-12 w-12 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
-              <span className="text-teal-600 dark:text-teal-400 font-bold text-lg">?</span>
-            </div>
-          )}
+
           <button
             onClick={handleOpenCreate}
             className="flex-1 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 px-5 py-3.5 text-left text-[15px] text-slate-500 dark:text-slate-400 transition-all hover:bg-white dark:hover:bg-slate-900 hover:border-teal-500/30 hover:shadow-[0_2px_10px_-3px_rgba(13,148,136,0.1)]"
           >
-            {isAuthenticated && user ? `${user.fullName}, bạn đang nghĩ gì thế?` : "Bạn đang nghĩ gì? Hãy chia sẻ cùng mọi người..."}
+            Bạn có chia sẻ gì về chủ đề sức khỏe không?
           </button>
           <div className="hidden sm:flex gap-2">
              <button onClick={handleOpenCreate} className="p-3 rounded-full text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors" title="Thêm ảnh">
@@ -234,7 +224,6 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
         <div className="flex items-center gap-3">
           {user && (
             <>
-              <SafeAvatar src={user.avatarUrl} alt={user.fullName} className="h-12 w-12 rounded-full ring-2 ring-teal-500/20 object-cover" />
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-white">{user.fullName}</h3>
                 <div className="flex items-center gap-1.5 mt-0.5">
@@ -257,7 +246,7 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
       <textarea
         value={caption}
         onChange={e => setCaption(e.target.value)}
-        placeholder={isAuthenticated && user ? `${user.fullName}, bạn đang nghĩ gì thế?` : "Bạn đang nghĩ gì?"}
+        placeholder="Bạn có chia sẻ gì về chủ đề sức khỏe không?"
         className="mb-4 w-full resize-none bg-transparent px-2 py-3 text-[16px] leading-relaxed outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 min-h-[120px] border-none focus:ring-0 text-slate-900 dark:text-slate-100"
         rows={4}
         disabled={isLoading}

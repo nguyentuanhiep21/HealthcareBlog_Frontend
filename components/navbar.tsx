@@ -15,10 +15,8 @@ export function Navbar() {
   const { isAuthenticated, user, logout } = useAuth()
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  const [avatarError, setAvatarError] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -129,14 +127,16 @@ export function Navbar() {
 
             {/* Search Bar - hidden on mobile, shown on md+ */}
             <form onSubmit={handleSearch} className="hidden md:block relative w-64 lg:w-80 ml-4 group">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-slate-400 group-focus-within:text-teal-500 transition-colors" />
-              <Input
-                type="search"
-                placeholder="Tìm kiếm bài viết, bác sĩ..."
-                className="pl-10 h-11 bg-slate-100/70 dark:bg-slate-900/70 border-transparent hover:border-slate-300 dark:hover:border-slate-700 focus-visible:ring-2 focus-visible:ring-teal-500/20 focus-visible:border-teal-500 rounded-full transition-all text-[15px]"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+              <div className="flex items-center h-11 bg-slate-100/70 dark:bg-slate-900/70 border border-transparent hover:border-slate-300 dark:hover:border-slate-700 rounded-full transition-all px-4 cursor-default">
+                <Search className="h-[18px] w-[18px] text-slate-400 group-focus-within:text-teal-500 transition-colors flex-shrink-0" />
+                <input
+                  type="search"
+                  placeholder="Tìm kiếm bài viết, bác sĩ..."
+                  className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[15px] ml-2.5 placeholder:text-slate-500 dark:text-slate-200"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </form>
           </div>
           
@@ -157,74 +157,14 @@ export function Navbar() {
 
             {/* Avatar with Dropdown or Login Button */}
             {isAuthenticated ? (
-              <div className="relative ml-1">
-                <button
-                  className="rounded-full overflow-hidden p-0 border-0 bg-transparent cursor-pointer ring-2 ring-transparent hover:ring-teal-500/30 transition-all focus:outline-none"
-                  onClick={() => setIsAvatarMenuOpen(!isAvatarMenuOpen)}
-                >
-                  <img
-                    src={avatarError || !user?.avatarUrl ? "/placeholder.svg" : user.avatarUrl}
-                    alt={user?.fullName || "User"}
-                    className="h-[38px] w-[38px] rounded-full object-cover"
-                    onError={() => setAvatarError(true)}
-                  />
-                </button>
-
-                {isAvatarMenuOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsAvatarMenuOpen(false)} />
-                    <div className="absolute right-0 top-12 w-60 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] z-50 p-2 animate-in fade-in zoom-in-95 duration-200">
-                      
-                      {/* User Info Header */}
-                      <div className="px-3 py-2 mb-2 border-b border-slate-100 dark:border-slate-800">
-                        <p className="font-semibold text-sm text-slate-900 dark:text-white truncate">
-                          {user?.fullName}
-                        </p>
-                        <p className="text-xs text-slate-500 truncate">
-                          {user?.email || "Người dùng"}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col gap-1">
-                        <Link
-                          href="/user/profile/me"
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                          onClick={() => setIsAvatarMenuOpen(false)}
-                        >
-                          <User className="h-4 w-4 text-slate-400" />
-                          Trang cá nhân
-                        </Link>
-                        <Link
-                          href="/user/settings"
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                          onClick={() => setIsAvatarMenuOpen(false)}
-                        >
-                          <Settings className="h-4 w-4 text-slate-400" />
-                          Cài đặt hệ thống
-                        </Link>
-                        <Link
-                          href="/user/change-password"
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                          onClick={() => setIsAvatarMenuOpen(false)}
-                        >
-                          <KeyRound className="h-4 w-4 text-slate-400" />
-                          Đổi mật khẩu
-                        </Link>
-                        
-                        <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
-                        
-                        <button
-                          onClick={handleLogout}
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-left w-full"
-                        >
-                          <LogOut className="h-4 w-4" />
-                          Đăng xuất
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
+              <Button 
+                onClick={handleLogout}
+                variant="outline"
+                className="h-10 px-4 sm:px-5 gap-2 rounded-full border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-900/20 dark:hover:text-rose-400 dark:hover:border-rose-800/50 transition-colors ml-1"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Đăng xuất</span>
+              </Button>
             ) : (
               <Link href="/auth/login" className="ml-2">
                 <Button className="h-10 px-5 gap-2 rounded-full bg-teal-600 hover:bg-teal-700 text-white font-medium shadow-sm transition-all hover:shadow-md">

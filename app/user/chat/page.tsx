@@ -576,12 +576,6 @@ function ChatPageInner() {
 
                     <div className="flex items-center gap-1">
                       <button className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition">
-                        <Phone className="h-4.5 w-4.5 h-[18px] w-[18px]" />
-                      </button>
-                      <button className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition">
-                        <Video className="h-[18px] w-[18px]" />
-                      </button>
-                      <button className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition">
                         <MoreHorizontal className="h-[18px] w-[18px]" />
                       </button>
                     </div>
@@ -656,11 +650,7 @@ function ChatPageInner() {
                       <p className="text-xs text-red-500 text-center mb-2">{connectionError}</p>
                     )}
                     <div className="flex items-end gap-2">
-                      <button className="flex-shrink-0 p-2.5 rounded-xl text-slate-400 hover:text-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/30 transition">
-                        <Smile className="h-5 w-5" />
-                      </button>
-
-                      <div className="flex-1 relative">
+                      <div className="flex-1 relative flex items-center bg-slate-100 dark:bg-slate-800 rounded-2xl px-4 py-[12px] cursor-default transition">
                         <textarea
                           ref={inputRef}
                           rows={1}
@@ -673,7 +663,7 @@ function ChatPageInner() {
                           }}
                           onKeyDown={handleKeyDown}
                           placeholder="Nhập tin nhắn... (Enter để gửi)"
-                          className="w-full resize-none rounded-2xl bg-slate-100 dark:bg-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-400/50 transition leading-relaxed"
+                          className="w-full block resize-none bg-transparent text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-0 leading-snug p-0 m-0 border-none"
                           style={{ maxHeight: 120 }}
                           disabled={!isConnected}
                         />
@@ -682,7 +672,7 @@ function ChatPageInner() {
                       <button
                         onClick={handleSend}
                         disabled={!inputText.trim() || isSending || !isConnected}
-                        className="flex-shrink-0 h-11 w-11 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 text-white flex items-center justify-center shadow-md shadow-teal-200/50 dark:shadow-teal-900/30 hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none"
+                        className="flex-shrink-0 h-[44px] w-[44px] rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 text-white flex items-center justify-center shadow-md shadow-teal-200/50 dark:shadow-teal-900/30 hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none"
                       >
                         {isSending
                           ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -690,9 +680,6 @@ function ChatPageInner() {
                         }
                       </button>
                     </div>
-                    <p className="text-center text-[10px] text-slate-300 dark:text-slate-600 mt-2">
-                      Shift + Enter để xuống dòng
-                    </p>
                   </div>
                 </>
               ) : (

@@ -44,6 +44,15 @@ function SearchContent() {
     }
   }, [query])
 
+  const handlePostDelete = (postId: string) => {
+    setPosts(prev => prev.filter(p => p.id !== postId))
+    setTotalPosts(prev => Math.max(0, prev - 1))
+  }
+
+  const handlePostUpdate = (updatedPost: Post) => {
+    setPosts(prev => prev.map(p => p.id === updatedPost.id ? updatedPost : p))
+  }
+
   const searchContent = async () => {
     setIsLoading(true)
     setError("")
@@ -257,9 +266,9 @@ function SearchContent() {
           <div className="mb-8 flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
             <button
               onClick={() => setActiveTab("all")}
-              className={`px-6 py-3 rounded-full font-bold text-[15px] whitespace-nowrap transition-all duration-300 ${
+              className={`px-6 py-3 rounded-full font-bold text-[15px] whitespace-nowrap transition-all duration-300 focus:outline-none ${
                 activeTab === "all"
-                  ? "bg-teal-600 text-white shadow-lg shadow-teal-500/30 ring-2 ring-teal-600 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-950"
+                  ? "bg-teal-600 text-white shadow-md shadow-teal-500/40"
                   : "bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
@@ -267,9 +276,9 @@ function SearchContent() {
             </button>
             <button
               onClick={() => setActiveTab("posts")}
-              className={`px-6 py-3 rounded-full font-bold text-[15px] whitespace-nowrap transition-all duration-300 ${
+              className={`px-6 py-3 rounded-full font-bold text-[15px] whitespace-nowrap transition-all duration-300 focus:outline-none ${
                 activeTab === "posts"
-                  ? "bg-teal-600 text-white shadow-lg shadow-teal-500/30 ring-2 ring-teal-600 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-950"
+                  ? "bg-teal-600 text-white shadow-md shadow-teal-500/40"
                   : "bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
@@ -277,9 +286,9 @@ function SearchContent() {
             </button>
             <button
               onClick={() => setActiveTab("users")}
-              className={`px-6 py-3 rounded-full font-bold text-[15px] whitespace-nowrap transition-all duration-300 ${
+              className={`px-6 py-3 rounded-full font-bold text-[15px] whitespace-nowrap transition-all duration-300 focus:outline-none ${
                 activeTab === "users"
-                  ? "bg-teal-600 text-white shadow-lg shadow-teal-500/30 ring-2 ring-teal-600 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-950"
+                  ? "bg-teal-600 text-white shadow-md shadow-teal-500/40"
                   : "bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
@@ -321,7 +330,7 @@ function SearchContent() {
           <>
             {/* Posts Results */}
             {(activeTab === "all" || activeTab === "posts") && (
-              <div className="mb-10 animate-in slide-in-from-bottom-4 duration-500">
+              <div className="mb-10">
                 {activeTab === "posts" && posts.length > 0 && (
                   <h2 className="text-xl font-bold mb-5 text-slate-800 dark:text-slate-200 flex items-center gap-2">
                     <FileText className="h-6 w-6 text-teal-500" />
@@ -337,7 +346,13 @@ function SearchContent() {
                 {posts.length > 0 ? (
                   <div className="space-y-6">
                     {posts.map((post) => (
-                      <PostCard key={post.id} post={post} currentUser={currentUser} />
+                      <PostCard 
+                        key={post.id} 
+                        post={post} 
+                        currentUser={currentUser ? { id: currentUser.id, name: currentUser.fullName || "", avatar: currentUser.avatarUrl || "" } : null}
+                        onPostDelete={handlePostDelete}
+                        onPostUpdate={handlePostUpdate}
+                      />
                     ))}
                   </div>
                 ) : activeTab === "posts" ? (
@@ -348,7 +363,7 @@ function SearchContent() {
 
             {/* Users Results */}
             {(activeTab === "all" || activeTab === "users") && (
-              <div className="animate-in slide-in-from-bottom-8 duration-500 delay-100 fill-mode-both">
+              <div>
                 {activeTab === "users" && users.length > 0 && (
                   <h2 className="text-xl font-bold mb-5 text-slate-800 dark:text-slate-200 flex items-center gap-2">
                     <Users className="h-6 w-6 text-indigo-500" />
