@@ -1,6 +1,6 @@
 "use client"
 
-import { use, useState, useEffect } from "react"
+import { use, useState, useEffect, useRef } from "react"
 import { Navbar } from "@/components/navbar"
 import { PostCard } from "@/components/post-card"
 import { ReportDialog } from "@/components/report-dialog"
@@ -9,10 +9,12 @@ import { LoginRequiredDialog } from "@/components/login-required-dialog"
 import { CreatePostBox } from "@/components/create-post-box"
 import { AvatarViewDialog } from "@/components/avatar-view-dialog"
 import { AvatarCropDialog } from "@/components/avatar-crop-dialog"
+import { BannerCropDialog } from "@/components/banner-crop-dialog"
 import { SafeAvatar } from "@/components/safe-avatar"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
-import { Flag } from "lucide-react"
+import { Flag, Edit, Users, Image as ImageIcon, Calendar, Info, Camera, Loader2 } from "lucide-react"
+import Link from "next/link"
 import type { Post } from "@/lib/types"
 import { authUtils } from "@/lib/auth-utils"
 
@@ -42,11 +44,17 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
   const [userPosts, setUserPosts] = useState<Post[]>([])
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState("/placeholder.svg")
+  const [bannerUrl, setBannerUrl] = useState("")
   const [showReportSuccessDialog, setShowReportSuccessDialog] = useState(false)
+  const bannerFileInputRef = useRef<HTMLInputElement>(null)
   const [reportSuccessMessage, setReportSuccessMessage] = useState("")
   const [isReportSuccess, setIsReportSuccess] = useState(true)
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false)
   const [selectedImageSrc, setSelectedImageSrc] = useState<string>("")
+  const [isBannerUploading, setIsBannerUploading] = useState(false)
+
+  const [isBannerCropDialogOpen, setIsBannerCropDialogOpen] = useState(false)
+  const [selectedBannerSrc, setSelectedBannerSrc] = useState<string>("")
 
   // Check if viewing current user profile
   const isCurrentUser = userId === "me" || (user && userId === user.id)
@@ -97,6 +105,12 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
             : data.avatarUrl ? `${backendUrl}${data.avatarUrl}` : "/placeholder.svg")
           : "/placeholder.svg"
 
+        const fullBannerUrl = data.bannerUrl
+          ? (data.bannerUrl && data.bannerUrl.startsWith('http')
+            ? data.bannerUrl
+            : `${backendUrl}${data.bannerUrl}`)
+          : "/default-banner.svg"
+
         const profileData: ViewedUserProfile = {
           id: data.id,
           name: data.fullName,
@@ -111,6 +125,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         setViewedUser(profileData)
         setBio(profileData.bio)
         setAvatarUrl(fullAvatarUrl)
+        setBannerUrl(fullBannerUrl)
         setIsFollowing(profileData.isFollowing)
 
         // Map posts
@@ -271,6 +286,88 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
     reader.readAsDataURL(file)
   }
 
+  const handleBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setSelectedBannerSrc(reader.result as string)
+      setIsBannerCropDialogOpen(true)
+    }
+    reader.readAsDataURL(file)
+
+    if (bannerFileInputRef.current) {
+      bannerFileInputRef.current.value = ""
+    }
+  }
+
+  const handleCroppedBanner = async (croppedBlob: Blob) => {
+    setIsBannerCropDialogOpen(false)
+    setIsBannerUploading(true)
+
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
+      
+      const file = new File([croppedBlob], 'banner.jpg', { type: 'image/jpeg' })
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const token = authUtils.getToken()
+      if (!token) {
+        console.error('No authentication token found')
+        return
+      }
+
+      // Step 1: Upload banner
+      const uploadResponse = await fetch(`${backendUrl}/api/upload/banner`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      })
+
+      if (!uploadResponse.ok) {
+        console.error('Failed to upload banner')
+        return
+      }
+
+      const uploadResult = await uploadResponse.json()
+      const newBannerUrl = uploadResult.url
+
+      // Step 2: Update user banner in DB
+      const updateResponse = await fetch(`${backendUrl}/api/user/banner`, {
+        method: 'PUT',
+        headers: authUtils.getAuthHeaders(),
+        body: JSON.stringify({
+          bannerUrl: newBannerUrl
+        }),
+      })
+
+      if (!updateResponse.ok) {
+        const errorText = await updateResponse.text()
+        console.error('Failed to update banner:', errorText)
+        return
+      }
+
+      const updatedUser = await updateResponse.json()
+      
+      const fullBannerUrl = updatedUser.bannerUrl
+        ? (updatedUser.bannerUrl.startsWith('http')
+          ? updatedUser.bannerUrl
+          : `${backendUrl}${updatedUser.bannerUrl}`)
+        : ""
+        
+      setBannerUrl(fullBannerUrl)
+      
+    } catch (error) {
+      console.error("Error uploading banner:", error)
+    } finally {
+      setIsBannerUploading(false)
+    }
+  }
+
   const handleCroppedImage = async (croppedBlob: Blob) => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
@@ -379,23 +476,65 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         <Navbar />
 
         <div className="mx-auto max-w-3xl px-4 py-8">
-        {/* Profile Header */}
-        <div className="mb-8 rounded-lg border border-border bg-card p-8">
-          <div className="flex gap-6 items-start">
-            {/* Avatar */}
-            <div onClick={() => setIsAvatarDialogOpen(true)} className="cursor-pointer">
-              <SafeAvatar
-                src={avatarUrl}
-                alt={viewedUser.name}
-                className="h-24 w-24 rounded-full hover:opacity-80 transition"
+          {/* Profile Header */}
+          <div className="mb-8 rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+            {/* Banner */}
+            <div className="h-56 w-full relative group overflow-hidden bg-slate-200 dark:bg-slate-800">
+              <img src={bannerUrl || "/default-banner.svg"} alt="Banner" className="absolute inset-0 w-full h-full object-cover" />
+              {isCurrentUser && (
+                <div className={`absolute inset-0 bg-black/10 transition-opacity flex items-end justify-end p-4 ${isBannerUploading ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    className="bg-white/80 hover:bg-white text-slate-900 gap-2 font-medium backdrop-blur-sm shadow-sm"
+                    onClick={() => !isBannerUploading && bannerFileInputRef.current?.click()}
+                    disabled={isBannerUploading}
+                  >
+                    {isBannerUploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Đang tải lên...
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-4 h-4" />
+                        Thay đổi ảnh bìa
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+              <input 
+                type="file" 
+                ref={bannerFileInputRef} 
+                className="hidden" 
+                accept="image/*"
+                onChange={handleBannerFileChange} 
               />
             </div>
+            
+            <div className="px-8 pb-8 relative">
+              {/* Avatar overlay */}
+              <div className="absolute -top-16 left-8">
+                <div onClick={() => setIsAvatarDialogOpen(true)} className="cursor-pointer rounded-full p-1 bg-card">
+                  <SafeAvatar
+                    src={avatarUrl}
+                    alt={viewedUser.name}
+                    className="h-32 w-32 rounded-full hover:opacity-90 transition object-cover border-4 border-card"
+                  />
+                </div>
+              </div>
 
-            {/* Info */}
-            <div className="flex-1">
-              <div className="flex items-start justify-between mb-1">
-                <h1 className="text-3xl font-bold">{viewedUser.name}</h1>
-                {!isCurrentUser && (
+              {/* Action Buttons */}
+              <div className="flex justify-end pt-4 pb-2 h-16">
+                {isCurrentUser ? (
+                  <Link href="/user/settings">
+                    <Button variant="outline" className="gap-2">
+                      <Edit className="h-4 w-4" />
+                      Chỉnh sửa trang cá nhân
+                    </Button>
+                  </Link>
+                ) : (
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
@@ -419,87 +558,104 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
                   </div>
                 )}
               </div>
-              <p className="text-muted-foreground mb-4 line-clamp-1">{bio}</p>
 
-              <div className="flex gap-6 mb-4">
-                <div>
-                  <p className="text-lg font-semibold">{viewedUser.followers.toLocaleString("vi-VN")}</p>
-                  <p className="text-sm text-muted-foreground">Người theo dõi</p>
-                </div>
-                <div>
-                  <p className="text-lg font-semibold">{viewedUser.following.toLocaleString("vi-VN")}</p>
-                  <p className="text-sm text-muted-foreground">Đang theo dõi</p>
-                </div>
-                <div>
-                  <p className="text-lg font-semibold">{userPosts.length}</p>
-                  <p className="text-sm text-muted-foreground">Bài viết</p>
+              {/* Info */}
+              <div className="mt-2">
+                <h1 className="text-3xl font-bold mb-2">{viewedUser.name}</h1>
+                <p className="text-muted-foreground mb-6">{bio || "Chưa có tiểu sử."}</p>
+
+                <div className="flex flex-wrap gap-6 text-sm">
+                  <div className="flex items-center gap-2 text-foreground/80 hover:text-foreground transition cursor-pointer">
+                    <Users className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-semibold text-base">{viewedUser.followers.toLocaleString("vi-VN")}</span> 
+                    <span className="text-muted-foreground">Người theo dõi</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-foreground/80 hover:text-foreground transition cursor-pointer">
+                    <Users className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-semibold text-base">{viewedUser.following.toLocaleString("vi-VN")}</span>
+                    <span className="text-muted-foreground">Đang theo dõi</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-foreground/80 hover:text-foreground transition cursor-pointer">
+                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-semibold text-base">{userPosts.length}</span>
+                    <span className="text-muted-foreground">Bài viết</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Tabs */}
-        <div className="mb-6 border-b border-border">
-          <div className="flex gap-8">
-            <button
-              onClick={() => setActiveTab("home")}
-              className={`pb-4 font-semibold transition ${activeTab === "home"
-                ? "border-b-2 border-primary text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
-            >
-              Trang chủ
-            </button>
-            <button
-              onClick={() => setActiveTab("about")}
-              className={`pb-4 font-semibold transition ${activeTab === "about"
-                ? "border-b-2 border-primary text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
-            >
-              Thông tin
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        {activeTab === "home" && (
-          <div className="space-y-4">
-            {isCurrentUser && <CreatePostBox onPostCreate={handlePostCreate} />}
-
-            {userPosts.length > 0 ? (
-              userPosts.map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  currentUser={user ? { id: user.id, name: user.fullName || "", avatar: user.avatarUrl || "" } : null}
-                  onPostDelete={handlePostDelete}
-                  onPostUpdate={handlePostUpdate}
-                />
-              ))
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">Chưa có bài viết nào</div>
-            )}
-          </div>
-        )}
-
-        {activeTab === "about" && (
-          <div className="rounded-lg border border-border bg-card p-8">
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-semibold mb-2">Giới thiệu</h3>
-                <p className="text-muted-foreground">{bio || "Chưa có giới thiệu."}</p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold mb-2">Tham gia</h3>
-                <p className="text-sm text-muted-foreground">Tháng 11, 2025</p>
-              </div>
+          {/* Tabs */}
+          <div className="mb-6 border-b border-border">
+            <div className="flex gap-8 px-4">
+              <button
+                onClick={() => setActiveTab("home")}
+                className={`pb-4 font-semibold transition flex items-center gap-2 ${activeTab === "home"
+                  ? "border-b-2 border-primary text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
+              >
+                Trang chủ
+              </button>
+              <button
+                onClick={() => setActiveTab("about")}
+                className={`pb-4 font-semibold transition flex items-center gap-2 ${activeTab === "about"
+                  ? "border-b-2 border-primary text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
+              >
+                Thông tin
+              </button>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Content */}
+          {activeTab === "home" && (
+            <div className="space-y-4">
+              {isCurrentUser && <CreatePostBox onPostCreate={handlePostCreate} />}
+
+              {userPosts.length > 0 ? (
+                userPosts.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    currentUser={user ? { id: user.id, name: user.fullName || "", avatar: user.avatarUrl || "" } : null}
+                    onPostDelete={handlePostDelete}
+                    onPostUpdate={handlePostUpdate}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-12 text-muted-foreground bg-card rounded-xl border border-border">Chưa có bài viết nào</div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "about" && (
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="p-8 space-y-8">
+                <div>
+                  <h3 className="font-semibold mb-4 flex items-center gap-2 text-lg">
+                    <Info className="h-5 w-5 text-primary" />
+                    Giới thiệu
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed bg-slate-50/50 dark:bg-slate-900/50 p-4 rounded-lg border border-border/50">
+                    {bio || "Chưa có giới thiệu."}
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold mb-4 flex items-center gap-2 text-lg">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    Tham gia
+                  </h3>
+                  <div className="flex items-center gap-2 text-muted-foreground bg-slate-50/50 dark:bg-slate-900/50 p-4 rounded-lg border border-border/50">
+                    Tháng 11, 2025
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
       <ReportDialog
         isOpen={isReportDialogOpen}
@@ -546,7 +702,14 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         imageSrc={selectedImageSrc}
         onCropComplete={handleCroppedImage}
       />
-      </div>
+
+      <BannerCropDialog
+        isOpen={isBannerCropDialogOpen}
+        onClose={() => setIsBannerCropDialogOpen(false)}
+        imageSrc={selectedBannerSrc}
+        onCropComplete={handleCroppedBanner}
+      />
+    </div>
     </div>
   )
 }
