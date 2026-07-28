@@ -1,6 +1,9 @@
 /**
  * Chat Service — SignalR + REST API integration
  * Based on: chat_frontend_guide.md
+ *
+ * Token strategy: accessTokenFactory (SignalR JS client tự append
+ * ?access_token=<JWT> cho WebSocket, Authorization: Bearer cho negotiate HTTP)
  */
 
 import * as signalR from "@microsoft/signalr"
@@ -39,7 +42,15 @@ export interface MessageDTO {
 
 class ChatService {
   private connection: signalR.HubConnection | null = null
-  private isConnecting = false
+  /**
+   * Counts active consumers (mounted components using this service).
+   * release() only disconnects when count reaches 0.
+   */
+  private consumerCount = 0
+  /** Deduplicates concurrent connect() calls */
+  private connectingPromise: Promise<void> | null = null
+  /** Timer ID for the deferred disconnect (handles React StrictMode double-mount) */
+  private releaseTimer: ReturnType<typeof setTimeout> | null = null
 
   private getBaseUrl(): string {
     return process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
@@ -53,43 +64,116 @@ class ChatService {
 
   // ── Connection ──────────────────────────────────────────────────────────────
 
+  /**
+   * Connect to the SignalR hub.
+   * Safe to call multiple times — subsequent calls wait for the in-flight promise.
+   *
+   * Render cold-start note: The backend on Render free tier may take 30-60s to
+   * wake up. The negotiate request may fail with a timeout during this window.
+   * We catch that gracefully and let the UI show an "offline" badge.
+   */
   async connect(): Promise<void> {
+    // Cancel any pending deferred disconnect (handles React StrictMode re-mount)
+    if (this.releaseTimer !== null) {
+      clearTimeout(this.releaseTimer)
+      this.releaseTimer = null
+    }
+
+    this.consumerCount++
+
+    // Already connected — nothing to do
     if (this.connection?.state === signalR.HubConnectionState.Connected) return
-    if (this.isConnecting) return
+
+    // Already connecting — wait for the same promise
+    if (this.connectingPromise) return this.connectingPromise
 
     const token = authUtils.getToken()
-    if (!token) throw new Error("No auth token")
-
-    this.isConnecting = true
-
-    try {
-      const hubUrl = `${this.getBaseUrl()}/hubs/chat`
-
-      this.connection = new signalR.HubConnectionBuilder()
-        .withUrl(hubUrl, {
-          accessTokenFactory: () => token,
-        })
-        .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
-        .configureLogging(signalR.LogLevel.Warning)
-        .build()
-
-      await this.connection.start()
-      console.log("[ChatService] SignalR connected")
-    } finally {
-      this.isConnecting = false
+    if (!token) {
+      this.consumerCount--
+      throw new Error("No auth token — user must be logged in to use chat")
     }
+
+    const hubUrl = `${this.getBaseUrl()}/hubs/chat`
+
+    this.connection = new signalR.HubConnectionBuilder()
+      .withUrl(hubUrl, {
+        accessTokenFactory: () => authUtils.getToken() ?? "",
+      })
+      .withAutomaticReconnect({
+        nextRetryDelayInMilliseconds: (ctx) => {
+          const delays = [0, 2000, 5000, 10000, 30000]
+          return delays[ctx.previousRetryCount] ?? null
+        },
+      })
+      .configureLogging(signalR.LogLevel.Warning)
+      .build()
+
+    this.connectingPromise = this.connection
+      .start()
+      .then(() => {
+        console.log("[ChatService] SignalR connected ✓")
+      })
+      .catch((err) => {
+        // Reset so the next connect() can retry from scratch
+        this.connection = null
+        throw err
+      })
+      .finally(() => {
+        this.connectingPromise = null
+      })
+
+    return this.connectingPromise
   }
 
-  async disconnect(): Promise<void> {
-    if (this.connection) {
-      await this.connection.stop()
-      this.connection = null
-      console.log("[ChatService] SignalR disconnected")
+  /**
+   * Release one consumer.
+   *
+   * Uses a 300ms deferred disconnect to handle React StrictMode's double-mount:
+   *   mount → unmount (release) → re-mount (connect cancels timer) → ...
+   *
+   * If a new consumer connects within 300ms the timer is cancelled and the
+   * connection is preserved, preventing "stopped during negotiation".
+   */
+  async release(): Promise<void> {
+    this.consumerCount = Math.max(0, this.consumerCount - 1)
+    if (this.consumerCount > 0) return
+
+    // Defer: give React StrictMode time to re-mount before we pull the plug
+    this.releaseTimer = setTimeout(async () => {
+      this.releaseTimer = null
+      if (this.consumerCount > 0) return // New consumer arrived — abort disconnect
+      await this.forceDisconnect()
+    }, 300)
+  }
+
+  /**
+   * Hard-stop — ignores consumer count.
+   * Swallows any error from stop() (e.g. "stopped during negotiation")
+   * so it never surfaces as an unhandled console error.
+   */
+  async forceDisconnect(): Promise<void> {
+    this.consumerCount = 0
+    this.connectingPromise = null
+
+    const conn = this.connection
+    this.connection = null
+
+    if (conn && conn.state !== signalR.HubConnectionState.Disconnected) {
+      try {
+        await conn.stop()
+      } catch {
+        // Intentionally swallowed — stop() during negotiate throws this error,
+        // it is harmless and already handled by the catch in connect().
+      }
     }
   }
 
   getConnectionState(): signalR.HubConnectionState {
     return this.connection?.state ?? signalR.HubConnectionState.Disconnected
+  }
+
+  isConnected(): boolean {
+    return this.connection?.state === signalR.HubConnectionState.Connected
   }
 
   // ── Hub listeners ───────────────────────────────────────────────────────────
@@ -111,6 +195,14 @@ class ChatService {
     this.connection?.on("Error", handler)
   }
 
+  onReconnecting(handler: () => void): void {
+    this.connection?.onreconnecting(() => handler())
+  }
+
+  onReconnected(handler: () => void): void {
+    this.connection?.onreconnected(() => handler())
+  }
+
   offAll(): void {
     this.connection?.off("ReceiveMessage")
     this.connection?.off("MessagesRead")
@@ -120,19 +212,23 @@ class ChatService {
   // ── Hub invocations ─────────────────────────────────────────────────────────
 
   async joinConversation(conversationId: number): Promise<void> {
-    await this.connection?.invoke("JoinConversation", conversationId)
+    if (!this.isConnected()) return
+    await this.connection!.invoke("JoinConversation", conversationId)
   }
 
   async leaveConversation(conversationId: number): Promise<void> {
-    await this.connection?.invoke("LeaveConversation", conversationId)
+    if (!this.isConnected()) return
+    await this.connection!.invoke("LeaveConversation", conversationId)
   }
 
   async sendMessage(conversationId: number, content: string): Promise<void> {
-    await this.connection?.invoke("SendMessage", conversationId, content)
+    if (!this.isConnected()) throw new Error("Không có kết nối realtime")
+    await this.connection!.invoke("SendMessage", conversationId, content)
   }
 
   async markAsRead(conversationId: number): Promise<void> {
-    await this.connection?.invoke("MarkAsRead", conversationId)
+    if (!this.isConnected()) return
+    await this.connection!.invoke("MarkAsRead", conversationId)
   }
 
   // ── REST API ────────────────────────────────────────────────────────────────
@@ -182,7 +278,7 @@ class ChatService {
     if (!res.ok) throw new Error("Failed to fetch messages")
     const data: MessageDTO[] = await res.json()
 
-    // API returns newest first → reverse for display
+    // API returns newest first → reverse for chronological display
     return data.reverse().map((m) => ({
       ...m,
       senderAvatarUrl: this.getFullAvatarUrl(m.senderAvatarUrl),

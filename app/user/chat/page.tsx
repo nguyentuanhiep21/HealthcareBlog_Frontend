@@ -203,6 +203,7 @@ function ChatPageInner() {
   const [isLoadingMsgs, setIsLoadingMsgs] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
+  const [isConnecting, setIsConnecting] = useState(true)   // true until first attempt settles
   const [connectionError, setConnectionError] = useState<string | null>(null)
   const [showMobileList, setShowMobileList] = useState(true)
 
@@ -224,20 +225,18 @@ function ChatPageInner() {
         await chatService.connect()
         if (!mounted) return
         setIsConnected(true)
+        setIsConnecting(false)
         setConnectionError(null)
 
         chatService.onReceiveMessage((msg) => {
           if (!mounted) return
-          // Add message if it belongs to active conversation
           setMessages((prev) => {
             if (msg.conversationId === activeConvIdRef.current) {
-              // Avoid duplicates
               if (prev.some((m) => m.id === msg.id)) return prev
               return [...prev, msg]
             }
             return prev
           })
-          // Update conversation preview
           setConversations((prev) =>
             prev.map((c) =>
               c.id === msg.conversationId
@@ -257,7 +256,6 @@ function ChatPageInner() {
         chatService.onMessagesRead((conversationId, readerId) => {
           if (!mounted) return
           if (readerId !== user?.id) {
-            // Other user read our messages → mark isRead = true
             setMessages((prev) =>
               prev.map((m) =>
                 m.conversationId === conversationId ? { ...m, isRead: true } : m
@@ -269,11 +267,32 @@ function ChatPageInner() {
         chatService.onError((message) => {
           console.error("[Chat Hub Error]", message)
         })
-      } catch (err) {
+
+        chatService.onReconnecting(() => {
+          if (!mounted) return
+          setIsConnected(false)
+          setIsConnecting(true)
+        })
+
+        chatService.onReconnected(() => {
+          if (!mounted) return
+          setIsConnected(true)
+          setIsConnecting(false)
+          setConnectionError(null)
+        })
+      } catch (err: any) {
         if (!mounted) return
         setIsConnected(false)
-        setConnectionError("Không thể kết nối realtime. Thử lại sau.")
-        console.error("[ChatService] connect error:", err)
+        setIsConnecting(false)
+        // All stop() errors are now swallowed in forceDisconnect().
+        // Only surface meaningful errors (e.g. network unreachable after retries).
+        const msg = err?.message ?? ""
+        const isStopError = msg.includes("stopped during negotiation")
+        if (!isStopError) {
+          // Still show REST-based conversations even without realtime
+          setConnectionError("Realtime không khả dụng. Vẫn xem được lịch sử tin nhắn.")
+        }
+        if (!isStopError) console.warn("[ChatService] SignalR unavailable:", msg)
       }
     }
 
@@ -282,7 +301,10 @@ function ChatPageInner() {
     return () => {
       mounted = false
       chatService.offAll()
-      chatService.disconnect()
+      // Use release() — only disconnects when no other consumers remain.
+      // This prevents React StrictMode's double-mount from killing an
+      // in-flight negotiation and causing the "stopped during negotiation" error.
+      chatService.release()
     }
   }, [isAuthenticated, user?.id])
 
@@ -446,18 +468,23 @@ function ChatPageInner() {
               <div className="px-5 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center justify-between mb-4">
                   <h1 className="text-xl font-bold text-slate-900 dark:text-white">Tin nhắn</h1>
-                  {/* Connection indicator */}
+                  {/* Connection indicator — 3 states */}
                   <div
-                    className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full
-                      ${isConnected
-                        ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
-                        : "bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400"
+                    className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors
+                      ${isConnecting
+                        ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
+                        : isConnected
+                          ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+                          : "bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400"
                       }`}
                   >
-                    {isConnected
-                      ? <><Wifi className="h-3 w-3" /> Trực tuyến</>
-                      : <><WifiOff className="h-3 w-3" /> Ngoại tuyến</>
-                    }
+                    {isConnecting ? (
+                      <><Loader2 className="h-3 w-3 animate-spin" /> Đang kết nối...</>
+                    ) : isConnected ? (
+                      <><Wifi className="h-3 w-3" /> Trực tuyến</>
+                    ) : (
+                      <><WifiOff className="h-3 w-3" /> Ngoại tuyến</>
+                    )}
                   </div>
                 </div>
 
