@@ -74,11 +74,7 @@ export default function LandingPage() {
         </div>
 
         <div className="relative max-w-4xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-50 dark:bg-teal-900/30 border border-teal-100 dark:border-teal-800 text-teal-700 dark:text-teal-300 text-sm font-medium mb-8">
-            <Sparkles className="h-3.5 w-3.5" />
-            Cộng đồng sức khỏe hàng đầu Việt Nam
-          </div>
+
 
           {/* Headline */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight mb-6">
@@ -120,25 +116,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── STATS ───────────────────────────────────────────────────────── */}
-      <section className="py-12 border-y border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            {[
-              { value: "10K+", label: "Thành viên", icon: Users, color: "text-teal-600 dark:text-teal-400" },
-              { value: "5K+",  label: "Bài viết",   icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400" },
-              { value: "50K+", label: "Lượt tương tác", icon: MessageCircle, color: "text-emerald-600 dark:text-emerald-400" },
-              { value: "4.9★", label: "Đánh giá",   icon: Star, color: "text-amber-500 dark:text-amber-400" },
-            ].map(({ value, label, icon: Icon, color }) => (
-              <div key={label} className="space-y-1">
-                <Icon className={`h-6 w-6 mx-auto mb-2 ${color}`} />
-                <div className="text-3xl font-extrabold text-slate-900 dark:text-white">{value}</div>
-                <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">{label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ─── FEATURES ────────────────────────────────────────────────────── */}
       <section className="py-24 px-4 sm:px-6">
@@ -233,9 +210,7 @@ export default function LandingPage() {
               <h2 className="text-3xl sm:text-4xl font-extrabold mb-4 leading-tight">
                 Sẵn sàng bắt đầu<br />hành trình sức khỏe?
               </h2>
-              <p className="text-lg text-cyan-50 mb-8 max-w-md mx-auto leading-relaxed">
-                Tham gia cùng hơn 10,000 thành viên đang hàng ngày chia sẻ và học hỏi về sức khỏe.
-              </p>
+
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   href="/auth/signup"
