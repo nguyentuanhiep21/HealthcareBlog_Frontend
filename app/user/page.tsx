@@ -256,13 +256,7 @@ export default function Home() {
   const fetchTrendingPosts = async () => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
-      const response = await fetch(
-        `${backendUrl}/api/post/trending`,
-        {
-          method: "GET",
-          headers: authUtils.getAuthHeaders(),
-        }
-      )
+      const response = await fetch(`${backendUrl}/api/posts/trending-redis`)
 
       if (!response.ok) {
         console.error("Failed to fetch trending posts")
@@ -273,43 +267,29 @@ export default function Home() {
       
       // Map backend data to frontend Post type
       const mappedPosts: Post[] = data.map((post: any) => {
-        const author = post.author || post.Author
-        const avatarUrl = author?.avatarUrl || author?.AvatarUrl
-        const fullAvatarUrl = avatarUrl 
-          ? (avatarUrl.startsWith('http') ? avatarUrl : `${backendUrl}${avatarUrl}`)
-          : "/placeholder.svg"
-          
-        const imageUrl = post.imageUrl || post.ImageUrl
+        const imageUrl = post.imageUrl
         const fullImageUrl = imageUrl
           ? (imageUrl.startsWith('http') ? imageUrl : `${backendUrl}${imageUrl}`)
           : undefined
-
-        // Build images list
-        const rawImages: string[] = Array.isArray(post.imageUrls || post.ImageUrls)
-          ? (post.imageUrls || post.ImageUrls)
-          : []
-        const fullImages: string[] = rawImages.length > 0
-          ? rawImages.map((u: string) => u.startsWith('http') ? u : `${backendUrl}${u}`)
-          : (fullImageUrl ? [fullImageUrl] : [])
           
         return {
           id: post.id?.toString() || "",
           author: {
-            id: author?.id || "",
-            name: author?.fullName || author?.FullName || "Unknown",
-            avatar: fullAvatarUrl,
-            bio: author?.bio || author?.Bio || "",
+            id: "",
+            name: post.authorName || "Unknown",
+            avatar: "/placeholder.svg",
+            bio: "",
             followers: 0,
             following: 0,
           },
-          caption: post.content || post.Content || "",
-          image: fullImages[0],
-          images: fullImages.length > 0 ? fullImages : undefined,
-          likes: post.likeCount || post.LikeCount || 0,
-          comments: post.commentCount || post.CommentCount || 0,
-          isSaved: post.isSavedByCurrentUser || post.IsSavedByCurrentUser || false,
-          isLiked: post.isLikedByCurrentUser || post.IsLikedByCurrentUser || false,
-          createdAt: post.uploadTime || post.UploadTime || post.createdAt || post.CreatedAt || new Date().toISOString(),
+          caption: post.content || "",
+          image: fullImageUrl,
+          images: fullImageUrl ? [fullImageUrl] : undefined,
+          likes: 0,
+          comments: 0,
+          isSaved: false,
+          isLiked: false,
+          createdAt: new Date().toISOString(),
         }
       })
 
