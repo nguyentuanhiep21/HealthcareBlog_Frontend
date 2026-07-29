@@ -80,8 +80,12 @@ function ConversationItem({
           alt={conv.otherUser.fullName}
           className="h-12 w-12 rounded-full object-cover ring-2 ring-white dark:ring-slate-900"
         />
-        {/* Online dot (decorative, can be wired to presence later) */}
-        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 border-2 border-white dark:border-slate-900" />
+        {/* Online dot */}
+        {conv.otherUser.isOnline ? (
+          <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 border-2 border-white dark:border-slate-900" title="Đang hoạt động" />
+        ) : (
+          <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-slate-300 dark:bg-slate-600 border-2 border-white dark:border-slate-900" title="Ngoại tuyến" />
+        )}
       </div>
 
       {/* Text */}
@@ -266,6 +270,24 @@ function ChatPageInner() {
 
         chatService.onError((message) => {
           console.error("[Chat Hub Error]", message)
+        })
+
+        chatService.onUserIsOnline((userId) => {
+          if (!mounted) return
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.otherUser.id === userId ? { ...c, otherUser: { ...c.otherUser, isOnline: true } } : c
+            )
+          )
+        })
+
+        chatService.onUserIsOffline((userId) => {
+          if (!mounted) return
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.otherUser.id === userId ? { ...c, otherUser: { ...c.otherUser, isOnline: false } } : c
+            )
+          )
         })
 
         chatService.onReconnecting(() => {

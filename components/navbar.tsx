@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
+import { useClickOutside } from "@/hooks/use-click-outside"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search, Menu, Home, Bookmark, User, Settings, Users, HeartPulse, LogOut, LogIn, KeyRound } from "lucide-react"
@@ -17,6 +18,8 @@ export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [showLoginDialog, setShowLoginDialog] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  useClickOutside(menuRef, () => setIsMenuOpen(false))
 
   const handleLogout = () => {
     logout()
@@ -36,7 +39,7 @@ export function Navbar() {
           {/* Left Section: Menu + Logo + Search */}
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
             {/* Menu Button */}
-            <div className="relative">
+            <div className="relative" ref={menuRef}>
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -47,8 +50,6 @@ export function Navbar() {
               </Button>
 
               {isMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />
                   <div className="absolute left-0 top-12 w-64 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] z-50 p-2 animate-in fade-in zoom-in-95 duration-200">
                     <div className="flex flex-col gap-1">
                       <Link
@@ -116,7 +117,6 @@ export function Navbar() {
                       </Link>
                     </div>
                   </div>
-                </>
               )}
             </div>
 

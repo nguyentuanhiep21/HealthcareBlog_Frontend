@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { authUtils } from "@/lib/auth-utils"
+import { chatService } from "@/lib/chat-service"
 
 export interface UserInfo {
   id: string
@@ -112,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(false)
     setUser(null)
     authUtils.removeToken()
+    chatService.forceDisconnect()
     router.push("/auth/login")
   }
 

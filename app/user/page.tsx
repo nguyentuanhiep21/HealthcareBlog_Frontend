@@ -12,6 +12,7 @@ import { authUtils } from "@/lib/auth-utils"
 import { getApiUrl } from "@/lib/utils"
 import Link from "next/link"
 import type { Post } from "@/lib/types"
+import { chatService } from "@/lib/chat-service"
 import { MessageSquare, Hash, Lightbulb } from "lucide-react"
 import { BackgroundPattern } from "@/components/background-pattern"
 
@@ -56,6 +57,7 @@ export default function Home() {
   const [showUnfollowDialog, setShowUnfollowDialog] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatar: string } | null>(null)
+  const [recentChats, setRecentChats] = useState<{ id: string; name: string; avatar: string; isOnline: boolean }[]>([])
 
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
@@ -116,6 +118,51 @@ export default function Home() {
     }
 
     fetchCurrentUser()
+  }, [isAuthenticated])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    let mounted = true
+
+    const fetchRecentChats = async () => {
+      try {
+        const convs = await chatService.getConversations(1, 3)
+        if (!mounted) return
+        const recent = convs.slice(0, 3).map(c => ({
+          id: c.otherUser.id,
+          name: c.otherUser.fullName,
+          avatar: c.otherUser.avatarUrl || '/placeholder.svg',
+          isOnline: c.otherUser.isOnline
+        }))
+        setRecentChats(recent)
+      } catch (err) {
+        console.error("Failed to fetch recent chats", err)
+      }
+    }
+
+    const setupChat = async () => {
+      await fetchRecentChats()
+      try {
+        await chatService.connect()
+        if (!mounted) return
+
+        chatService.onUserIsOnline((userId) => {
+          setRecentChats((prev) => prev.map(c => c.id === userId ? { ...c, isOnline: true } : c))
+        })
+        chatService.onUserIsOffline((userId) => {
+          setRecentChats((prev) => prev.map(c => c.id === userId ? { ...c, isOnline: false } : c))
+        })
+      } catch (err) {
+        console.warn("SignalR connection failed:", err)
+      }
+    }
+    setupChat()
+
+    return () => {
+      mounted = false
+      chatService.offAll()
+      chatService.release()
+    }
   }, [isAuthenticated])
 
   const fetchPosts = async (pageNumber = 1) => {
@@ -463,6 +510,42 @@ export default function Home() {
                 ))}
               </div>
             </div>
+
+            {/* Recent Chats (Online Status) */}
+            {isAuthenticated && recentChats.length > 0 && (
+              <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-5 shadow-sm">
+                <h2 className="mb-3 text-[14px] font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="w-1.5 h-4 rounded-full bg-emerald-400 inline-block"></span>
+                  Liên hệ gần đây
+                </h2>
+                <div className="flex flex-col gap-3">
+                  {recentChats.map((chat) => (
+                    <Link
+                      key={chat.id}
+                      href={`/user/chat?userId=${chat.id}`}
+                      className="flex items-center gap-3 group"
+                    >
+                      <div className="relative flex-shrink-0">
+                        <img src={chat.avatar} alt={chat.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800 group-hover:ring-teal-100 dark:group-hover:ring-teal-900/50 transition-all" />
+                        {chat.isOnline ? (
+                          <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 border-2 border-white dark:border-slate-900" title="Đang hoạt động" />
+                        ) : (
+                          <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-slate-300 dark:bg-slate-600 border-2 border-white dark:border-slate-900" title="Ngoại tuyến" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                          {chat.name}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                          {chat.isOnline ? 'Đang hoạt động' : 'Ngoại tuyến'}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* MAIN FEED */}

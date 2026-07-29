@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useClickOutside } from '@/hooks/use-click-outside'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Bell, Heart, MessageCircle, UserPlus, Info, CheckCheck } from 'lucide-react'
@@ -31,6 +32,8 @@ export function NotificationDropdown() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  useClickOutside(menuRef, () => setIsOpen(false))
 
   useEffect(() => {
     if (isAuthenticated && isOpen) {
@@ -194,7 +197,7 @@ export function NotificationDropdown() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={menuRef}>
       <Button
         variant="ghost"
         size="icon"
@@ -213,12 +216,7 @@ export function NotificationDropdown() {
       </Button>
 
       {isOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute right-0 top-12 w-80 sm:w-[400px] bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="absolute right-0 top-12 w-80 sm:w-[400px] bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
@@ -331,7 +329,6 @@ export function NotificationDropdown() {
               </Button>
             </div>
           </div>
-        </>
       )}
     </div>
   )

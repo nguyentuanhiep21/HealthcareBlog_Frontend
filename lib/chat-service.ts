@@ -16,6 +16,7 @@ export interface ChatUserDTO {
   fullName: string
   avatarUrl: string | null
   userName: string | null
+  isOnline: boolean
 }
 
 export interface ConversationDTO {
@@ -195,6 +196,14 @@ class ChatService {
     this.connection?.on("Error", handler)
   }
 
+  onUserIsOnline(handler: (userId: string) => void): void {
+    this.connection?.on("UserIsOnline", handler)
+  }
+
+  onUserIsOffline(handler: (userId: string) => void): void {
+    this.connection?.on("UserIsOffline", handler)
+  }
+
   onReconnecting(handler: () => void): void {
     this.connection?.onreconnecting(() => handler())
   }
@@ -207,6 +216,8 @@ class ChatService {
     this.connection?.off("ReceiveMessage")
     this.connection?.off("MessagesRead")
     this.connection?.off("Error")
+    this.connection?.off("UserIsOnline")
+    this.connection?.off("UserIsOffline")
   }
 
   // ── Hub invocations ─────────────────────────────────────────────────────────

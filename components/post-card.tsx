@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useClickOutside } from "@/hooks/use-click-outside"
 import { Heart, MessageCircle, Bookmark, MoreVertical, Flag, Edit, ImageIcon, X, Trash2 } from "lucide-react"
 import type { Post } from "@/lib/types"
 import { ReportDialog } from "./report-dialog"
@@ -135,6 +136,8 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
   const [isSaved, setIsSaved] = useState(post.isSaved)
   const [likeCount, setLikeCount] = useState(post.likes)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  useClickOutside(menuRef, () => setIsMenuOpen(false))
   const [showReportDialog, setShowReportDialog] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [showReportSuccessDialog, setShowReportSuccessDialog] = useState(false)
@@ -360,37 +363,34 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
           </div>
 
           {/* Menu */}
-          <div className="relative">
+          <div className="relative" ref={menuRef}>
             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="rounded-full h-9 w-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer text-slate-500 hover:text-slate-900 dark:hover:text-white">
               <MoreVertical className="h-5 w-5" />
             </button>
             {isMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setIsMenuOpen(false)} />
-                <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2">
-                  <div className="flex flex-col p-1">
-                    {isAuthenticated && currentUser && String(post.author.id).toLowerCase() === String(currentUser.id).toLowerCase() ? (
-                      <>
-                        <button onClick={() => { setIsEditMode(true); setIsMenuOpen(false) }}
-                          className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-900 text-left cursor-pointer transition">
-                          <Edit className="h-4 w-4 text-slate-500" /><span className="text-[14px] font-medium text-slate-700 dark:text-slate-300">Chỉnh sửa</span>
-                        </button>
-                        <button onClick={() => { setShowDeleteDialog(true); setIsMenuOpen(false) }}
-                          className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-left text-rose-600 dark:text-rose-400 cursor-pointer transition">
-                          <Trash2 className="h-4 w-4" /><span className="text-[14px] font-medium">Xóa bài</span>
-                        </button>
-                      </>
-                    ) : (
-                      <button onClick={() => {
-                        if (!isAuthenticated) { setShowLoginDialog(true); setIsMenuOpen(false); return }
-                        setShowReportDialog(true); setIsMenuOpen(false)
-                      }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-left text-rose-600 dark:text-rose-400 cursor-pointer transition">
-                        <Flag className="h-4 w-4" /><span className="text-[14px] font-medium">Báo cáo vi phạm</span>
+              <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                <div className="flex flex-col p-1">
+                  {isAuthenticated && currentUser && String(post.author.id).toLowerCase() === String(currentUser.id).toLowerCase() ? (
+                    <>
+                      <button onClick={() => { setIsEditMode(true); setIsMenuOpen(false) }}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-900 text-left cursor-pointer transition">
+                        <Edit className="h-4 w-4 text-slate-500" /><span className="text-[14px] font-medium text-slate-700 dark:text-slate-300">Chỉnh sửa</span>
                       </button>
-                    )}
-                  </div>
+                      <button onClick={() => { setShowDeleteDialog(true); setIsMenuOpen(false) }}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-left text-rose-600 dark:text-rose-400 cursor-pointer transition">
+                        <Trash2 className="h-4 w-4" /><span className="text-[14px] font-medium">Xóa bài</span>
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={() => {
+                      if (!isAuthenticated) { setShowLoginDialog(true); setIsMenuOpen(false); return }
+                      setShowReportDialog(true); setIsMenuOpen(false)
+                    }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-left text-rose-600 dark:text-rose-400 cursor-pointer transition">
+                      <Flag className="h-4 w-4" /><span className="text-[14px] font-medium">Báo cáo vi phạm</span>
+                    </button>
+                  )}
                 </div>
-              </>
+              </div>
             )}
           </div>
         </div>
