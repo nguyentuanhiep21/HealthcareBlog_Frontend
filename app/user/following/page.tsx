@@ -51,7 +51,7 @@ export default function FollowingPage() {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7223'
       const response = await fetch(
-        `${backendUrl}/api/follow/${user.id}/following-users?page=1&pageSize=50`,
+        `${backendUrl}/api/follows/${user.id}/following-users?page=1&pageSize=50`,
         {
           headers: authUtils.getAuthHeaders(),
         }
@@ -97,7 +97,7 @@ export default function FollowingPage() {
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7223'
-      const response = await fetch(`${backendUrl}/api/follow/${selectedUserId}`, {
+      const response = await fetch(`${backendUrl}/api/follows/${selectedUserId}`, {
         method: 'DELETE',
         headers: authUtils.getAuthHeaders(),
       })

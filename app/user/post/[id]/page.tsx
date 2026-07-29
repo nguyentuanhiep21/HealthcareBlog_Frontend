@@ -89,7 +89,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         const backendUrl = getApiUrl()
         const headers = authUtils.getAuthHeaders()
         
-        const response = await fetch(`${backendUrl}/api/post/${id}`, {
+        const response = await fetch(`${backendUrl}/api/posts/${id}`, {
           headers,
         })
         
@@ -221,7 +221,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       const endpoint = "like"
       const method = newIsLiked ? "POST" : "DELETE"
 
-      const response = await fetch(`${backendUrl}/api/post/${id}/${endpoint}`, {
+      const response = await fetch(`${backendUrl}/api/posts/${id}/${endpoint}`, {
         method,
         headers: authUtils.getAuthHeaders(),
       })
@@ -276,7 +276,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       const endpoint = "like"
       const method = newIsLiked ? "POST" : "DELETE"
 
-      const response = await fetch(`${backendUrl}/api/comment/${commentId}/${endpoint}`, {
+      const response = await fetch(`${backendUrl}/api/comments/${commentId}/${endpoint}`, {
         method,
         headers: authUtils.getAuthHeaders(),
       })
@@ -321,7 +321,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         return
       }
 
-      const response = await fetch(`${backendUrl}/api/comment`, {
+      const response = await fetch(`${backendUrl}/api/comments`, {
         method: "POST",
         headers: authUtils.getAuthHeaders(),
         body: JSON.stringify({
@@ -381,7 +381,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     if (reportingCommentId) {
       try {
         const backendUrl = getApiUrl()
-        const response = await fetch(`${backendUrl}/api/comment/${reportingCommentId}/report`, {
+        const response = await fetch(`${backendUrl}/api/comments/${reportingCommentId}/report`, {
           method: "POST",
           headers: authUtils.getAuthHeaders(),
           body: JSON.stringify({
@@ -419,7 +419,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     } else {
       try {
         const backendUrl = getApiUrl()
-        const response = await fetch(`${backendUrl}/api/post/${id}/report`, {
+        const response = await fetch(`${backendUrl}/api/posts/${id}/report`, {
           method: "POST",
           headers: authUtils.getAuthHeaders(),
           body: JSON.stringify({
@@ -467,7 +467,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           const blob = await fetch(img).then(r => r.blob())
           const formData = new FormData()
           formData.append('file', blob, 'image.jpg')
-          const uploadResponse = await fetch(`${backendUrl}/api/upload/image`, {
+          const uploadResponse = await fetch(`${backendUrl}/api/uploads/image`, {
             method: 'POST',
             headers: { 'Authorization': authUtils.getAuthHeaders()['Authorization'] || '' },
             body: formData,
@@ -484,7 +484,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         }
       }
 
-      const response = await fetch(`${backendUrl}/api/post/${id}`, {
+      const response = await fetch(`${backendUrl}/api/posts/${id}`, {
         method: "PUT",
         headers: authUtils.getAuthHeaders(),
         body: JSON.stringify({
@@ -531,7 +531,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const handleDeletePost = async () => {
     try {
       const backendUrl = getApiUrl()
-      const response = await fetch(`${backendUrl}/api/post/${id}`, {
+      const response = await fetch(`${backendUrl}/api/posts/${id}`, {
         method: "DELETE",
         headers: authUtils.getAuthHeaders(),
       })
@@ -552,7 +552,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const handleUpdateComment = async (commentId: string, newText: string) => {
     try {
       const backendUrl = getApiUrl()
-      const response = await fetch(`${backendUrl}/api/comment/${commentId}`, {
+      const response = await fetch(`${backendUrl}/api/comments/${commentId}`, {
         method: "PUT",
         headers: authUtils.getAuthHeaders(),
         body: JSON.stringify({
@@ -582,7 +582,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const handleDeleteComment = async (commentId: string) => {
     try {
       const backendUrl = getApiUrl()
-      const response = await fetch(`${backendUrl}/api/comment/${commentId}`, {
+      const response = await fetch(`${backendUrl}/api/comments/${commentId}`, {
         method: "DELETE",
         headers: authUtils.getAuthHeaders(),
       })
@@ -846,7 +846,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   const newIsSaved = !isSaved
                   setIsSaved(newIsSaved)
                   try {
-                    const response = await fetch(`${getApiUrl()}/api/savedpost/${id}`, {
+                    const response = await fetch(`${getApiUrl()}/api/saved-posts/${id}`, {
                       method: newIsSaved ? "POST" : "DELETE",
                       headers: authUtils.getAuthHeaders(),
                     })

@@ -31,7 +31,7 @@ export default function SavedPage() {
       
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223";
       const response = await fetch(
-        `${backendUrl}/api/savedpost?page=1&pageSize=50`,
+        `${backendUrl}/api/saved-posts?page=1&pageSize=50`,
         {
           headers: authUtils.getAuthHeaders(),
         }
@@ -108,7 +108,7 @@ export default function SavedPage() {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223";
       const response = await fetch(
-        `${backendUrl}/api/savedpost/${confirmRemove}`,
+        `${backendUrl}/api/saved-posts/${confirmRemove}`,
         {
           method: 'DELETE',
           headers: authUtils.getAuthHeaders(),

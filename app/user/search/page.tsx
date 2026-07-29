@@ -207,7 +207,7 @@ function SearchContent() {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
       const method = newIsFollowing ? "POST" : "DELETE"
       
-      const response = await fetch(`${backendUrl}/api/follow/${userId}`, {
+      const response = await fetch(`${backendUrl}/api/follows/${userId}`, {
         method,
         headers: authUtils.getAuthHeaders(),
       })

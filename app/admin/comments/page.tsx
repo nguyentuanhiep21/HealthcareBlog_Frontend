@@ -58,7 +58,7 @@ export default function AdminCommentsPage() {
 
     setReportLoading(true)
     try {
-      const response = await fetch(`${API_URL}/api/Report?contentType=Comment`, {
+      const response = await fetch(`${API_URL}/api/reports?contentType=Comment`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -92,7 +92,7 @@ export default function AdminCommentsPage() {
           const token = authUtils.getToken()
           if (!token) return
 
-          const response = await fetch(`${API_URL}/api/Report/${reportId}/process-comment`, {
+          const response = await fetch(`${API_URL}/api/reports/${reportId}/process-comment`, {
             method: "PUT",
             headers: {
               Authorization: `Bearer ${token}`,

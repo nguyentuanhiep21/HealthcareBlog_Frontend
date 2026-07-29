@@ -58,7 +58,7 @@ export default function AdminPostsPage() {
 
     setReportLoading(true)
     try {
-      const response = await fetch(`${API_URL}/api/Report?contentType=Post`, {
+      const response = await fetch(`${API_URL}/api/reports?contentType=Post`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -92,7 +92,7 @@ export default function AdminPostsPage() {
           const token = authUtils.getToken()
           if (!token) return
 
-          const response = await fetch(`${API_URL}/api/Report/${reportId}/process-post`, {
+          const response = await fetch(`${API_URL}/api/reports/${reportId}/process-post`, {
             method: "PUT",
             headers: {
               Authorization: `Bearer ${token}`,

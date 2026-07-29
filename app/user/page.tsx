@@ -96,7 +96,7 @@ export default function Home() {
       
       try {
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
-        const response = await fetch(`${backendUrl}/api/user/account`, {
+        const response = await fetch(`${backendUrl}/api/users/account`, {
           headers: authUtils.getAuthHeaders(),
         })
 
@@ -175,7 +175,7 @@ export default function Home() {
       setError("")
       
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/post?page=${pageNumber}&pageSize=20`,
+        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/posts?page=${pageNumber}&pageSize=20`,
         {
           method: "GET",
           headers: authUtils.getAuthHeaders(),
@@ -303,7 +303,7 @@ export default function Home() {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
       const response = await fetch(
-        `${backendUrl}/api/user/suggested`,
+        `${backendUrl}/api/users/suggested`,
         {
           method: "GET",
           headers: authUtils.getAuthHeaders(),
@@ -364,7 +364,7 @@ export default function Home() {
       // Follow user
       try {
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
-        const response = await fetch(`${backendUrl}/api/follow/${userId}`, {
+        const response = await fetch(`${backendUrl}/api/follows/${userId}`, {
           method: "POST",
           headers: authUtils.getAuthHeaders(),
         })
@@ -394,7 +394,7 @@ export default function Home() {
       // Unfollow user
       try {
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
-        const response = await fetch(`${backendUrl}/api/follow/${selectedUserId}`, {
+        const response = await fetch(`${backendUrl}/api/follows/${selectedUserId}`, {
           method: "DELETE",
           headers: authUtils.getAuthHeaders(),
         })

@@ -54,7 +54,7 @@ export function NotificationDropdown() {
     setIsLoading(true)
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7223'
-      const response = await fetch(`${backendUrl}/api/notification?page=1&pageSize=20`, {
+      const response = await fetch(`${backendUrl}/api/notifications?page=1&pageSize=20`, {
         headers: authUtils.getAuthHeaders(),
       })
 
@@ -90,7 +90,7 @@ export function NotificationDropdown() {
   const fetchUnreadCount = async () => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7223'
-      const response = await fetch(`${backendUrl}/api/notification/unread-count`, {
+      const response = await fetch(`${backendUrl}/api/notifications/unread-count`, {
         headers: authUtils.getAuthHeaders(),
       })
 
@@ -115,7 +115,7 @@ export function NotificationDropdown() {
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7223'
-      await fetch(`${backendUrl}/api/notification/${id}/read`, {
+      await fetch(`${backendUrl}/api/notifications/${id}/read`, {
         method: 'PUT',
         headers: authUtils.getAuthHeaders(),
       })
@@ -139,7 +139,7 @@ export function NotificationDropdown() {
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7223'
-      await fetch(`${backendUrl}/api/notification/read-all`, {
+      await fetch(`${backendUrl}/api/notifications/read-all`, {
         method: 'PUT',
         headers: authUtils.getAuthHeaders(),
       })

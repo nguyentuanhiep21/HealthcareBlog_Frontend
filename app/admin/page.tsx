@@ -72,7 +72,7 @@ export default function AdminDashboardPage() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/User/admin/stats`, {
+      const response = await fetch(`${API_URL}/api/users/admin/stats`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -99,7 +99,7 @@ export default function AdminDashboardPage() {
 
     setLoading(true)
     try {
-      const response = await fetch(`${API_URL}/api/Report?page=1&pageSize=5`, {
+      const response = await fetch(`${API_URL}/api/reports?page=1&pageSize=5`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

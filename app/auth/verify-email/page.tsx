@@ -25,7 +25,7 @@ function VerifyEmailContent() {
 
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/user/verify-email?userId=${encodeURIComponent(userId)}&token=${encodeURIComponent(token)}`,
+          `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/users/verify-email?userId=${encodeURIComponent(userId)}&token=${encodeURIComponent(token)}`,
           {
             method: "GET",
             headers: {

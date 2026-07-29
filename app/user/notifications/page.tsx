@@ -51,7 +51,7 @@ export default function NotificationsPage() {
     
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7223';
-      const response = await fetch(`${backendUrl}/api/notification?page=1&pageSize=50`, {
+      const response = await fetch(`${backendUrl}/api/notifications?page=1&pageSize=50`, {
         headers: authUtils.getAuthHeaders(),
       });
 
@@ -105,7 +105,7 @@ export default function NotificationsPage() {
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7223';
-      await fetch(`${backendUrl}/api/notification/${notificationId}/read`, {
+      await fetch(`${backendUrl}/api/notifications/${notificationId}/read`, {
         method: 'PUT',
         headers: authUtils.getAuthHeaders(),
       });
@@ -126,7 +126,7 @@ export default function NotificationsPage() {
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7223';
-      await fetch(`${backendUrl}/api/notification/read-all`, {
+      await fetch(`${backendUrl}/api/notifications/read-all`, {
         method: 'PUT',
         headers: authUtils.getAuthHeaders(),
       });

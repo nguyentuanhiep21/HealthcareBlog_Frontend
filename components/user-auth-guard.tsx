@@ -19,7 +19,7 @@ export function UserAuthGuard({ children }: { children: React.ReactNode }) {
 
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/user/account`,
+          `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/users/account`,
           {
             headers: authUtils.getAuthHeaders(),
           }

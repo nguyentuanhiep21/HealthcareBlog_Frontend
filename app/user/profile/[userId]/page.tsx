@@ -84,7 +84,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         }
 
         const response = await fetch(
-          `${backendUrl}/api/user/profile/${targetUserId}?page=1&pageSize=20`,
+          `${backendUrl}/api/users/profile/${targetUserId}?page=1&pageSize=20`,
           {
             headers: authUtils.getAuthHeaders(),
           }
@@ -192,7 +192,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
       const method = newIsFollowing ? "POST" : "DELETE"
 
-      const response = await fetch(`${backendUrl}/api/follow/${viewedUser.id}`, {
+      const response = await fetch(`${backendUrl}/api/follows/${viewedUser.id}`, {
         method,
         headers: authUtils.getAuthHeaders(),
       })
@@ -267,7 +267,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
-      const response = await fetch(`${backendUrl}/api/user/${viewedUser.id}/report`, {
+      const response = await fetch(`${backendUrl}/api/users/${viewedUser.id}/report`, {
         method: "POST",
         headers: authUtils.getAuthHeaders(),
         body: JSON.stringify({
@@ -341,7 +341,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
       }
 
       // Step 1: Upload banner
-      const uploadResponse = await fetch(`${backendUrl}/api/upload/banner`, {
+      const uploadResponse = await fetch(`${backendUrl}/api/uploads/banner`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -358,7 +358,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
       const newBannerUrl = uploadResult.url
 
       // Step 2: Update user banner in DB
-      const updateResponse = await fetch(`${backendUrl}/api/user/banner`, {
+      const updateResponse = await fetch(`${backendUrl}/api/users/banner`, {
         method: 'PUT',
         headers: authUtils.getAuthHeaders(),
         body: JSON.stringify({
@@ -406,7 +406,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         return
       }
 
-      const uploadResponse = await fetch(`${backendUrl}/api/upload/avatar`, {
+      const uploadResponse = await fetch(`${backendUrl}/api/uploads/avatar`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -424,7 +424,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
       const avatarUrl = uploadResult.url
 
       // Step 2: Update user avatar in database
-      const updateResponse = await fetch(`${backendUrl}/api/user/avatar`, {
+      const updateResponse = await fetch(`${backendUrl}/api/users/avatar`, {
         method: 'PUT',
         headers: authUtils.getAuthHeaders(),
         body: JSON.stringify({

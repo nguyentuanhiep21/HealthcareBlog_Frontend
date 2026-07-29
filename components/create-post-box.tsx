@@ -113,7 +113,7 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
           formData.append("file", file)
 
           const uploadResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/upload/image`,
+            `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/uploads/image`,
             {
               method: "POST",
               headers: { Authorization: `Bearer ${token}` },
@@ -138,7 +138,7 @@ export function CreatePostBox({ onPostCreate }: CreatePostBoxProps) {
       }
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/post`,
+        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/posts`,
         {
           method: "POST",
           headers: {

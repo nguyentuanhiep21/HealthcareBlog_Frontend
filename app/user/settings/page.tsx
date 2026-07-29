@@ -55,7 +55,7 @@ export default function SettingsPage() {
     
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7223';
-      const response = await fetch(`${backendUrl}/api/user/account`, {
+      const response = await fetch(`${backendUrl}/api/users/account`, {
         method: 'PUT',
         headers: authUtils.getAuthHeaders(),
         body: JSON.stringify({
@@ -95,7 +95,7 @@ export default function SettingsPage() {
     
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7223';
-      const response = await fetch(`${backendUrl}/api/user/${user?.id}`, {
+      const response = await fetch(`${backendUrl}/api/users/${user?.id}`, {
         method: 'DELETE',
         headers: authUtils.getAuthHeaders(),
       });

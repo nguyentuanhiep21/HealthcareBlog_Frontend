@@ -1,5 +1,5 @@
 // Health Assessment API Service
-// Calls POST /api/HealthAssessment/assess — không yêu cầu đăng nhập
+// Calls POST /api/health-assessments/assess — không yêu cầu đăng nhập
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7223'
 
@@ -41,7 +41,7 @@ export interface HealthAssessError {
 export async function assessHealth(
   request: HealthAssessRequest
 ): Promise<HealthAssessResult> {
-  const response = await fetch(`${API_URL}/api/HealthAssessment/assess`, {
+  const response = await fetch(`${API_URL}/api/health-assessments/assess`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -150,7 +150,7 @@ export interface MealSuggestionResponse {
 export async function suggestMealPlan(
   request: MealSuggestionRequest
 ): Promise<MealSuggestionResponse> {
-  const response = await fetch(`${API_URL}/api/MealSuggestion/recommend`, {
+  const response = await fetch(`${API_URL}/api/meal-suggestions/recommend`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

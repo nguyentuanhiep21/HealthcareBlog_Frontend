@@ -166,7 +166,7 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
     setIsLiked(newIsLiked); setLikeCount(newLikeCount)
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
-      const response = await fetch(`${backendUrl}/api/post/${post.id}/${newIsLiked ? "like" : "like"}`, {
+      const response = await fetch(`${backendUrl}/api/posts/${post.id}/${newIsLiked ? "like" : "like"}`, {
         method: newIsLiked ? "POST" : "DELETE",
         headers: authUtils.getAuthHeaders(),
       })
@@ -181,7 +181,7 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
     setIsSaved(newIsSaved)
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
-      const response = await fetch(`${backendUrl}/api/savedpost/${post.id}`, {
+      const response = await fetch(`${backendUrl}/api/saved-posts/${post.id}`, {
         method: newIsSaved ? "POST" : "DELETE",
         headers: authUtils.getAuthHeaders(),
       })
@@ -203,7 +203,7 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
           const formData = new FormData()
           formData.append("file", blob, "image.jpg")
           const authHeaders = authUtils.getAuthHeaders() as Record<string, string>
-          const uploadResponse = await fetch(`${backendUrl}/api/upload/image`, {
+          const uploadResponse = await fetch(`${backendUrl}/api/uploads/image`, {
             method: "POST",
             headers: { Authorization: authHeaders["Authorization"] || "" },
             body: formData,
@@ -220,7 +220,7 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
         }
       }
 
-      const response = await fetch(`${backendUrl}/api/post/${post.id}`, {
+      const response = await fetch(`${backendUrl}/api/posts/${post.id}`, {
         method: "PUT",
         headers: authUtils.getAuthHeaders(),
         body: JSON.stringify({
@@ -272,7 +272,7 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
     setIsDeleting(true)
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
-      const response = await fetch(`${backendUrl}/api/post/${post.id}`, {
+      const response = await fetch(`${backendUrl}/api/posts/${post.id}`, {
         method: "DELETE",
         headers: authUtils.getAuthHeaders(),
       })
@@ -318,7 +318,7 @@ export function PostCard({ post, onPostUpdate, onPostDelete, currentUser }: Post
   const handleReportSubmit = async (reason: string, details: string) => {
     try {
       const backendUrl = getApiUrl()
-      const response = await fetch(`${backendUrl}/api/post/${post.id}/report`, {
+      const response = await fetch(`${backendUrl}/api/posts/${post.id}/report`, {
         method: "POST",
         headers: authUtils.getAuthHeaders(),
         body: JSON.stringify({ reason, description: details }),

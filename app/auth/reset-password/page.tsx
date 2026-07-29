@@ -55,7 +55,7 @@ function ResetPasswordContent() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/user/reset-password`,
+        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/users/reset-password`,
         {
           method: "POST",
           headers: {

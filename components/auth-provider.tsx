@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"
-      const response = await fetch(`${backendUrl}/api/user/account`, {
+      const response = await fetch(`${backendUrl}/api/users/account`, {
         headers: authUtils.getAuthHeaders(),
       })
 

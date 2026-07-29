@@ -46,7 +46,7 @@ export default function LoginPage() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/user/login`,
+        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/users/login`,
         {
           method: "POST",
           headers: {
@@ -101,7 +101,7 @@ export default function LoginPage() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/User/resend-verification`,
+        `${process.env.NEXT_PUBLIC_API_URL || "https://localhost:7223"}/api/users/resend-verification`,
         {
           method: "POST",
           headers: {

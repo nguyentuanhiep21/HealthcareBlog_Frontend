@@ -90,7 +90,7 @@ export default function AdminUsersPage() {
     setLoading(true)
     try {
       const response = await fetch(
-        `${API_URL}/api/User/admin/all?searchQuery=${encodeURIComponent(searchQuery)}&page=1&pageSize=20`,
+        `${API_URL}/api/users/admin/all?searchQuery=${encodeURIComponent(searchQuery)}&page=1&pageSize=20`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -116,7 +116,7 @@ export default function AdminUsersPage() {
     setReportLoading(true)
     try {
       // Fetch all user reports (no status filter, we'll filter on client side)
-      const response = await fetch(`${API_URL}/api/Report?contentType=User`, {
+      const response = await fetch(`${API_URL}/api/reports?contentType=User`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -147,7 +147,7 @@ export default function AdminUsersPage() {
             const token = authUtils.getToken()
             if (!token) return
 
-            const response = await fetch(`${API_URL}/api/User/${userId}/unlock`, {
+            const response = await fetch(`${API_URL}/api/users/${userId}/unlock`, {
               method: "PUT",
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -202,7 +202,7 @@ export default function AdminUsersPage() {
       if (!token) return
 
       const response = await fetch(
-        `${API_URL}/api/User/${lockDialog.userId}/toggle-lock`,
+        `${API_URL}/api/users/${lockDialog.userId}/toggle-lock`,
         {
           method: "PUT",
           headers: {
@@ -259,7 +259,7 @@ export default function AdminUsersPage() {
           const token = authUtils.getToken()
           if (!token) return
 
-          const response = await fetch(`${API_URL}/api/User/${userId}`, {
+          const response = await fetch(`${API_URL}/api/users/${userId}`, {
             method: "DELETE",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -332,7 +332,7 @@ export default function AdminUsersPage() {
           const token = authUtils.getToken()
           if (!token) return
 
-          const response = await fetch(`${API_URL}/api/Report/${reportId}/process-user`, {
+          const response = await fetch(`${API_URL}/api/reports/${reportId}/process-user`, {
             method: "PUT",
             headers: {
               Authorization: `Bearer ${token}`,

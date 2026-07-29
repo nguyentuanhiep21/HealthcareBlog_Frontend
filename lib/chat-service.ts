@@ -246,7 +246,7 @@ class ChatService {
 
   async getConversations(page = 1, pageSize = 20): Promise<ConversationDTO[]> {
     const res = await fetch(
-      `${this.getBaseUrl()}/api/chat/conversations?page=${page}&pageSize=${pageSize}`,
+      `${this.getBaseUrl()}/api/chats/conversations?page=${page}&pageSize=${pageSize}`,
       { headers: authUtils.getAuthHeaders() }
     )
     if (!res.ok) throw new Error("Failed to fetch conversations")
@@ -263,7 +263,7 @@ class ChatService {
 
   async openOrCreateConversation(targetUserId: string): Promise<ConversationDTO> {
     const res = await fetch(
-      `${this.getBaseUrl()}/api/chat/conversations/${targetUserId}`,
+      `${this.getBaseUrl()}/api/chats/conversations/${targetUserId}`,
       {
         method: "POST",
         headers: authUtils.getAuthHeaders(),
@@ -283,7 +283,7 @@ class ChatService {
 
   async getMessages(conversationId: number, page = 1, pageSize = 30): Promise<MessageDTO[]> {
     const res = await fetch(
-      `${this.getBaseUrl()}/api/chat/conversations/${conversationId}/messages?page=${page}&pageSize=${pageSize}`,
+      `${this.getBaseUrl()}/api/chats/conversations/${conversationId}/messages?page=${page}&pageSize=${pageSize}`,
       { headers: authUtils.getAuthHeaders() }
     )
     if (!res.ok) throw new Error("Failed to fetch messages")
@@ -299,7 +299,7 @@ class ChatService {
   async getUnreadCount(): Promise<number> {
     try {
       const res = await fetch(
-        `${this.getBaseUrl()}/api/chat/unread-count`,
+        `${this.getBaseUrl()}/api/chats/unread-count`,
         { headers: authUtils.getAuthHeaders() }
       )
       if (!res.ok) return 0
