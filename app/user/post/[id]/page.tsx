@@ -23,6 +23,21 @@ interface PostDetailPageProps {
 
 const MAX_IMAGES = 5
 
+export interface CommentType {
+  id: string
+  postId: string
+  author: { id: string, name: string, avatar: string }
+  text: string
+  likes: number
+  isLiked: boolean
+  createdAt: string
+  replyCount: number
+  parentCommentId: string | null
+  replies?: CommentType[]
+  isRepliesExpanded?: boolean
+  isLoadingReplies?: boolean
+}
+
 interface Post {
   id: string
   author: {
@@ -52,7 +67,8 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const [likeCount, setLikeCount] = useState(0)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false)
-  const [comments, setComments] = useState<any[]>([])
+  const [comments, setComments] = useState<CommentType[]>([])
+  const [replyingTo, setReplyingTo] = useState<{ id: string; name: string } | null>(null)
   const [commentText, setCommentText] = useState("")
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   
@@ -146,29 +162,43 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         setCurrentImageIndex(0)
         setEditCaption(mappedPost.caption)
         setEditImages(resolvedImages)
-        
         // Map comments from backend
-        if (data.comments && Array.isArray(data.comments)) {
-          const mappedComments = data.comments.map((comment: any) => ({
-            id: comment.id?.toString() || "",
-            postId: id,
-            author: {
-              id: comment.author?.id || comment.authorId || "",
-              name: comment.author?.fullName || "Unknown",
-              avatar: comment.author?.avatarUrl 
-                ? (comment.author.avatarUrl && comment.author.avatarUrl.startsWith('http') 
-                    ? comment.author.avatarUrl 
-                    : comment.author.avatarUrl ? `${backendUrl}${comment.author.avatarUrl}` : "/placeholder.svg")
-                : "/placeholder.svg",
-            },
-            text: comment.content || "",
-            likes: comment.likeCount || 0,
-            isLiked: comment.isLikedByCurrentUser || false,
-            createdAt: comment.uploadTime || comment.createdAt || new Date().toISOString(),
-          }))
-          setComments(mappedComments)
+        try {
+          const commentsRes = await fetch(`${backendUrl}/api/comments/post/${id}?page=1&pageSize=50`, {
+            headers,
+          })
+          if (commentsRes.ok) {
+            const commentsData = await commentsRes.json()
+            const items = commentsData.items || commentsData.data || commentsData
+            if (Array.isArray(items)) {
+              const mappedComments = items.map((comment: any) => ({
+                id: comment.id?.toString() || "",
+                postId: id,
+                author: {
+                  id: comment.author?.id || comment.user?.id || comment.authorId || "",
+                  name: comment.author?.fullName || comment.user?.fullName || "Unknown",
+                  avatar: comment.author?.avatarUrl || comment.user?.avatarUrl
+                    ? ((comment.author?.avatarUrl || comment.user?.avatarUrl).startsWith('http') 
+                        ? (comment.author?.avatarUrl || comment.user?.avatarUrl)
+                        : `${backendUrl}${comment.author?.avatarUrl || comment.user?.avatarUrl}`)
+                    : "/placeholder.svg",
+                },
+                text: comment.content || "",
+                likes: comment.likeCount || 0,
+                isLiked: comment.isLikedByCurrentUser || false,
+                createdAt: comment.createdAt || comment.uploadTime || new Date().toISOString(),
+                replyCount: comment.replyCount || 0,
+                parentCommentId: comment.parentCommentId || null,
+                replies: [],
+                isRepliesExpanded: false,
+                isLoadingReplies: false
+              }))
+              setComments(mappedComments)
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching comments:", err)
         }
-        
       } catch (err) {
         console.error("Error fetching post:", err)
         setError("Đã xảy ra lỗi khi tải bài viết")
@@ -327,6 +357,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         body: JSON.stringify({
           postId: parseInt(id),
           content: commentText,
+          parentCommentId: replyingTo ? parseInt(replyingTo.id) : null
         }),
       })
 
@@ -337,29 +368,42 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       }
 
       const result = await response.json()
-      const commentData = result.data
+      const commentData = result.data || result
 
       // Map backend comment to frontend format
-      const newComment = {
-        id: commentData.id.toString(),
+      const newComment: CommentType = {
+        id: commentData.id?.toString() || "",
         postId: id,
         author: {
-          id: commentData.user.id,
-          name: commentData.user.fullName,
-          avatar: commentData.user.avatarUrl
-            ? (commentData.user.avatarUrl.startsWith('http') 
-                ? commentData.user.avatarUrl 
-                : `${backendUrl}${commentData.user.avatarUrl}`)
+          id: commentData.user?.id || commentData.author?.id || "",
+          name: commentData.user?.fullName || commentData.author?.fullName || "Unknown",
+          avatar: commentData.user?.avatarUrl || commentData.author?.avatarUrl
+            ? ((commentData.user?.avatarUrl || commentData.author?.avatarUrl).startsWith('http') 
+                ? (commentData.user?.avatarUrl || commentData.author?.avatarUrl)
+                : `${backendUrl}${commentData.user?.avatarUrl || commentData.author?.avatarUrl}`)
             : '/placeholder.svg',
         },
-        text: commentData.content,
+        text: commentData.content || commentText,
         likes: 0,
         isLiked: false,
-        createdAt: commentData.createdAt,
+        createdAt: commentData.createdAt || new Date().toISOString(),
+        replyCount: 0,
+        parentCommentId: commentData.parentCommentId ? commentData.parentCommentId.toString() : null,
+        replies: [],
+        isRepliesExpanded: false,
+        isLoadingReplies: false
       }
 
-      // Add new comment to the top of the list
-      setComments([newComment, ...comments])
+      if (replyingTo) {
+        setComments(prev => prev.map(c => 
+          c.id === replyingTo.id 
+            ? { ...c, replies: [...(c.replies || []), newComment], isRepliesExpanded: true, replyCount: (c.replyCount || 0) + 1 } 
+            : c
+        ))
+        setReplyingTo(null)
+      } else {
+        setComments([newComment, ...comments])
+      }
       setCommentText("")
       
       // Cập nhật comment count của post
@@ -608,6 +652,57 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     } catch (error) {
       console.error("Lỗi khi xóa bình luận:", error)
       return false
+    }
+  }
+
+  const handleLoadReplies = async (commentId: string) => {
+    try {
+      setComments(prev => prev.map(c => c.id === commentId ? { ...c, isLoadingReplies: true } : c))
+      
+      const backendUrl = getApiUrl()
+      const response = await fetch(`${backendUrl}/api/comments/${commentId}/replies?page=1&pageSize=50`, {
+        headers: authUtils.getAuthHeaders(),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const items = data.items || data.data || data
+        if (Array.isArray(items)) {
+          const mappedReplies = items.map((comment: any) => ({
+            id: comment.id?.toString() || "",
+            postId: id,
+            author: {
+              id: comment.author?.id || comment.user?.id || comment.authorId || "",
+              name: comment.author?.fullName || comment.user?.fullName || "Unknown",
+              avatar: comment.author?.avatarUrl || comment.user?.avatarUrl
+                ? ((comment.author?.avatarUrl || comment.user?.avatarUrl).startsWith('http') 
+                    ? (comment.author?.avatarUrl || comment.user?.avatarUrl)
+                    : `${backendUrl}${comment.author?.avatarUrl || comment.user?.avatarUrl}`)
+                : "/placeholder.svg",
+            },
+            text: comment.content || "",
+            likes: comment.likeCount || 0,
+            isLiked: comment.isLikedByCurrentUser || false,
+            createdAt: comment.createdAt || comment.uploadTime || new Date().toISOString(),
+            replyCount: 0,
+            parentCommentId: commentId,
+            replies: [],
+            isRepliesExpanded: false,
+            isLoadingReplies: false
+          }))
+          
+          setComments(prev => prev.map(c => 
+            c.id === commentId 
+              ? { ...c, replies: mappedReplies, isRepliesExpanded: true, isLoadingReplies: false } 
+              : c
+          ))
+        }
+      } else {
+        setComments(prev => prev.map(c => c.id === commentId ? { ...c, isLoadingReplies: false } : c))
+      }
+    } catch (error) {
+      console.error("Lỗi khi tải phản hồi:", error)
+      setComments(prev => prev.map(c => c.id === commentId ? { ...c, isLoadingReplies: false } : c))
     }
   }
 
@@ -936,6 +1031,17 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                             >
                               Thích {comment.likes > 0 && `(${comment.likes})`}
                             </button>
+
+                            <button
+                              onClick={() => {
+                                if (!isAuthenticated) { setShowLoginDialog(true); return }
+                                setReplyingTo({ id: comment.id, name: comment.author.name })
+                                // Optional: focus input
+                              }}
+                              className="text-[12px] font-bold text-muted-foreground hover:text-foreground hover:underline"
+                            >
+                              Phản hồi
+                            </button>
                             
                             {/* Comment Menu Trigger - Shows on hover of the comment block */}
                             <div className="relative opacity-0 group-hover:opacity-100 transition-opacity">
@@ -980,6 +1086,60 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                           </div>
                         </div>
                       )}
+
+                      {/* View Replies Button */}
+                      {comment.replyCount > 0 && !comment.isRepliesExpanded && (
+                        <button 
+                          onClick={() => handleLoadReplies(comment.id)}
+                          className="text-[12px] font-bold text-primary mt-2 ml-2 hover:underline flex items-center gap-2"
+                          disabled={comment.isLoadingReplies}
+                        >
+                          <span className="w-6 border-b border-primary/50 inline-block mb-1"></span>
+                          {comment.isLoadingReplies ? "Đang tải..." : `Xem ${comment.replyCount} phản hồi`}
+                        </button>
+                      )}
+
+                      {/* Replies List */}
+                      {comment.isRepliesExpanded && comment.replies && comment.replies.length > 0 && (
+                        <div className="mt-3 space-y-4 border-l-2 border-border/40 pl-4 ml-4">
+                          {comment.replies.map(reply => (
+                            <div key={reply.id} className="flex gap-3 group">
+                              <Link href={currentUser && String(reply.author.id).toLowerCase() === String(currentUser.id).toLowerCase() ? "/user/profile/me" : `/user/profile/${reply.author.id}`} className="flex-shrink-0 pt-1">
+                                <img
+                                  src={reply.author.avatar || "/placeholder.svg"}
+                                  alt={reply.author.name}
+                                  className="h-7 w-7 rounded-full cursor-pointer hover:opacity-80 object-cover ring-1 ring-border"
+                                />
+                              </Link>
+                              
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-col items-start max-w-[95%]">
+                                  <div className="bg-card border border-border/60 rounded-2xl rounded-tl-sm px-3.5 py-2.5 shadow-sm">
+                                    <Link href={currentUser && String(reply.author.id).toLowerCase() === String(currentUser.id).toLowerCase() ? "/user/profile/me" : `/user/profile/${reply.author.id}`}>
+                                      <span className="text-[13px] font-semibold text-foreground hover:text-primary cursor-pointer mb-1 block">
+                                        {reply.author.name}
+                                      </span>
+                                    </Link>
+                                    <p className="text-[14px] text-foreground leading-snug break-words whitespace-pre-wrap">
+                                      {reply.text}
+                                    </p>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-4 mt-1.5 px-2">
+                                    <span className="text-[11px] text-muted-foreground font-medium">{formatTimeAgo(reply.createdAt)}</span>
+                                    <button
+                                      onClick={() => {}} // Could implement reply-to-reply or just like
+                                      className="text-[12px] font-bold text-muted-foreground hover:text-foreground hover:underline"
+                                    >
+                                      Thích {reply.likes > 0 && `(${reply.likes})`}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))
@@ -988,10 +1148,18 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           </div>
 
           {/* Comment Input Footer */}
-          <div className="border-t border-border/50 bg-card p-3 sm:p-4 flex-shrink-0 z-10">
+          <div className="border-t border-border/50 bg-card p-3 sm:p-4 flex-shrink-0 z-10 flex flex-col">
             {commentError && (
               <div className="mb-2 p-2 bg-destructive/10 border border-destructive/20 rounded-lg text-[13px] font-medium text-destructive">
                 {commentError}
+              </div>
+            )}
+            {replyingTo && (
+              <div className="flex items-center justify-between bg-primary/5 text-primary text-xs font-medium px-3 py-2 rounded-lg mb-2">
+                <span>Đang trả lời <strong>{replyingTo.name}</strong></span>
+                <button type="button" onClick={() => setReplyingTo(null)} className="hover:text-primary/70">
+                  <X className="h-3.5 w-3.5" />
+                </button>
               </div>
             )}
             <form onSubmit={handleSubmitComment} className="flex gap-3 items-end relative">
