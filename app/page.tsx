@@ -50,7 +50,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5">
-              <img src="/care-logo.png" alt="Health Care Logo" className="h-20 w-auto object-contain" />
+              <img src="/care-logo.png" alt="Health Care Logo" className="h-28 w-auto object-contain" />
             </Link>
 
             {/* Nav actions */}

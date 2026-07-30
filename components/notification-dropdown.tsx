@@ -42,11 +42,69 @@ export function NotificationDropdown() {
   }, [isAuthenticated, isOpen])
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchUnreadCount()
-      // Poll for new notifications every 30 seconds
-      const interval = setInterval(fetchUnreadCount, 30000)
-      return () => clearInterval(interval)
+    if (!isAuthenticated) return
+
+    fetchUnreadCount()
+
+    let connection: any = null
+    let isCancelled = false
+    
+    const setupSignalR = async () => {
+      try {
+        const { HubConnectionBuilder, LogLevel } = await import('@microsoft/signalr')
+        
+        if (isCancelled) return
+
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7223'
+        
+        connection = new HubConnectionBuilder()
+          .withUrl(`${backendUrl}/hubs/notification`, {
+            accessTokenFactory: () => authUtils.getToken() || ''
+          })
+          .configureLogging(LogLevel.Information)
+          .withAutomaticReconnect()
+          .build()
+
+        connection.on('ReceiveNotification', (notification: Notification) => {
+          setUnreadCount((prev) => prev + 1)
+          
+          setNotifications((prev) => {
+            // Avoid duplicates
+            if (prev.some((n) => n.id === notification.id)) return prev
+            
+            // Format actor avatarUrl if needed
+            const newNotif = { ...notification }
+            if (newNotif.actor?.avatarUrl && !newNotif.actor.avatarUrl.startsWith('http') && newNotif.actor.avatarUrl !== '/placeholder.svg') {
+              newNotif.actor.avatarUrl = `${backendUrl}${newNotif.actor.avatarUrl}`
+            }
+            
+            return [newNotif, ...prev]
+          })
+        })
+
+        if (isCancelled) return
+
+        await connection.start()
+        console.log('SignalR Notification Hub connected')
+      } catch (err) {
+        if (isCancelled) {
+          console.debug('SignalR connection aborted due to component unmount.')
+        } else {
+          console.error('SignalR Connection Error: ', err)
+        }
+      }
+    }
+
+    setupSignalR()
+
+    return () => {
+      isCancelled = true
+      if (connection) {
+        connection.stop().catch((err: any) => {
+          // Ignore error if stopped during handshake
+          console.debug('SignalR stop error ignored:', err)
+        })
+      }
     }
   }, [isAuthenticated])
 
@@ -152,7 +210,7 @@ export function NotificationDropdown() {
   }
 
   const getIcon = (type: string) => {
-    switch (type) {
+    switch (type.toLowerCase()) {
       case 'like':
         return <Heart className="h-3.5 w-3.5 text-white fill-white" />
       case 'comment':
@@ -165,7 +223,7 @@ export function NotificationDropdown() {
   }
 
   const getIconBgColor = (type: string) => {
-    switch (type) {
+    switch (type.toLowerCase()) {
       case 'like':
         return 'bg-rose-500 shadow-rose-500/40'
       case 'comment':

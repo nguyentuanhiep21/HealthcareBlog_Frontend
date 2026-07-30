@@ -14,6 +14,7 @@ import { formatTimeAgo } from "@/lib/time-utils"
 import { authUtils } from "@/lib/auth-utils"
 import { getApiUrl } from "@/lib/utils"
 import { BackgroundPattern } from "@/components/background-pattern"
+import { Navbar } from "@/components/navbar"
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -280,58 +281,89 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     }
   }
 
-  const handleCommentLike = async (commentId: string) => {
+  const handleCommentLike = async (commentId: string, parentId?: string) => {
     if (!isAuthenticated) {
       setShowLoginDialog(true)
       return
     }
 
-    const comment = comments.find(c => c.id === commentId)
-    if (!comment) return
+    let targetComment = null
+    let isNested = false
 
-    const newIsLiked = !comment.isLiked
-    const newLikeCount = newIsLiked ? comment.likes + 1 : comment.likes - 1
+    if (parentId) {
+      const parent = comments.find(c => c.id === parentId)
+      targetComment = parent?.replies?.find(r => r.id === commentId)
+      isNested = true
+    } else {
+      targetComment = comments.find(c => c.id === commentId)
+    }
+
+    if (!targetComment) return
+
+    const newIsLiked = !targetComment.isLiked
+    const newLikeCount = newIsLiked ? targetComment.likes + 1 : targetComment.likes - 1
+
+    const revertState = (prevComments: CommentType[]) => {
+      if (isNested && parentId) {
+        return prevComments.map(c =>
+          c.id === parentId
+            ? {
+                ...c,
+                replies: c.replies?.map(r =>
+                  r.id === commentId
+                    ? { ...r, isLiked: !newIsLiked, likes: !newIsLiked ? newLikeCount + 1 : newLikeCount - 1 }
+                    : r
+                )
+              }
+            : c
+        )
+      }
+      return prevComments.map(c =>
+        c.id === commentId
+          ? { ...c, isLiked: !newIsLiked, likes: !newIsLiked ? newLikeCount + 1 : newLikeCount - 1 }
+          : c
+      )
+    }
 
     // Optimistic update
-    setComments(prevComments =>
-      prevComments.map(c =>
+    setComments(prevComments => {
+      if (isNested && parentId) {
+        return prevComments.map(c =>
+          c.id === parentId
+            ? {
+                ...c,
+                replies: c.replies?.map(r =>
+                  r.id === commentId
+                    ? { ...r, isLiked: newIsLiked, likes: newLikeCount }
+                    : r
+                )
+              }
+            : c
+        )
+      }
+      return prevComments.map(c =>
         c.id === commentId
           ? { ...c, isLiked: newIsLiked, likes: newLikeCount }
           : c
       )
-    )
+    })
 
     try {
       const backendUrl = getApiUrl()
-      const endpoint = "like"
       const method = newIsLiked ? "POST" : "DELETE"
 
-      const response = await fetch(`${backendUrl}/api/comments/${commentId}/${endpoint}`, {
+      const response = await fetch(`${backendUrl}/api/comments/${commentId}/like`, {
         method,
         headers: authUtils.getAuthHeaders(),
       })
 
       if (!response.ok) {
-        // Revert on error
-        setComments(prevComments =>
-          prevComments.map(c =>
-            c.id === commentId
-              ? { ...c, isLiked: !newIsLiked, likes: newIsLiked ? newLikeCount - 1 : newLikeCount + 1 }
-              : c
-          )
-        )
+        setComments(revertState)
         console.error("Lỗi khi like/unlike bình luận")
       }
     } catch (error) {
       console.error("Lỗi khi like/unlike bình luận:", error)
-      // Revert on error
-      setComments(prevComments =>
-        prevComments.map(c =>
-          c.id === commentId
-            ? { ...c, isLiked: !newIsLiked, likes: newIsLiked ? newLikeCount - 1 : newLikeCount + 1 }
-            : c
-        )
-      )
+      setComments(revertState)
     }
   }
 
@@ -710,85 +742,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     <main className="fixed inset-0 z-50 bg-slate-50 dark:bg-slate-950 overflow-hidden" style={{ fontSize: '100%' }}>
       <BackgroundPattern />
       <div className="relative z-10 h-full flex flex-col">
-        <div className="border-b border-border bg-background/95 backdrop-blur h-16 flex items-center justify-between px-6 flex-shrink-0">
-        {/* Left - Close and Logo */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.back()}
-            className="rounded-full p-2 hover:bg-secondary transition text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-6 w-6" />
-          </button>
-          <Link href="/user">
-            <Image src="/care-logo.png" alt="Health Care Logo" width={288} height={96} className="h-24 w-auto" />
-          </Link>
-        </div>
-
-        {/* Right - Avatar and Notification */}
-        <div className="flex items-center gap-4">
-          {isAuthenticated && currentUser ? (
-            <>
-              <button className="rounded-full p-2 hover:bg-secondary transition text-muted-foreground hover:text-foreground">
-                <Bell className="h-5.5 w-5.5" />
-              </button>
-
-              {/* Avatar with dropdown menu */}
-              <div className="relative">
-                <button
-                  onClick={() => setIsAvatarMenuOpen(!isAvatarMenuOpen)}
-                  className="rounded-full overflow-hidden hover:opacity-80 transition"
-                >
-                  <img
-                    src={currentUser.avatar || "/placeholder.svg"}
-                    alt={currentUser.name}
-                    className="h-7 w-7 rounded-full cursor-pointer hover:opacity-80"
-                  />
-                </button>
-
-                {isAvatarMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-lg border border-border bg-card shadow-lg z-10">
-                    <div className="flex flex-col gap-1 p-2">
-                      <Link
-                        href="/user/profile"
-                        className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-base"
-                        onClick={() => setIsAvatarMenuOpen(false)}
-                      >
-                        <User className="h-4 w-4" />
-                        <span>Trang cá nhân</span>
-                      </Link>
-                      <Link
-                        href="/user/settings"
-                        className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-base"
-                        onClick={() => setIsAvatarMenuOpen(false)}
-                      >
-                        <Settings className="h-4 w-4" />
-                        <span>Cài đặt</span>
-                      </Link>
-                      <button
-                        onClick={() => {
-                          logout()
-                          setIsAvatarMenuOpen(false)
-                        }}
-                        className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary text-base text-left text-destructive"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span>Đăng xuất</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <Link href="/auth/login">
-              <Button className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium">
-                <LogIn className="h-4 w-4" />
-                Đăng Nhập
-              </Button>
-            </Link>
-          )}
-        </div>
-      </div>
+        <Navbar hideSearch={true} showBackButton={true} fullWidth={true} />
 
       {/* Content - Responsive & Conditional Layout */}
       <div className={`flex flex-col md:flex-row ${images.length > 0 ? 'h-[calc(100vh-4rem)]' : 'min-h-[calc(100vh-4rem)] justify-center bg-slate-50 dark:bg-slate-950 p-4 md:p-8'}`}>
@@ -1128,8 +1082,8 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                                   <div className="flex items-center gap-4 mt-1.5 px-2">
                                     <span className="text-[11px] text-muted-foreground font-medium">{formatTimeAgo(reply.createdAt)}</span>
                                     <button
-                                      onClick={() => {}} // Could implement reply-to-reply or just like
-                                      className="text-[12px] font-bold text-muted-foreground hover:text-foreground hover:underline"
+                                      onClick={() => handleCommentLike(reply.id, comment.id)}
+                                      className={`text-[12px] font-bold hover:underline ${reply.isLiked ? "text-rose-500" : "text-muted-foreground hover:text-foreground"}`}
                                     >
                                       Thích {reply.likes > 0 && `(${reply.likes})`}
                                     </button>
