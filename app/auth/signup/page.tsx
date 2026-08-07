@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle2, ArrowRight, Heart } from "lucide-react"
+import { authUtils } from "@/lib/auth-utils"
+
 
 export default function SignupPage() {
   const router = useRouter()
@@ -19,6 +21,13 @@ export default function SignupPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const [passwordStrength, setPasswordStrength] = useState(0)
+
+  // Redirect already-authenticated users away from signup page
+  useEffect(() => {
+    if (authUtils.isAuthenticated()) {
+      router.replace("/user")
+    }
+  }, [])
 
   const calculatePasswordStrength = (password: string) => {
     let strength = 0

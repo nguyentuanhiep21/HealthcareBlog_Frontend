@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle2, ArrowRight, Shield } from "lucide-react"
@@ -16,6 +16,7 @@ import {
 import { useAuth } from "@/components/auth-provider"
 import { authUtils } from "@/lib/auth-utils"
 
+
 export default function LoginPage() {
   const router = useRouter()
   const { login } = useAuth()
@@ -29,6 +30,13 @@ export default function LoginPage() {
   const [showVerificationDialog, setShowVerificationDialog] = useState(false)
   const [isResendingEmail, setIsResendingEmail] = useState(false)
   const [resendSuccess, setResendSuccess] = useState(false)
+
+  // Redirect already-authenticated users away from login page
+  useEffect(() => {
+    if (authUtils.isAuthenticated()) {
+      router.replace("/user")
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
